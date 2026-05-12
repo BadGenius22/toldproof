@@ -1,4 +1,4 @@
-name: Move CI
+name: CI
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   move-build-test:
-    name: build + test prediction_vault
+    name: move build + test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,3 +40,27 @@ jobs:
       - name: sui move test
         working-directory: move/prediction_vault
         run: sui move test
+
+  ts-typecheck-build:
+    name: ts typecheck + next build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: typecheck (tsc --noEmit)
+        run: pnpm run typecheck
+
+      - name: next build
+        run: pnpm run build

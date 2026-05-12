@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "seal": "tsx --env-file=.env.local scripts/seal-cli.ts",
-    "reveal": "tsx --env-file=.env.local scripts/reveal-cli.ts"
+    "reveal": "tsx --env-file=.env.local scripts/reveal-cli.ts",
+    "test:seal-negative": "tsx --env-file=.env.local scripts/test-seal-negative.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@mysten/seal": "^1.1.3",
