@@ -5,7 +5,8 @@
 // Usage:
 //   pnpm seal "<prediction text>" [unlock_seconds_from_now=60] [x_handle=cli]
 
-import { getSuiClient, loadDevKeypair, sealPredictionTx } from '../lib/sui';
+import { sealPredictionTx } from '../lib/sui';
+import { getSuiClient, loadDevKeypair } from '../lib/sui-node';
 import { storeBlob } from '../lib/walrus';
 import { getSealClient, encryptAesKey } from '../lib/seal';
 import { aesGcmEncrypt, randomAesKey, sha256 } from '../lib/crypto';

@@ -6,13 +6,12 @@
 //   pnpm reveal <prediction_id>
 
 import {
-  getSuiClient,
-  loadDevKeypair,
   fetchSealedPrediction,
   revealTx,
   sealApproveTx,
   toBytes,
 } from '../lib/sui';
+import { getSuiClient, loadDevKeypair } from '../lib/sui-node';
 import { readBlob } from '../lib/walrus';
 import { getSealClient, createSessionKey, decryptAesKey } from '../lib/seal';
 import { aesGcmDecrypt } from '../lib/crypto';

@@ -1,39 +1,15 @@
-// Sui client + keypair loading + Move call helpers for the CLI scripts.
-// Uses the new @mysten/sui 2.x JSON-RPC client.
+// Universal Sui helpers — safe for both browser and Node.
+// Server-only helpers (keypair loading, JSON-RPC client construction) live in
+// lib/sui-node.ts so the browser bundle doesn't pull in node:fs.
 
-import { readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
 import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
-import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { Transaction } from '@mysten/sui/transactions';
-import { fromBase64 } from '@mysten/sui/utils';
-import { env } from './env';
 
-const CLOCK_ID = '0x6';
+export const CLOCK_ID = '0x6';
 
+// Both the Node `getSuiClient()` and the dapp-kit `useCurrentClient()` return
+// instances assignable to this type.
 export type SuiClient = SuiJsonRpcClient;
-
-export function getSuiClient(): SuiClient {
-  return new SuiJsonRpcClient({
-    url: env.suiRpc,
-    network: env.suiNetwork as 'testnet' | 'mainnet' | 'devnet' | 'localnet',
-  });
-}
-
-// Loads the same keypair that `sui client` uses from ~/.sui/sui_config/sui.keystore.
-// Format: JSON array of base64 strings, each = [flag(1) || secret(32)] for ed25519 (flag=0x00).
-export function loadDevKeypair(): Ed25519Keypair {
-  const path = join(homedir(), '.sui/sui_config/sui.keystore');
-  const keys = JSON.parse(readFileSync(path, 'utf-8')) as string[];
-  if (!keys[0]) throw new Error(`keystore at ${path} is empty`);
-  const raw = fromBase64(keys[0]);
-  const secret = raw.byteLength === 33 ? raw.slice(1) : raw;
-  if (secret.byteLength !== 32) {
-    throw new Error(`unexpected ed25519 secret length: ${secret.byteLength}`);
-  }
-  return Ed25519Keypair.fromSecretKey(secret);
-}
 
 export function sealPredictionTx(args: {
   registryId: string;
@@ -87,8 +63,10 @@ export function sealApproveTx(args: {
   unlockAtMs: bigint;
 }): Transaction {
   const tx = new Transaction();
-  const idBytes = Buffer.alloc(8);
-  idBytes.writeBigUInt64LE(args.unlockAtMs);
+  // BCS u64 = little-endian 8 bytes. Avoid Node Buffer for browser compat.
+  const idBytes = new Uint8Array(8);
+  const view = new DataView(idBytes.buffer);
+  view.setBigUint64(0, args.unlockAtMs, true);
   tx.moveCall({
     target: `${args.packageId}::prediction_vault::seal_approve`,
     arguments: [
@@ -128,9 +106,17 @@ export async function fetchSealedPrediction(
 }
 
 // Sui RPC returns vector<u8> either as base64 string or as number[] depending on
-// the field's annotation. Coerce both to Uint8Array.
+// the field's annotation. Coerce both to Uint8Array (browser-safe).
 export function toBytes(v: number[] | string | Uint8Array): Uint8Array {
   if (v instanceof Uint8Array) return v;
   if (Array.isArray(v)) return new Uint8Array(v);
+  // base64 string fallback
+  if (typeof atob === 'function') {
+    const binary = atob(v);
+    const out = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) out[i] = binary.charCodeAt(i);
+    return out;
+  }
+  // Node fallback (CLI scripts)
   return new Uint8Array(Buffer.from(v, 'base64'));
 }

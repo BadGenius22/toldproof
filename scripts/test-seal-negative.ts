@@ -9,12 +9,11 @@
 // the AES key the time-lock is NOT enforced — exit 1 and scream.
 
 import {
-  getSuiClient,
-  loadDevKeypair,
   fetchSealedPrediction,
   sealApproveTx,
   toBytes,
 } from '../lib/sui';
+import { getSuiClient, loadDevKeypair } from '../lib/sui-node';
 import { getSealClient, createSessionKey, decryptAesKey } from '../lib/seal';
 import { env } from '../lib/env';
 
