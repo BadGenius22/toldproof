@@ -115,6 +115,41 @@ fun seal_prediction_creates_shared_object_and_indexes() {
     scenario.end();
 }
 
+#[test]
+fun multiple_predictions_per_handle_appends_to_vector() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+
+    // Seal 3 predictions for the same x_handle
+    prediction_vault::seal_prediction(
+        &mut reg, handle(), UNLOCK_AT_MS, content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+    prediction_vault::seal_prediction(
+        &mut reg, handle(), UNLOCK_AT_MS + 1, content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+    prediction_vault::seal_prediction(
+        &mut reg, handle(), UNLOCK_AT_MS + 2, content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+
+    // by_handle[handle()] should have 3 entries; total_count should be 3
+    assert!(prediction_vault::total_count(&reg) == 3, 300);
+    assert!(prediction_vault::handle_count(&reg, handle()) == 3, 301);
+
+    // Different handle starts at 0
+    assert!(prediction_vault::handle_count(&reg, b"someone_else".to_string()) == 0, 302);
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
 #[test, expected_failure(abort_code = prediction_vault::EUnlockInPast)]
 fun seal_prediction_with_unlock_in_past_aborts() {
     let mut scenario = ts::begin(ADMIN);
