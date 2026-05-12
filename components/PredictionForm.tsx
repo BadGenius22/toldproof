@@ -62,7 +62,11 @@ export function PredictionForm() {
 
   const [step, setStep] = useState<Step>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ predictionId: string; blobId: string } | null>(null);
+  const [result, setResult] = useState<{
+    predictionId: string;
+    blobId: string;
+    xHandle: string;
+  } | null>(null);
 
   const disabled = step !== 'idle' && step !== 'done' && step !== 'error';
   const charsLeft = 280 - text.length;
@@ -145,9 +149,9 @@ export function PredictionForm() {
       }
 
       setStep('done');
-      setResult({ predictionId: created.objectId, blobId });
+      setResult({ predictionId: created.objectId, blobId, xHandle: cleanHandle });
       // Navigate to verify page after a beat so the user sees the success state
-      setTimeout(() => router.push(`/verify/${created.objectId}`), 1200);
+      setTimeout(() => router.push(`/verify/${created.objectId}`), 1500);
     } catch (e: unknown) {
       console.error(e);
       setError(e instanceof Error ? e.message : String(e));
@@ -226,13 +230,24 @@ export function PredictionForm() {
         </div>
       )}
       {step === 'done' && result && (
-        <div className="rounded-md border border-green-300 bg-green-50 p-3 text-sm dark:border-green-800 dark:bg-green-950">
+        <div className="flex flex-col gap-2 rounded-md border border-green-300 bg-green-50 p-3 text-sm dark:border-green-800 dark:bg-green-950">
           <p className="font-medium text-green-900 dark:text-green-200">Sealed ✓</p>
-          <p className="mt-1 break-all font-mono text-xs text-green-900 dark:text-green-200">
+          <p className="break-all font-mono text-xs text-green-900 dark:text-green-200">
             id: {result.predictionId}
           </p>
-          <p className="mt-1 break-all font-mono text-xs text-green-900 dark:text-green-200">
+          <p className="break-all font-mono text-xs text-green-900 dark:text-green-200">
             walrus: {result.blobId}
+          </p>
+          <p className="text-xs text-green-900 dark:text-green-200">
+            redirecting to{' '}
+            <a className="underline" href={`/verify/${result.predictionId}`}>
+              /verify/{result.predictionId.slice(0, 10)}…
+            </a>
+            {' · '}
+            view profile{' '}
+            <a className="underline" href={`/${result.xHandle}`}>
+              @{result.xHandle}
+            </a>
           </p>
         </div>
       )}
