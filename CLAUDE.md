@@ -65,8 +65,8 @@ Violating any of these is a workflow error. Stop and ask before proceeding.
 
 ### Security
 - **Never log Seal decryption keys, IBE master keys, or user OAuth tokens.** Use environment variables; redact in any structured logging.
-- **Move contract changes require the user to review every diff before mainnet deploy.** Testnet deploys are auto.
-- **Every `seal_approve` function must be tested with at least one positive and one negative case** before being deployed to mainnet.
+- **Localnet deploys (`sui client test-publish --build-env testnet`) are auto.** Testnet deploy is the **FINAL phase** for this hackathon — every Move diff requires user review before publishing to testnet. Mainnet is deferred to post-hackathon.
+- **Every `seal_approve` function must be tested with at least one positive and one negative case** before being deployed to testnet.
 - **Wallet connection failures must be handled gracefully** — never silent-fail.
 - **Postgres credentials are not committed to git, even encrypted.** Use Vercel env vars.
 
@@ -168,10 +168,31 @@ The MVP is finished when ALL of these are true:
 9. **Mainnet Move contracts** have been reviewed by user and pass the seal_approve test cases (positive + negative).
 10. **README.md** at the project root explains the architecture in under 200 lines for hackathon judges.
 
+## Required skill usage
+
+**Before writing or modifying any code that touches Sui Move, the Sui TypeScript SDK (`@mysten/sui`, `@mysten/dapp-kit`), Walrus (`@mysten/walrus`), or Seal (`@mysten/seal`)** — invoke the `/sui-dev` skill and consult its reference files. This is non-negotiable. The skill encodes anti-patterns that compile fine but fail in production (`public entry` vs `entry` for `seal_approve`, single-server vs threshold key-server config, envelope encryption vs direct Seal of large payloads, etc.). Always cross-check the canonical recipe in `~/.claude/skills/sui-dev/references/11-toldproof-stack.md` before fleshing out any new file or function.
+
+Exceptions: pure UI styling/copy text, non-Sui dependency upgrades, README edits.
+
+## Development environment
+
+| Phase | Active sui env | Move target | Walrus / Seal target |
+|---|---|---|---|
+| Dev (Days 1–9) | `sui client switch --env testnet` (for build/test ergonomics) | localnet via `sui client test-publish --build-env testnet` | testnet (no local equivalents exist) |
+| Final deploy (Day 10) | `sui client switch --env testnet` | testnet via `sui client publish` | testnet |
+| Post-hackathon | — | mainnet | mainnet |
+
+Daily commands inside `move/prediction_vault/`:
+- `sui move build` — compile (testnet env active is fine).
+- `sui move test` — run all 10 tests.
+- For localnet publish: `sui client switch --env local && sui client test-publish --build-env testnet --gas-budget 200000000` (then switch back to `testnet`).
+
 ## Quick references
 
 - Spec: `spec.md`
 - Build plan: `buildplan.md`
+- Seal recipe: `docs/seal-notes.md`
+- sui-dev skill: `~/.claude/skills/sui-dev/references/`
 - Sui docs: https://docs.sui.io
 - Walrus docs: https://docs.wal.app
 - Seal docs: https://seal-docs.wal.app

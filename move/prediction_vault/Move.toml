@@ -4,6 +4,12 @@ edition = "2024"
 license = "Apache-2.0"
 authors = ["TOLDPROOF"]
 
+[environments]
+testnet = "4c78adac"
+mainnet = "35834a8a"
+# Localnet uses ephemeral chain-id per regenesis. For local dev, run:
+#   sui client test-publish --build-env testnet --gas-budget 200000000
+
 [dependencies]
 
 [addresses]

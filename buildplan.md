@@ -29,9 +29,11 @@
 
 ---
 
-## Day 1 — Move contracts (testnet first deploy)
+## Day 1 — Move contracts (localnet first deploy)
 
-**Goal**: First version of `prediction_vault.move` deployed to testnet; `seal_approve` works for time-lock.
+**Goal**: First version of `prediction_vault.move` deployed to **localnet** (`sui start --with-faucet`); `seal_approve` works for time-lock. Testnet deploy is reserved for Day 10 (final phase).
+
+**Required**: Invoke `/sui-dev` skill before writing the module — the canonical blueprint lives in `~/.claude/skills/sui-dev/references/11-toldproof-stack.md`.
 
 ### Module structure: `prediction_vault.move`
 
@@ -113,19 +115,26 @@ entry fun seal_approve(id: vector<u8>, c: &Clock) {
 
 | Task | DoD |
 |---|---|
-| Write `prediction_vault.move` per structure above | `sui move build` passes |
-| Write minimum tests: positive seal_approve (after unlock) + negative (before unlock) | `sui move test` passes |
-| Initialize shared `PredictionRegistry` object in `init` | Module deploys with one registry singleton |
-| Deploy to testnet via `sui client publish` | Package ID recorded in `.env.local` |
-| Manual test: call `seal_prediction` from CLI, then `seal_approve` via Seal SDK | End-to-end manual flow works |
+| Write `prediction_vault.move` following the `/sui-dev` skill recipe (`11-toldproof-stack.md`) | `sui move build` passes |
+| Write minimum tests: positive `seal_approve` (after unlock) + negative (before unlock), plus reveal happy/sad paths | `sui move test` — all green |
+| Initialize shared `Registry` object in `init` (OTW + versioned) | Module publishes with one Registry singleton |
+| Start localnet: `sui start --with-faucet --force-regenesis` (background) | RPC at `127.0.0.1:9000`, faucet at `127.0.0.1:9123` reachable |
+| Switch env + fund: `sui client switch --env local && sui client faucet` | `sui client gas` shows ≥1 SUI |
+| Publish: `sui client test-publish --build-env testnet --gas-budget 200000000` | Package ID + Registry ID recorded in `.env.local` (gitignored) |
+| Manual end-to-end via `sui client call`: seal_prediction → seal_approve(before unlock = abort) → wait → seal_approve(after unlock = success) | Full flow exercised on localnet |
+| Switch back to testnet env (`sui client switch --env testnet`) for build/test ergonomics | `sui move build`/`test` runs cleanly without `--build-env` flag |
 
-**Day 1 DoD**: Move package on testnet, package ID recorded, two unit tests passing, one manual end-to-end seal.
+**Day 1 DoD**: Move package on localnet, package + Registry IDs recorded in `.env.local`, 10 unit tests passing, full end-to-end seal_prediction + seal_approve(before/after) exercised on a live network.
 
 ---
 
 ## Day 2 — Walrus + Seal SDK integration in TypeScript
 
 **Goal**: A node script that takes a prediction string + unlock time, encrypts via Seal, uploads to Walrus, calls the Move contract, and gets back a prediction ID.
+
+> **Network split from here onward**: Move contract calls stay on **localnet** (fast, free, deterministic). Walrus uploads and Seal key-server calls require **testnet** (no localnet equivalents). Practically: `lib/walrus.ts` and `lib/seal.ts` point at testnet endpoints, while `lib/sui.ts` points at `http://127.0.0.1:9000`. Once the user's testnet wallet is funded, this split disappears (everything moves to testnet for Day 10's final phase).
+>
+> **Required**: Invoke `/sui-dev` skill and follow `references/{09,10,11}.md` for Walrus, Seal, and the integrated recipe.
 
 ### Files to create
 
@@ -321,24 +330,27 @@ Account not linked:
 
 ---
 
-## Day 10 — Mainnet deploy + soft launch
+## Day 10 — Testnet deploy (FINAL phase) + soft launch
 
-**Goal**: Move contracts on Sui mainnet, app pointing to mainnet, soft launch to a small group.
+**Goal**: Move contracts published on **Sui testnet** (not mainnet — mainnet is deferred to post-hackathon), Vercel production pointed at testnet, soft launch to a small group.
+
+> **Why testnet, not mainnet**: Past Sui Overflow winners (Aver.Email, perma.ws, Chronos) submitted on testnet. Judges accept this. Mainnet adds 0 hackathon points and adds rugpull-style risk (Walrus permanence, Seal key-server commitments, real $$). The final-phase testnet deploy lets us exercise the full production stack — real Walrus, real Seal committee, real `@toldproof` bot traffic — without any of mainnet's irreversibility.
 
 ### Tasks
 
 | Task | DoD |
 |---|---|
-| Final review of Move contracts (user reviews diff) | User approval recorded |
-| Run all tests one more time | All pass |
-| Deploy `prediction_vault` to Sui mainnet via `sui client publish` | Package ID recorded, transaction confirmed |
-| Update `.env.production` with mainnet package ID | App points to mainnet |
-| Deploy app to Vercel production | `toldproof.xyz` live and pointed to mainnet |
-| Test mainnet end-to-end: seal a real prediction, wait 10 min, reveal | Full flow on mainnet |
-| Soft launch: DM 5-10 crypto Twitter contacts with the demo video and the URL | At least 2-3 real sealed predictions from non-self users |
+| **Final review of Move contracts** (user reviews every diff against localnet code) | User approval recorded in commit message |
+| Re-run all tests | `sui move test` — all green |
+| Confirm sui client env is testnet, wallet funded | `sui client active-env` = `testnet`, `sui client gas` shows ≥ 2 SUI |
+| Publish: `sui client publish --gas-budget 200000000` | Package ID + Registry ID captured |
+| Update `.env.production` with testnet package + Registry IDs | App points to testnet |
+| Deploy app to Vercel production | `toldproof.xyz` live |
+| Test testnet end-to-end: seal a real prediction (unlock 10 min out), wait, reveal | Full flow on testnet — Walrus blob, Seal key release, reveal tweet |
+| Soft launch: DM 5–10 crypto Twitter contacts with the demo video + URL | At least 2–3 real sealed predictions from non-self accounts |
 | Build-in-public tweet: announce the project with the demo video | Tweet posted |
 
-**Day 10 DoD**: live on mainnet; tested end-to-end with real users; demo video shared.
+**Day 10 DoD**: live on **testnet**; tested end-to-end with real users; demo video shared. Mainnet is parked.
 
 ---
 
@@ -386,7 +398,7 @@ If you can't complete the full plan, drop in this order from the bottom up:
 4. **Then**: Day 7 rate limiting (acceptable risk for hackathon scope)
 5. **Then**: Day 5 OG image generator (text-only tweets still work)
 
-**Do not drop**: Move contract + Seal time-lock (Day 1-2), wallet connect (Day 3), reveal watcher (Day 6), bot reply (Day 7), demo video (Day 9), mainnet deploy (Day 10), submission (Day 11).
+**Do not drop**: Move contract + Seal time-lock (Day 1-2), wallet connect (Day 3), reveal watcher (Day 6), bot reply (Day 7), demo video (Day 9), **testnet final deploy** (Day 10), submission (Day 11).
 
 ---
 
@@ -394,8 +406,8 @@ If you can't complete the full plan, drop in this order from the bottom up:
 
 - **End of Day 2**: if Walrus + Seal SDK integration is harder than expected (>1 day over budget), simplify to Walrus-only (skip Seal for v1, just commit a hash on-chain and post plaintext later). Pivot announcement in Day 3 stand-up.
 - **End of Day 5**: if X API Basic tier still not approved, fall back to free tier — limits demo throughput but doesn't kill the flow.
-- **End of Day 8**: if mainnet deploy looks risky, ship on testnet only and explicitly note "mainnet deploy after hackathon" in submission. Past winners have submitted on testnet.
-- **End of Day 10**: if reveal watcher or verify bot has bugs in soft launch, demo can show them in a controlled environment (Loom recording) — don't let live bugs kill the submission.
+- **End of Day 8**: testnet IS the final-phase target. If Walrus or Seal flows have stability issues by EOD 8, fall back to a recorded Loom of the full flow on localnet for the demo, and explain "testnet stability deferred to post-hackathon" in the submission.
+- **End of Day 10**: if reveal watcher or verify bot has bugs in soft launch, demo can show them in a controlled environment (Loom recording) — don't let live bugs kill the submission. Mainnet is NOT a Day-10 fallback; it's parked entirely.
 
 ---
 

@@ -111,11 +111,13 @@ Toldproof frontend (Next.js + Walrus Sites)
  3. Call Move: record_prediction(blob_id, hash, x_handle, unlock_at)
  4. Trigger X auto-post (optional)
 
-Sui Move contracts
+Sui Move contracts (per /sui-dev skill recipe `11-toldproof-stack.md`)
  - prediction_vault.move
-   - record_prediction(blob_id, hash, x_handle, unlock_at)
-   - custom seal_approve: validate clock.timestamp_ms >= unlock_at
- - reputation_nft.move
+   - shared Registry { version, by_handle: Table<String, vector<ID>>, total_count }
+   - seal_prediction(reg, x_handle, unlock_at_ms, content_hash, blob_id, sealed_key, &clock, ctx)
+   - reveal(&reg, &mut pred, plaintext, &clock) — sha2_256(plaintext) == content_hash gate
+   - entry fun seal_approve(id, &Clock) — time-lock policy, id = bcs::to_bytes(unlock_ms)
+ - reputation_nft.move (stretch, post-hackathon)
    - mint when hit_count >= threshold AND time_window >= 30d
 
 X integration
@@ -210,20 +212,21 @@ Free flywheel because:
 
 ## Build timeline (10-12 days)
 
-| Day | Deliverable |
-|---|---|
-| 1 | Move contracts: `prediction_vault.move` with custom `seal_approve` (time-based); `reputation_nft.move` scaffold |
-| 2 | Walrus integration: encrypt -> upload -> hash -> store reference on Sui object |
-| 3 | Frontend scaffolding: wallet connect (mysten/dapp-kit), X OAuth, prediction form |
-| 4 | End-to-end happy path: seal a prediction on testnet, decrypt at unlock |
-| 5 | Public profile pages, verification lookup |
-| 6 | Reputation tracking: hit/miss counter per address |
-| 7 | X auto-tweet on seal + reveal (user OAuth path) |
-| 8 | `@toldproof` bot account: mention listener, verify-reply flow |
-| 9 | Polish: Walrus Sites deploy, copy, styling |
-| 10 | Demo video filming + edit |
-| 11 | Mainnet deployment, soft launch to 5-10 crypto Twitter contacts |
-| 12 | DeepSurge submission + iteration buffer |
+> **Deploy strategy**: localnet for Days 1-9 dev (Move ops on local, Walrus/Seal on testnet since they have no local equivalent), testnet for the **final-phase Day 10 deploy**. Mainnet is parked post-hackathon — past Overflow winners have submitted on testnet.
+
+| Day | Deliverable | Network |
+|---|---|---|
+| 1 | Move contracts: `prediction_vault.move` (Registry + seal_prediction + reveal + seal_approve time-lock) | localnet |
+| 2 | Walrus + Seal SDK integration: AES envelope encrypt → Walrus upload → Sui seal call | local Move + testnet Walrus/Seal |
+| 3 | Frontend scaffolding: wallet connect (`@mysten/dapp-kit`), X OAuth, prediction form | localnet |
+| 4 | End-to-end happy path: seal a prediction, decrypt at unlock | local Move + testnet Walrus/Seal |
+| 5 | Public profile pages, verification lookup | localnet |
+| 6 | Reveal watcher (Vercel cron), reveal tweet | local Move + testnet Walrus/Seal |
+| 7 | `@toldproof verify` bot: mention listener, verify-reply | localnet |
+| 8 | Polish: Walrus Sites deploy, copy, styling | localnet + testnet |
+| 9 | Demo video filming + edit | (no chain ops) |
+| 10 | **Testnet final-phase deploy + soft launch** to 5-10 crypto Twitter contacts | testnet (all) |
+| 11 | DeepSurge submission + iteration buffer | testnet |
 
 ---
 
@@ -233,7 +236,7 @@ Free flywheel because:
 - **Wallet**: @mysten/dapp-kit
 - **Walrus SDK**: official TypeScript SDK from sdk.mystenlabs.com/walrus
 - **Seal**: Seal TypeScript SDK + custom Move package for `seal_approve`
-- **Move contracts**: Sui Move 2024.beta — two packages (`prediction_vault`, `reputation_nft`)
+- **Move contracts**: Sui Move 2024 edition — package `prediction_vault` (local-first dev via `sui client test-publish --build-env testnet`; testnet for final Day-10 deploy via `sui client publish`). `reputation_nft` deferred to post-hackathon.
 - **X integration**: X API v2 Basic tier, OAuth 2.0 for user posting, app-context for bot
 - **Hosting**: Vercel (primary) + Walrus Sites (backup domain, demo flex)
 - **Database**: Postgres on Vercel Marketplace (only for: X handle <-> Sui address mapping, indexing speedup; the source of truth is always on-chain)
@@ -252,7 +255,9 @@ Free flywheel because:
 | X TOS / automation policy | Med | Register bot under X automation policy; reactive only (never spam) |
 | Vague predictions hard to verify | Low | v1 only timestamps; v2 adds structured prediction types |
 | Seal key server reliability | Low | Use multiple key servers via committee mode |
-| Walrus mainnet stability | Low | Mainnet has been live and stable per docs |
+| Walrus testnet stability | Low | Testnet has been live and stable per docs; submitting on testnet (mainnet parked) |
+| Localnet has no Walrus / Seal | Med | Days 2-7 split: Move ops on local, Walrus/Seal on testnet (testnet faucet for funding) |
+| Testnet faucet rate-limited | Med | Fund from existing testnet balance (Phantom or other), or use community faucets; only blocks Day-2+ work, not Day 1 |
 | User wants private predictions | Low | Add private mode (hash on-chain, ciphertext only revealed by owner) in v1 if time |
 | Mass-sealing spam to game reputation | Low | Cooldown + minimum-time-window in reputation NFT mint logic |
 
