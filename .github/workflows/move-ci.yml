@@ -1,0 +1,42 @@
+name: Move CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  move-build-test:
+    name: build + test prediction_vault
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Sui CLI binary
+        id: cache-sui
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin/sui
+          key: sui-cli-testnet-v1.71.1
+
+      - name: Install Sui CLI
+        if: steps.cache-sui.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sSfL https://raw.githubusercontent.com/MystenLabs/suiup/main/install.sh | sh
+          export PATH="$HOME/.local/bin:$PATH"
+          suiup install sui --yes
+
+      - name: Add Sui to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: sui --version
+        run: sui --version
+
+      - name: sui move build (--warnings-are-errors --lint)
+        working-directory: move/prediction_vault
+        run: sui move build --warnings-are-errors --lint
+
+      - name: sui move test
+        working-directory: move/prediction_vault
+        run: sui move test
