@@ -1,19 +1,258 @@
-/*
-#[test_only]
-module prediction_vault::prediction_vault_tests;
-// uncomment this line to import the module
-// use prediction_vault::prediction_vault;
+// Copyright (c) 2026 TOLDPROOF
+// SPDX-License-Identifier: Apache-2.0
 
-#[error(code = 0)]
-const ENotImplemented: vector<u8> = b"Not Implemented";
+#[test_only, allow(implicit_const_copy)]
+module toldproof::prediction_vault_tests;
+
+use std::hash;
+use std::string;
+use sui::bcs;
+use sui::clock;
+use sui::test_scenario as ts;
+use toldproof::prediction_vault::{Self, Registry, SealedPrediction};
+
+const ADMIN: address = @0xAA;
+const ALICE: address = @0xBB;
+
+const SEAL_AT_MS: u64 = 1_000_000;
+const PRE_UNLOCK_MS: u64 = 1_500_000;
+const UNLOCK_AT_MS: u64 = 2_000_000;
+const POST_UNLOCK_MS: u64 = 2_000_001;
+
+const PLAINTEXT: vector<u8> = b"BTC > 85k by 2026-06-30";
+const BLOB_ID: vector<u8> = b"walrus_blob_id_dummy_for_testing";
+const SEALED_KEY: vector<u8> = b"seal_encrypted_aes_key_dummy_32b";
+
+fun handle(): string::String { b"alice".to_string() }
+
+// ---------- seal_approve (time-lock policy) ----------
 
 #[test]
-fun test_prediction_vault() {
-    // pass
+fun seal_approve_after_unlock_passes() {
+    let ctx = &mut tx_context::dummy();
+    let mut c = clock::create_for_testing(ctx);
+    c.set_for_testing(POST_UNLOCK_MS);
+
+    let id = bcs::to_bytes(&UNLOCK_AT_MS);
+    prediction_vault::seal_approve_for_testing(id, &c);
+
+    c.destroy_for_testing();
 }
 
-#[test, expected_failure(abort_code = ::prediction_vault::prediction_vault_tests::ENotImplemented)]
-fun test_prediction_vault_fail() {
-    abort ENotImplemented
+#[test, expected_failure(abort_code = prediction_vault::ENoAccess)]
+fun seal_approve_before_unlock_aborts() {
+    let ctx = &mut tx_context::dummy();
+    let mut c = clock::create_for_testing(ctx);
+    c.set_for_testing(PRE_UNLOCK_MS);
+
+    let id = bcs::to_bytes(&UNLOCK_AT_MS);
+    prediction_vault::seal_approve_for_testing(id, &c);
+
+    c.destroy_for_testing();
 }
-*/
+
+#[test, expected_failure(abort_code = prediction_vault::ENoAccess)]
+fun seal_approve_at_exact_unlock_minus_one_aborts() {
+    let ctx = &mut tx_context::dummy();
+    let mut c = clock::create_for_testing(ctx);
+    c.set_for_testing(UNLOCK_AT_MS - 1);
+
+    let id = bcs::to_bytes(&UNLOCK_AT_MS);
+    prediction_vault::seal_approve_for_testing(id, &c);
+
+    c.destroy_for_testing();
+}
+
+#[test]
+fun seal_approve_at_exact_unlock_passes() {
+    let ctx = &mut tx_context::dummy();
+    let mut c = clock::create_for_testing(ctx);
+    c.set_for_testing(UNLOCK_AT_MS);
+
+    let id = bcs::to_bytes(&UNLOCK_AT_MS);
+    prediction_vault::seal_approve_for_testing(id, &c);
+
+    c.destroy_for_testing();
+}
+
+// ---------- seal_prediction ----------
+
+#[test]
+fun seal_prediction_creates_shared_object_and_indexes() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    prediction_vault::seal_prediction(
+        &mut reg,
+        handle(),
+        UNLOCK_AT_MS,
+        content_hash,
+        BLOB_ID,
+        SEALED_KEY,
+        &c,
+        scenario.ctx(),
+    );
+
+    assert!(prediction_vault::total_count(&reg) == 1, 100);
+    assert!(prediction_vault::handle_count(&reg, handle()) == 1, 101);
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+
+    scenario.next_tx(ALICE);
+    let pred = scenario.take_shared<SealedPrediction>();
+    assert!(prediction_vault::publisher(&pred) == ALICE, 102);
+    assert!(prediction_vault::unlock_at_ms(&pred) == UNLOCK_AT_MS, 103);
+    assert!(prediction_vault::is_revealed(&pred) == false, 104);
+    ts::return_shared(pred);
+
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = prediction_vault::EUnlockInPast)]
+fun seal_prediction_with_unlock_in_past_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(POST_UNLOCK_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    prediction_vault::seal_prediction(
+        &mut reg, handle(), UNLOCK_AT_MS, content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+// ---------- reveal ----------
+
+#[test]
+fun reveal_after_unlock_with_correct_plaintext_works() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    prediction_vault::seal_prediction(
+        &mut reg, handle(), UNLOCK_AT_MS, content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+    ts::return_shared(reg);
+
+    scenario.next_tx(ALICE);
+    let reg = scenario.take_shared<Registry>();
+    let mut pred = scenario.take_shared<SealedPrediction>();
+    c.set_for_testing(POST_UNLOCK_MS);
+
+    prediction_vault::reveal(&reg, &mut pred, PLAINTEXT, &c);
+
+    assert!(prediction_vault::is_revealed(&pred), 200);
+    assert!(prediction_vault::revealed_plaintext(&pred) == PLAINTEXT, 201);
+
+    ts::return_shared(pred);
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = prediction_vault::ENoAccess)]
+fun reveal_before_unlock_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    prediction_vault::seal_prediction(
+        &mut reg, handle(), UNLOCK_AT_MS, content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+    ts::return_shared(reg);
+
+    scenario.next_tx(ALICE);
+    let reg = scenario.take_shared<Registry>();
+    let mut pred = scenario.take_shared<SealedPrediction>();
+    c.set_for_testing(PRE_UNLOCK_MS);
+
+    prediction_vault::reveal(&reg, &mut pred, PLAINTEXT, &c);
+
+    ts::return_shared(pred);
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = prediction_vault::EHashMismatch)]
+fun reveal_with_wrong_plaintext_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    prediction_vault::seal_prediction(
+        &mut reg, handle(), UNLOCK_AT_MS, content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+    ts::return_shared(reg);
+
+    scenario.next_tx(ALICE);
+    let reg = scenario.take_shared<Registry>();
+    let mut pred = scenario.take_shared<SealedPrediction>();
+    c.set_for_testing(POST_UNLOCK_MS);
+
+    prediction_vault::reveal(&reg, &mut pred, b"wrong plaintext", &c);
+
+    ts::return_shared(pred);
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = prediction_vault::EAlreadyRevealed)]
+fun reveal_twice_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    prediction_vault::seal_prediction(
+        &mut reg, handle(), UNLOCK_AT_MS, content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+    ts::return_shared(reg);
+
+    scenario.next_tx(ALICE);
+    let reg = scenario.take_shared<Registry>();
+    let mut pred = scenario.take_shared<SealedPrediction>();
+    c.set_for_testing(POST_UNLOCK_MS);
+
+    prediction_vault::reveal(&reg, &mut pred, PLAINTEXT, &c);
+    prediction_vault::reveal(&reg, &mut pred, PLAINTEXT, &c);  // expect abort
+
+    ts::return_shared(pred);
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
