@@ -20,8 +20,9 @@ next-env.d.ts
 .env.development
 
 # Move
+# Move.lock + Published.toml are auto-generated but should be committed per Sui best practices
+# (reproducible builds + tracking which package ID is live on each network).
 move/**/build/
-move/**/Move.lock
 
 # Vercel
 .vercel/

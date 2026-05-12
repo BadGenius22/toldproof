@@ -1,0 +1,79 @@
+// Seal SDK wrappers. Threshold 2-of-2 Mysten testnet committee per /sui-dev recipe.
+// @mysten/seal 1.1.x takes packageId + id as hex strings (not Uint8Array).
+
+import { SealClient, SessionKey } from '@mysten/seal';
+import type { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
+import { toHex } from '@mysten/sui/utils';
+import { bcs } from '@mysten/sui/bcs';
+import { env } from './env';
+import type { SuiClient } from './sui';
+
+function ensure0x(s: string): string {
+  return s.startsWith('0x') ? s : `0x${s}`;
+}
+
+export function getSealClient(suiClient: SuiClient): SealClient {
+  return new SealClient({
+    suiClient,
+    serverConfigs: [
+      { objectId: env.sealKeyServer1, weight: 1 },
+      { objectId: env.sealKeyServer2, weight: 1 },
+    ],
+    verifyKeyServers: false,
+  });
+}
+
+// Seal IBE identity (without pkg-id prefix; the key server prepends it).
+// time-lock pattern: id = bcs::to_bytes(unlock_at_ms). Returned as hex string.
+export function unlockMsToIdHex(unlockAtMs: bigint): string {
+  const bytes = bcs.u64().serialize(unlockAtMs).toBytes();
+  return ensure0x(toHex(bytes));
+}
+
+export async function encryptAesKey(args: {
+  seal: SealClient;
+  aesKey: Uint8Array;
+  unlockAtMs: bigint;
+  packageId: string;
+}): Promise<Uint8Array> {
+  const { encryptedObject } = await args.seal.encrypt({
+    threshold: env.sealThreshold,
+    packageId: ensure0x(args.packageId),
+    id: unlockMsToIdHex(args.unlockAtMs),
+    data: args.aesKey,
+  });
+  return encryptedObject;
+}
+
+// Server-side session key: we sign the personal-message challenge with our keypair
+// directly (no wallet round trip).
+export async function createSessionKey(args: {
+  suiClient: SuiClient;
+  packageId: string;
+  signer: Ed25519Keypair;
+  ttlMin?: number;
+}): Promise<SessionKey> {
+  const sessionKey = await SessionKey.create({
+    address: args.signer.getPublicKey().toSuiAddress(),
+    packageId: ensure0x(args.packageId),
+    ttlMin: args.ttlMin ?? 10,
+    suiClient: args.suiClient,
+  });
+  const personalMessage = sessionKey.getPersonalMessage();
+  const { signature } = await args.signer.signPersonalMessage(personalMessage);
+  sessionKey.setPersonalMessageSignature(signature);
+  return sessionKey;
+}
+
+export async function decryptAesKey(args: {
+  seal: SealClient;
+  sessionKey: SessionKey;
+  sealedKey: Uint8Array;
+  txBytes: Uint8Array;
+}): Promise<Uint8Array> {
+  return await args.seal.decrypt({
+    data: args.sealedKey,
+    sessionKey: args.sessionKey,
+    txBytes: args.txBytes,
+  });
+}
