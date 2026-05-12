@@ -1,0 +1,15 @@
+[package]
+name = "prediction_vault"
+edition = "2024"
+license = "Apache-2.0"
+authors = ["TOLDPROOF"]
+
+[dependencies]
+
+[addresses]
+toldproof = "0x0"
+
+[dev-dependencies]
+
+[dev-addresses]
+toldproof = "0x0"

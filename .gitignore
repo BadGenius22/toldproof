@@ -1,0 +1,45 @@
+# Node / pnpm
+node_modules/
+.pnpm-store/
+.pnpm-debug.log
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+.turbo/
+
+# TypeScript
+*.tsbuildinfo
+
+# Env (NEVER commit secrets — see CLAUDE.md non-negotiables)
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Move
+move/**/build/
+move/**/Move.lock
+
+# Vercel
+.vercel/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Sui keys (extra safety — keystore lives in ~/.sui already, but in case of mishaps)
+*.keystore
+*.key
