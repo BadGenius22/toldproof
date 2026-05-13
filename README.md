@@ -142,8 +142,10 @@ pnpm dev
 
 ## Project status
 
-- Sui Move package on testnet: `0x46cc247cc1af9a6101cabf9c74734410428ba789baad69d86c61197bd9428335` (re-deploy after audit fixes scheduled for Day-10 final)
-- Live e2e on testnet verified Day 2 (`0x0b53360fa…` revealed plaintext recovered)
+- Sui Move package on testnet (audited code): `0x97b738cecf808f17a80fabd55726df2ab31c97ec314c04e4810d5a504c3bd221` ([explorer](https://testnet.suivision.xyz/package/0x97b738cecf808f17a80fabd55726df2ab31c97ec314c04e4810d5a504c3bd221))
+- Registry shared object: `0x0260c89d7ebdeecee0b2f3b6f61b9e36a20824973c439a69a8f061b7f53da59d`
+- Pre-audit deployment (predictions sealed before audit fixes) at `0x46cc247c…` remains live on testnet for historical reference
+- Live e2e on testnet verified Day 2 (`0x0b53360fa…` revealed plaintext recovered against the old package)
 - Pre-Day-3 negative test confirmed Seal refuses pre-unlock decryption with the real committee
 - Frontend SSR-renders the verify page against testnet RPC
 - Reveal cron + verify-bot routes wired (X bearer token activates the bot when ready)
