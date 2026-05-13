@@ -197,6 +197,9 @@ fun reveal_after_unlock_with_correct_plaintext_works() {
 
     assert!(prediction_vault::is_revealed(&pred), 200);
     assert!(prediction_vault::revealed_plaintext(&pred) == PLAINTEXT, 201);
+    // Audit I-02: invariant revealed_at_ms >= unlock_at_ms holds after reveal.
+    assert!(prediction_vault::revealed_at_ms(&pred) >= prediction_vault::unlock_at_ms(&pred), 202);
+    assert!(prediction_vault::sealed_at_ms(&pred) < prediction_vault::unlock_at_ms(&pred), 203);
 
     ts::return_shared(pred);
     ts::return_shared(reg);
@@ -290,4 +293,156 @@ fun reveal_twice_aborts() {
     ts::return_shared(reg);
     c.destroy_for_testing();
     scenario.end();
+}
+
+// ---------- Input validation negative tests (AUDIT_REPORT M-01 / L-02 / L-03 / L-04) ----------
+
+#[test, expected_failure(abort_code = prediction_vault::EInvalidContentHash)]
+fun seal_prediction_with_wrong_length_content_hash_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    // 16-byte vector — not a SHA-256 output
+    let bad_hash: vector<u8> = vector[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
+    prediction_vault::seal_prediction(
+        &mut reg, handle(), UNLOCK_AT_MS, bad_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = prediction_vault::EInvalidBlobId)]
+fun seal_prediction_with_empty_blob_id_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    prediction_vault::seal_prediction(
+        &mut reg, handle(), UNLOCK_AT_MS, content_hash, vector[], SEALED_KEY, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = prediction_vault::EInvalidSealedKey)]
+fun seal_prediction_with_empty_sealed_key_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    prediction_vault::seal_prediction(
+        &mut reg, handle(), UNLOCK_AT_MS, content_hash, BLOB_ID, vector[], &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = prediction_vault::EInvalidXHandle)]
+fun seal_prediction_with_empty_handle_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    prediction_vault::seal_prediction(
+        &mut reg, b"".to_string(), UNLOCK_AT_MS, content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = prediction_vault::EInvalidXHandle)]
+fun seal_prediction_with_oversized_handle_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    // 16 chars — exceeds X's 15-char max
+    prediction_vault::seal_prediction(
+        &mut reg, b"abcdefghijklmnop".to_string(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = prediction_vault::EUnlockTooFar)]
+fun seal_prediction_with_far_future_unlock_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    // u64::MAX — far beyond the 10-year cap
+    prediction_vault::seal_prediction(
+        &mut reg, handle(), 18_446_744_073_709_551_615u64,
+        content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+// ---------- BCS malformed id negative tests (AUDIT_REPORT I-03) ----------
+
+#[test, expected_failure(abort_code = prediction_vault::ENoAccess)]
+fun seal_approve_with_trailing_garbage_aborts() {
+    let ctx = &mut tx_context::dummy();
+    let mut c = clock::create_for_testing(ctx);
+    c.set_for_testing(POST_UNLOCK_MS);
+
+    // BCS u64 LE bytes for UNLOCK_AT_MS, then a stray trailing byte
+    let mut id = bcs::to_bytes(&UNLOCK_AT_MS);
+    id.push_back(0);  // now 9 bytes — fails leftover.length() == 0
+    prediction_vault::seal_approve_for_testing(id, &c);
+
+    c.destroy_for_testing();
+}
+
+#[test, expected_failure]
+fun seal_approve_with_truncated_id_aborts() {
+    // Any abort is acceptable here — peel_u64 aborts on under-length input.
+    let ctx = &mut tx_context::dummy();
+    let c = clock::create_for_testing(ctx);
+    prediction_vault::seal_approve_for_testing(b"shorty", &c);
+    c.destroy_for_testing();
 }

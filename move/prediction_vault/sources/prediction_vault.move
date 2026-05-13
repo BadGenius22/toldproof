@@ -24,10 +24,26 @@ const EAlreadyRevealed: u64 = 1;
 const EHashMismatch: u64 = 2;
 const EInvalidPackageVersion: u64 = 3;
 const EUnlockInPast: u64 = 4;
+// Added per AUDIT_REPORT (M-01 / L-02 / L-03 / L-04):
+const EInvalidContentHash: u64 = 5;
+const EInvalidBlobId: u64 = 6;
+const EInvalidSealedKey: u64 = 7;
+const EInvalidXHandle: u64 = 8;
+const EUnlockTooFar: u64 = 9;
+const EPlaintextTooLarge: u64 = 10;
 
 // ---------- Versioning ----------
 
 const VERSION: u64 = 1;
+
+// ---------- Input bounds (UX safety rails, not consensus-critical) ----------
+
+const CONTENT_HASH_LEN: u64 = 32;            // SHA-256 output length
+const MAX_X_HANDLE_LEN: u64 = 15;            // X handle hard cap per X API rules
+const MAX_BLOB_ID_LEN: u64 = 256;            // Walrus blob_id ascii bytes — generous cap
+const MAX_SEALED_KEY_LEN: u64 = 4096;        // Seal EncryptedObject bytes — generous cap
+const MAX_PLAINTEXT_LEN: u64 = 65_536;       // reveal-time plaintext cap (64 KB)
+const MAX_LOCK_DURATION_MS: u64 = 10 * 365 * 24 * 60 * 60 * 1000;  // ~10 years
 
 // ---------- One-Time Witness ----------
 
@@ -108,6 +124,19 @@ public fun seal_prediction(
     let now = clock.timestamp_ms();
     assert!(unlock_at_ms > now, EUnlockInPast);
 
+    // Input rail per AUDIT_REPORT M-01 / L-02 / L-03 / L-04.
+    // Cheap defense-in-depth that closes silent-brick footguns
+    // (a malformed content_hash, blob_id, or sealed_key would
+    // produce an on-chain entry no reveal flow can ever satisfy).
+    assert!(unlock_at_ms <= now + MAX_LOCK_DURATION_MS, EUnlockTooFar);
+    assert!(content_hash.length() == CONTENT_HASH_LEN, EInvalidContentHash);
+    let bl = blob_id.length();
+    assert!(bl > 0 && bl <= MAX_BLOB_ID_LEN, EInvalidBlobId);
+    let sl = sealed_key.length();
+    assert!(sl > 0 && sl <= MAX_SEALED_KEY_LEN, EInvalidSealedKey);
+    let hl = x_handle.length();
+    assert!(hl > 0 && hl <= MAX_X_HANDLE_LEN, EInvalidXHandle);
+
     let prediction = SealedPrediction {
         id: object::new(ctx),
         publisher: ctx.sender(),
@@ -155,6 +184,10 @@ public fun reveal(
     check_version(reg);
     assert!(!prediction.revealed, EAlreadyRevealed);
     assert!(clock.timestamp_ms() >= prediction.unlock_at_ms, ENoAccess);
+    // Audit I-04: cap plaintext so a pathological reveal can't push the
+    // SealedPrediction past Sui's per-object size limit (≈250 KB) and
+    // brick the cron with repeating tx-size aborts.
+    assert!(plaintext.length() <= MAX_PLAINTEXT_LEN, EPlaintextTooLarge);
 
     let computed = hash::sha2_256(plaintext);
     assert!(computed == prediction.content_hash, EHashMismatch);
@@ -200,7 +233,9 @@ public fun handle_count(reg: &Registry, x_handle: String): u64 {
 }
 
 public fun unlock_at_ms(p: &SealedPrediction): u64 { p.unlock_at_ms }
+public fun sealed_at_ms(p: &SealedPrediction): u64 { p.sealed_at_ms }
 public fun is_revealed(p: &SealedPrediction): bool { p.revealed }
+public fun revealed_at_ms(p: &SealedPrediction): u64 { p.revealed_at_ms }
 public fun publisher(p: &SealedPrediction): address { p.publisher }
 public fun content_hash(p: &SealedPrediction): vector<u8> { p.content_hash }
 public fun revealed_plaintext(p: &SealedPrediction): vector<u8> { p.revealed_plaintext }
