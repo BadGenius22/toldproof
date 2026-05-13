@@ -220,10 +220,36 @@ export function PredictionForm() {
         </span>
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-2">
         <label htmlFor="unlock" className="text-sm font-medium">
           Unlock at
         </label>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              { label: '+5 min', ms: 5 * 60_000 },
+              { label: '+1 hr', ms: 60 * 60_000 },
+              { label: '+1 day', ms: 24 * 60 * 60_000 },
+              { label: '+1 week', ms: 7 * 24 * 60 * 60_000 },
+              { label: '+1 month', ms: 30 * 24 * 60 * 60_000 },
+            ] as const
+          ).map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              disabled={disabled}
+              onClick={() => {
+                const d = new Date(Date.now() + p.ms);
+                d.setSeconds(0);
+                d.setMilliseconds(0);
+                setUnlockIso(formatLocalDatetimeInput(d));
+              }}
+              className="rounded-md border border-neutral-300 px-3 py-1.5 text-xs hover:border-black disabled:opacity-50 dark:border-neutral-700 dark:hover:border-white"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
         <input
           id="unlock"
           type="datetime-local"
