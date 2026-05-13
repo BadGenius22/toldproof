@@ -43,18 +43,25 @@ function defaultUnlockIso(): string {
   return d.toISOString().slice(0, 16);
 }
 
-// Instantiate the JSON-RPC client directly so we keep waitForTransaction +
-// getTransactionBlock (the dapp-kit useCurrentClient returns the narrower
-// ClientWithCoreApi interface that lacks those).
-const suiClient = new SuiJsonRpcClient({
-  url: env.suiRpc,
-  network: env.suiNetwork as 'testnet' | 'mainnet' | 'devnet' | 'localnet',
-});
+// NEXT_PUBLIC_* are inlined at build time for client bundles. Reading them
+// here (inside the component, post-build) is safe; doing it at module-top
+// breaks Turbopack's client-component pre-evaluation in dev SSR.
+const RPC_URL = process.env.NEXT_PUBLIC_SUI_RPC ?? 'https://fullnode.testnet.sui.io:443';
+const NETWORK = (process.env.NEXT_PUBLIC_SUI_NETWORK ?? 'testnet') as
+  | 'testnet'
+  | 'mainnet'
+  | 'devnet'
+  | 'localnet';
 
 export function PredictionForm() {
   const account = useCurrentAccount();
   const dAppKit = useDAppKit();
   const router = useRouter();
+  // Lazy: create the JSON-RPC client once per mount, never at module top.
+  // Using useState's lazy initializer keeps it stable across re-renders.
+  const [suiClient] = useState(
+    () => new SuiJsonRpcClient({ url: RPC_URL, network: NETWORK }),
+  );
 
   const [text, setText] = useState('');
   const [unlockIso, setUnlockIso] = useState(defaultUnlockIso());
