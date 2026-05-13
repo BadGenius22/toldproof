@@ -1,47 +1,58 @@
 // Strongly-typed env loader.
 //
-// Reads are LAZY (getter-backed) so this module evaluates without throwing.
-// Earlier eager validation broke Next.js 16 + Turbopack client-component
-// pre-evaluation, where NEXT_PUBLIC_* values aren't guaranteed to be in
-// process.env at module load time on the server. We still fail-fast when a
-// value is actually accessed.
+// IMPORTANT: NEXT_PUBLIC_* values are inlined into the client bundle by
+// Next.js, but ONLY when accessed via LITERAL property names like
+// `process.env.NEXT_PUBLIC_FOO`. A dynamic lookup like
+// `process.env[varName]` cannot be statically replaced and will be
+// undefined at browser runtime. That's why every getter below reads
+// the literal `process.env.NEXT_PUBLIC_X` directly.
+//
+// Getter pattern (vs eager object literal) keeps reads lazy — values
+// are only required when a field is actually accessed, so this module
+// evaluates without throwing during Turbopack client-component
+// pre-evaluation in dev SSR.
 //
 // Run scripts via:
 //   tsx --env-file=.env.local scripts/foo.ts   (Node 24+)
 // or the `pnpm seal` / `pnpm reveal` package scripts.
 
-function required(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing required env var: ${name}`);
-  return v;
+function must(name: string, value: string | undefined): string {
+  if (!value) throw new Error(`Missing required env var: ${name}`);
+  return value;
 }
 
 export const env = {
   get suiNetwork() {
-    return required('NEXT_PUBLIC_SUI_NETWORK');
+    return must('NEXT_PUBLIC_SUI_NETWORK', process.env.NEXT_PUBLIC_SUI_NETWORK);
   },
   get suiRpc() {
-    return required('NEXT_PUBLIC_SUI_RPC');
+    return must('NEXT_PUBLIC_SUI_RPC', process.env.NEXT_PUBLIC_SUI_RPC);
   },
   get packageId() {
-    return required('NEXT_PUBLIC_TOLDPROOF_PACKAGE_ID');
+    return must('NEXT_PUBLIC_TOLDPROOF_PACKAGE_ID', process.env.NEXT_PUBLIC_TOLDPROOF_PACKAGE_ID);
   },
   get registryId() {
-    return required('NEXT_PUBLIC_PREDICTION_REGISTRY_ID');
+    return must(
+      'NEXT_PUBLIC_PREDICTION_REGISTRY_ID',
+      process.env.NEXT_PUBLIC_PREDICTION_REGISTRY_ID,
+    );
   },
   get walrusPublisher() {
-    return required('NEXT_PUBLIC_WALRUS_PUBLISHER_URL');
+    return must('NEXT_PUBLIC_WALRUS_PUBLISHER_URL', process.env.NEXT_PUBLIC_WALRUS_PUBLISHER_URL);
   },
   get walrusAggregator() {
-    return required('NEXT_PUBLIC_WALRUS_AGGREGATOR_URL');
+    return must(
+      'NEXT_PUBLIC_WALRUS_AGGREGATOR_URL',
+      process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR_URL,
+    );
   },
   get sealKeyServer1() {
-    return required('NEXT_PUBLIC_SEAL_KEY_SERVER_1');
+    return must('NEXT_PUBLIC_SEAL_KEY_SERVER_1', process.env.NEXT_PUBLIC_SEAL_KEY_SERVER_1);
   },
   get sealKeyServer2() {
-    return required('NEXT_PUBLIC_SEAL_KEY_SERVER_2');
+    return must('NEXT_PUBLIC_SEAL_KEY_SERVER_2', process.env.NEXT_PUBLIC_SEAL_KEY_SERVER_2);
   },
   get sealThreshold() {
-    return Number(required('NEXT_PUBLIC_SEAL_THRESHOLD'));
+    return Number(must('NEXT_PUBLIC_SEAL_THRESHOLD', process.env.NEXT_PUBLIC_SEAL_THRESHOLD));
   },
 } as const;
