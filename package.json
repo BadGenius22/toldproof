@@ -10,6 +10,8 @@
     "seal": "tsx --env-file=.env.local scripts/seal-cli.ts",
     "reveal": "tsx --env-file=.env.local scripts/reveal-cli.ts",
     "test:seal-negative": "tsx --env-file=.env.local scripts/test-seal-negative.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -31,6 +33,7 @@
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.6"
   }
 }

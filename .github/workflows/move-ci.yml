@@ -62,5 +62,8 @@ jobs:
       - name: typecheck (tsc --noEmit)
         run: pnpm run typecheck
 
+      - name: vitest (lib/ unit tests)
+        run: pnpm run test
+
       - name: next build
         run: pnpm run build
