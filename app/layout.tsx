@@ -22,7 +22,10 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-white text-black dark:bg-black dark:text-white">
+      <body
+        className="min-h-full flex flex-col bg-white text-black dark:bg-black dark:text-white"
+        suppressHydrationWarning
+      >
         <Providers>
           <header className="flex w-full items-center justify-between border-b border-neutral-200 px-6 py-4 dark:border-neutral-800">
             <Link href="/" className="font-mono text-sm font-bold tracking-tight">
