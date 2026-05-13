@@ -140,18 +140,21 @@ If `clock < unlock` the key server refuses — `seal_approve` aborts in dry-run,
 
 ## Key server configuration (testnet)
 
-Skill recommends **2-of-2 with the two Mysten-operated committee members**. Pure cryptographic threshold; no aggregator-trust hop.
+Running **2-of-3 diverse committee**: Mysten Labs operates two members, Ruby
+Nodes the third. Threshold 2 means any single operator can be down or rejecting
+requests and decryption still succeeds. Pure cryptographic threshold; no
+aggregator-trust hop.
+
+| Provider | Role | Object ID |
+|----------|------|-----------|
+| Mysten Labs 1 | committee member | `0x73d05d62c18d9374e3ea529e8e0ed6161da1a141a94d3f76ae3fe4e99356db75` |
+| Mysten Labs 2 | committee member | `0xf5d14a81a982144ae441cd7d64b09027f116a468bd36e7eca494f750591623c8` |
+| Ruby Nodes    | committee member | `0x6068c0acb197dddbacd4746a9de7f025b2ed5a5b6c1b1ab44dade4426d141da2` |
+
+Rotation candidates (swap if Ruby Nodes goes down):
 
 | Provider | Object ID |
 |----------|-----------|
-| Mysten Labs 1 | `0x73d05d62c18d9374e3ea529e8e0ed6161da1a141a94d3f76ae3fe4e99356db75` |
-| Mysten Labs 2 | `0xf5d14a81a982144ae441cd7d64b09027f116a468bd36e7eca494f750591623c8` |
-
-For production-grade fault tolerance, swap to **2-of-3** with one of:
-
-| Provider | Object ID |
-|----------|-----------|
-| Ruby Nodes | `0x6068c0acb197dddbacd4746a9de7f025b2ed5a5b6c1b1ab44dade4426d141da2` |
 | NodeInfra | `0x5466b7df5c15b508678d51496ada8afab0d6f70a01c10613123382b1b8131007` |
 | Studio Mirai | `0x164ac3d2b3b8694b8181c13f671950004765c23f270321a45fdd04d40cccf0f2` |
 | Overclock | `0x9c949e53c36ab7a9c484ed9e8b43267a77d4b8d70e79aa6b39042e3d4c434105` |

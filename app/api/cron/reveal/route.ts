@@ -42,12 +42,14 @@ export async function GET(req: Request) {
 
   const startedAt = Date.now();
   const suiClient = getSuiClient();
+  const sealServers = [
+    { objectId: env.sealKeyServer1, weight: 1 },
+    { objectId: env.sealKeyServer2, weight: 1 },
+    { objectId: env.sealKeyServer3, weight: 1 },
+  ].filter((s) => s.objectId);
   const sealClient = new SealClient({
     suiClient,
-    serverConfigs: [
-      { objectId: env.sealKeyServer1, weight: 1 },
-      { objectId: env.sealKeyServer2, weight: 1 },
-    ],
+    serverConfigs: sealServers,
     verifyKeyServers: false,
   });
   const signer = loadCronKeypair();

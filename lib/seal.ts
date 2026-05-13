@@ -13,12 +13,16 @@ function ensure0x(s: string): string {
 }
 
 export function getSealClient(suiClient: SuiClient): SealClient {
+  // 2-of-3 diverse committee per /sui-dev recipe. Drop empty entries so dev
+  // can fall back to 2-of-2 by unsetting NEXT_PUBLIC_SEAL_KEY_SERVER_3.
+  const serverConfigs = [
+    { objectId: env.sealKeyServer1, weight: 1 },
+    { objectId: env.sealKeyServer2, weight: 1 },
+    { objectId: env.sealKeyServer3, weight: 1 },
+  ].filter((s) => s.objectId);
   return new SealClient({
     suiClient,
-    serverConfigs: [
-      { objectId: env.sealKeyServer1, weight: 1 },
-      { objectId: env.sealKeyServer2, weight: 1 },
-    ],
+    serverConfigs,
     verifyKeyServers: false,
   });
 }

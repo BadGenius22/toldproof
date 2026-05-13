@@ -39,8 +39,10 @@ describe('noProofReply', () => {
   it('mentions the handle', () => {
     const v = noProofReply('elonmusk');
     expect(v.text).toMatch(/@elonmusk/);
-    expect(v.xHandle).toBe('elonmusk');
     expect(v.kind).toBe('none');
+    if (v.kind === 'none') {
+      expect(v.xHandle).toBe('elonmusk');
+    }
   });
 
   it('includes the "Absence of proof" disclaimer (defamation safety)', () => {
@@ -69,7 +71,9 @@ describe('rateLimitedReply', () => {
   it('returns a rate_limited verdict', () => {
     const v = rateLimitedReply('someone');
     expect(v.kind).toBe('rate_limited');
-    expect(v.xHandle).toBe('someone');
+    if (v.kind === 'rate_limited') {
+      expect(v.xHandle).toBe('someone');
+    }
   });
 
   it('does NOT use defamatory wording', () => {

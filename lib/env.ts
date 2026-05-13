@@ -52,6 +52,11 @@ export const env = {
   get sealKeyServer2() {
     return must('NEXT_PUBLIC_SEAL_KEY_SERVER_2', process.env.NEXT_PUBLIC_SEAL_KEY_SERVER_2);
   },
+  get sealKeyServer3() {
+    // Optional 3rd operator for 2-of-3 committee. Falls back to empty string
+    // when only running 2-of-2 in dev — getSealClient drops empty entries.
+    return process.env.NEXT_PUBLIC_SEAL_KEY_SERVER_3 ?? '';
+  },
   get sealThreshold() {
     return Number(must('NEXT_PUBLIC_SEAL_THRESHOLD', process.env.NEXT_PUBLIC_SEAL_THRESHOLD));
   },
