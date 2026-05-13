@@ -10,7 +10,7 @@ import {
 import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
 import { sealPredictionTx } from '../lib/sui';
 import { aesGcmEncrypt, randomAesKey, sha256 } from '../lib/crypto';
-import { storeBlob } from '../lib/walrus';
+import { storeBlob, epochsForUnlock } from '../lib/walrus';
 import { getSealClient, encryptAesKey } from '../lib/seal';
 import { env } from '../lib/env';
 
@@ -119,9 +119,10 @@ export function PredictionForm() {
       const ciphertext = await aesGcmEncrypt(plaintext, aesKey);
       const contentHash = await sha256(plaintext);
 
-      // 2. Walrus
+      // 2. Walrus — size storage to outlive the unlock window
       setStep('uploading');
-      const { blobId } = await storeBlob(ciphertext, 30);
+      const epochs = epochsForUnlock(Number(unlockAtMs));
+      const { blobId } = await storeBlob(ciphertext, epochs);
 
       // 3. Seal-encrypt the AES key
       setStep('sealing');

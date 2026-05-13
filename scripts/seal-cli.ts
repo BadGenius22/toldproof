@@ -7,7 +7,7 @@
 
 import { sealPredictionTx } from '../lib/sui';
 import { getSuiClient, loadDevKeypair } from '../lib/sui-node';
-import { storeBlob } from '../lib/walrus';
+import { storeBlob, epochsForUnlock } from '../lib/walrus';
 import { getSealClient, encryptAesKey } from '../lib/seal';
 import { aesGcmEncrypt, randomAesKey, sha256 } from '../lib/crypto';
 import { env } from '../lib/env';
@@ -37,8 +37,10 @@ async function main() {
   const ciphertext = await aesGcmEncrypt(plaintext, aesKey);
 
   // 2. Walrus stores the AES ciphertext (HTTP publisher, no WAL needed)
-  console.log(`walrus   : uploading ${ciphertext.byteLength}-byte envelope...`);
-  const { blobId } = await storeBlob(ciphertext, 30);
+  //    Storage span sized to outlive the unlock window + buffer.
+  const epochs = epochsForUnlock(Number(unlockAtMs));
+  console.log(`walrus   : uploading ${ciphertext.byteLength}-byte envelope for ${epochs} epochs...`);
+  const { blobId } = await storeBlob(ciphertext, epochs);
   console.log(`walrus   : blob_id=${blobId}`);
 
   // 3. Seal encrypts ONLY the 32-byte AES key, gated by unlock_at_ms
