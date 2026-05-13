@@ -10,20 +10,20 @@
 
 **Goal**: All accounts, domains, and dev environment ready. Zero application code written yet.
 
-| Task | Outcome | Time |
-|---|---|---|
-| Confirm `toldproof.xyz` (owned) is on Cloudflare nameservers and enable Email Routing → forward `hello@toldproof.xyz` to project Gmail. Optional: check `toldproof.com` / `toldproof.app` availability as defensive secondaries. | Domain ready + email routing live | 30m |
-| Reserve X handle `@toldproof` (manual check at x.com/toldproof; fallback `@toldproofapp` or `@toldproofhq`) | Bot account created, profile filled out with disclaimer | 30m |
-| Apply for X API Basic tier ($100/mo) at developer.x.com | Application submitted; expect 1-2 day approval | 20m |
-| Sign in to: Anthropic console, Vercel, Resend, Neon (Postgres), Plausible | All accounts active | 30m |
-| Install/verify `sui` CLI, `walrus` CLI, Node 24 LTS, pnpm | All CLI tools working | 30m |
-| Fund Sui testnet wallet from `faucet.sui.io` | At least 10 SUI testnet | 10m |
-| Fund Walrus testnet WAL from Walrus Discord faucet | At least 10 WAL testnet | 10m |
-| Run MemWal/Walrus hello-world: `walrus store hello.txt && walrus read [id]` | Verified Walrus testnet works end-to-end | 30m |
-| Read Seal `Design.md` and `ExamplePatterns.md` (time-lock pattern especially) | Understand `seal_approve` shape, IBE identity composition | 1h |
-| Create empty Next.js project: `pnpm create next-app toldproof --typescript --tailwind --app` | Scaffolding committed to git, pushed to GitHub (`github.com/toldproof`) | 30m |
-| Initialize `move/prediction_vault` package: `sui move new prediction_vault` | Empty Move package committed | 20m |
-| Write 60-second demo video script (commit the words before the code) | Script locked in `demo.md` (create later in day 8) | 1h |
+| Task                                                                                                                                                                                                                             | Outcome                                                                 | Time |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ---- |
+| Confirm `toldproof.xyz` (owned) is on Cloudflare nameservers and enable Email Routing → forward `hello@toldproof.xyz` to project Gmail. Optional: check `toldproof.com` / `toldproof.app` availability as defensive secondaries. | Domain ready + email routing live                                       | 30m  |
+| Reserve X handle `@toldproof` (manual check at x.com/toldproof; fallback `@toldproofapp` or `@toldproofhq`)                                                                                                                      | Bot account created, profile filled out with disclaimer                 | 30m  |
+| Apply for X API Basic tier ($100/mo) at developer.x.com                                                                                                                                                                          | Application submitted; expect 1-2 day approval                          | 20m  |
+| Sign in to: Anthropic console, Vercel, Resend, Neon (Postgres), Plausible                                                                                                                                                        | All accounts active                                                     | 30m  |
+| Install/verify `sui` CLI, `walrus` CLI, Node 24 LTS, pnpm                                                                                                                                                                        | All CLI tools working                                                   | 30m  |
+| Fund Sui testnet wallet from `faucet.sui.io`                                                                                                                                                                                     | At least 10 SUI testnet                                                 | 10m  |
+| Fund Walrus testnet WAL from Walrus Discord faucet                                                                                                                                                                               | At least 10 WAL testnet                                                 | 10m  |
+| Run MemWal/Walrus hello-world: `walrus store hello.txt && walrus read [id]`                                                                                                                                                      | Verified Walrus testnet works end-to-end                                | 30m  |
+| Read Seal `Design.md` and `ExamplePatterns.md` (time-lock pattern especially)                                                                                                                                                    | Understand `seal_approve` shape, IBE identity composition               | 1h   |
+| Create empty Next.js project: `pnpm create next-app toldproof --typescript --tailwind --app`                                                                                                                                     | Scaffolding committed to git, pushed to GitHub (`github.com/toldproof`) | 30m  |
+| Initialize `move/prediction_vault` package: `sui move new prediction_vault`                                                                                                                                                      | Empty Move package committed                                            | 20m  |
+| Write 60-second demo video script (commit the words before the code)                                                                                                                                                             | Script locked in `demo.md` (create later in day 8)                      | 1h   |
 
 **Day 0 Definition of Done**: domain + X handle + GitHub repo + Next.js scaffold + empty Move package + testnet wallets funded + Walrus hello-world confirmed.
 
@@ -113,16 +113,16 @@ entry fun seal_approve(id: vector<u8>, c: &Clock) {
 }
 ```
 
-| Task | DoD |
-|---|---|
-| Write `prediction_vault.move` following the `/sui-dev` skill recipe (`11-toldproof-stack.md`) | `sui move build` passes |
-| Write minimum tests: positive `seal_approve` (after unlock) + negative (before unlock), plus reveal happy/sad paths | `sui move test` — all green |
-| Initialize shared `Registry` object in `init` (OTW + versioned) | Module publishes with one Registry singleton |
-| Start localnet: `sui start --with-faucet --force-regenesis` (background) | RPC at `127.0.0.1:9000`, faucet at `127.0.0.1:9123` reachable |
-| Switch env + fund: `sui client switch --env local && sui client faucet` | `sui client gas` shows ≥1 SUI |
-| Publish: `sui client test-publish --build-env testnet --gas-budget 200000000` | Package ID + Registry ID recorded in `.env.local` (gitignored) |
-| Manual end-to-end via `sui client call`: seal_prediction → seal_approve(before unlock = abort) → wait → seal_approve(after unlock = success) | Full flow exercised on localnet |
-| Switch back to testnet env (`sui client switch --env testnet`) for build/test ergonomics | `sui move build`/`test` runs cleanly without `--build-env` flag |
+| Task                                                                                                                                         | DoD                                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Write `prediction_vault.move` following the `/sui-dev` skill recipe (`11-toldproof-stack.md`)                                                | `sui move build` passes                                         |
+| Write minimum tests: positive `seal_approve` (after unlock) + negative (before unlock), plus reveal happy/sad paths                          | `sui move test` — all green                                     |
+| Initialize shared `Registry` object in `init` (OTW + versioned)                                                                              | Module publishes with one Registry singleton                    |
+| Start localnet: `sui start --with-faucet --force-regenesis` (background)                                                                     | RPC at `127.0.0.1:9000`, faucet at `127.0.0.1:9123` reachable   |
+| Switch env + fund: `sui client switch --env local && sui client faucet`                                                                      | `sui client gas` shows ≥1 SUI                                   |
+| Publish: `sui client test-publish --build-env testnet --gas-budget 200000000`                                                                | Package ID + Registry ID recorded in `.env.local` (gitignored)  |
+| Manual end-to-end via `sui client call`: seal_prediction → seal_approve(before unlock = abort) → wait → seal_approve(after unlock = success) | Full flow exercised on localnet                                 |
+| Switch back to testnet env (`sui client switch --env testnet`) for build/test ergonomics                                                     | `sui move build`/`test` runs cleanly without `--build-env` flag |
 
 **Day 1 DoD**: Move package on localnet, package + Registry IDs recorded in `.env.local`, 10 unit tests passing, full end-to-end seal_prediction + seal_approve(before/after) exercised on a live network.
 
@@ -145,13 +145,13 @@ entry fun seal_approve(id: vector<u8>, c: &Clock) {
 
 ### Tasks
 
-| Task | DoD |
-|---|---|
-| Implement `lib/walrus.ts` with store + read | `tsx scripts/walrus-test.ts` stores and retrieves a blob |
-| Implement `lib/seal.ts` with time-lock encrypt | Returns ciphertext, encryption-key (for verification) |
-| Implement `lib/sui.ts` `sealPrediction` | Successfully calls Move contract on testnet, returns prediction ID |
-| Write `scripts/seal-cli.ts` integration | End-to-end: encrypt → Walrus → Sui contract → returns prediction ID |
-| Verify retrieval: write `scripts/reveal-cli.ts` that decrypts a prediction *after* unlock time | Successfully decrypts a previously sealed prediction |
+| Task                                                                                           | DoD                                                                 |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Implement `lib/walrus.ts` with store + read                                                    | `tsx scripts/walrus-test.ts` stores and retrieves a blob            |
+| Implement `lib/seal.ts` with time-lock encrypt                                                 | Returns ciphertext, encryption-key (for verification)               |
+| Implement `lib/sui.ts` `sealPrediction`                                                        | Successfully calls Move contract on testnet, returns prediction ID  |
+| Write `scripts/seal-cli.ts` integration                                                        | End-to-end: encrypt → Walrus → Sui contract → returns prediction ID |
+| Verify retrieval: write `scripts/reveal-cli.ts` that decrypts a prediction _after_ unlock time | Successfully decrypts a previously sealed prediction                |
 
 **Day 2 DoD**: a single CLI command can seal a prediction and another can reveal it after unlock. End-to-end without UI.
 
@@ -175,13 +175,13 @@ entry fun seal_approve(id: vector<u8>, c: &Clock) {
 
 ### Tasks
 
-| Task | DoD |
-|---|---|
-| Configure `@mysten/dapp-kit` provider at app root | `ConnectButton` works in browser, connects Sui Wallet / Slush |
-| Build `/seal` page with form | User can fill text + date and click submit |
-| Wire submit handler to `lib/sui.ts` `sealPrediction` | Submitting seals a real testnet prediction; success state shows prediction ID + verify link |
-| Handle errors: wallet not connected, tx rejected, network failure | Error states display with clear messaging |
-| Add basic styling via shadcn/ui components | Visual baseline: black + white + one accent color |
+| Task                                                              | DoD                                                                                         |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Configure `@mysten/dapp-kit` provider at app root                 | `ConnectButton` works in browser, connects Sui Wallet / Slush                               |
+| Build `/seal` page with form                                      | User can fill text + date and click submit                                                  |
+| Wire submit handler to `lib/sui.ts` `sealPrediction`              | Submitting seals a real testnet prediction; success state shows prediction ID + verify link |
+| Handle errors: wallet not connected, tx rejected, network failure | Error states display with clear messaging                                                   |
+| Add basic styling via shadcn/ui components                        | Visual baseline: black + white + one accent color                                           |
 
 **Day 3 DoD**: web UI can seal a prediction on testnet end-to-end.
 
@@ -200,14 +200,14 @@ entry fun seal_approve(id: vector<u8>, c: &Clock) {
 
 ### Tasks
 
-| Task | DoD |
-|---|---|
-| Set up Neon Postgres via Vercel Marketplace | DB URL in env; migrations run |
-| Schema: `x_handle_links (sui_address pk, x_handle, x_id, linked_at)`, `prediction_index (prediction_id pk, x_handle, status, sealed_at, unlock_at)` | Migrations applied |
-| Implement X OAuth 2.0 flow with "Sign in with X" | User can link their X handle to wallet address |
-| Build `/[handle]` page | Lists predictions for that handle (locked + revealed) |
-| Build `/verify/[id]` page | Shows full metadata, decryption status, "verify on Sui Explorer" link |
-| Add `/api/predictions/index` route to populate predictions table from Sui events | Newly sealed predictions appear in profile within 30s |
+| Task                                                                                                                                                | DoD                                                                   |
+| --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Set up Neon Postgres via Vercel Marketplace                                                                                                         | DB URL in env; migrations run                                         |
+| Schema: `x_handle_links (sui_address pk, x_handle, x_id, linked_at)`, `prediction_index (prediction_id pk, x_handle, status, sealed_at, unlock_at)` | Migrations applied                                                    |
+| Implement X OAuth 2.0 flow with "Sign in with X"                                                                                                    | User can link their X handle to wallet address                        |
+| Build `/[handle]` page                                                                                                                              | Lists predictions for that handle (locked + revealed)                 |
+| Build `/verify/[id]` page                                                                                                                           | Shows full metadata, decryption status, "verify on Sui Explorer" link |
+| Add `/api/predictions/index` route to populate predictions table from Sui events                                                                    | Newly sealed predictions appear in profile within 30s                 |
 
 **Day 4 DoD**: full read path works. Anyone can visit a profile, see predictions, and click into verification details.
 
@@ -219,14 +219,14 @@ entry fun seal_approve(id: vector<u8>, c: &Clock) {
 
 ### Tasks
 
-| Task | DoD |
-|---|---|
-| Implement `lib/x.ts` X API v2 client | `postTweet(accessToken, text)` works |
-| Add "auto-post to X" checkbox to `/seal` form | UI element renders, defaults to checked |
-| After successful seal, call `/api/x/post` with tweet template | Tweet posted from user's account |
-| Tweet template: `Sealed prediction at [ISO]. Verifies on [unlock]. Proof: toldproof.xyz/verify/[id]` | Tweet appears in user's timeline |
-| OG image generator: `/api/og/[id]` returns dynamic image with seal metadata | Twitter card preview shows seal hash + timestamps |
-| Handle: user dismissed OAuth, expired token, X rate limit | Graceful fallback — seal still succeeds even if tweet fails |
+| Task                                                                                                 | DoD                                                         |
+| ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Implement `lib/x.ts` X API v2 client                                                                 | `postTweet(accessToken, text)` works                        |
+| Add "auto-post to X" checkbox to `/seal` form                                                        | UI element renders, defaults to checked                     |
+| After successful seal, call `/api/x/post` with tweet template                                        | Tweet posted from user's account                            |
+| Tweet template: `Sealed prediction at [ISO]. Verifies on [unlock]. Proof: toldproof.xyz/verify/[id]` | Tweet appears in user's timeline                            |
+| OG image generator: `/api/og/[id]` returns dynamic image with seal metadata                          | Twitter card preview shows seal hash + timestamps           |
+| Handle: user dismissed OAuth, expired token, X rate limit                                            | Graceful fallback — seal still succeeds even if tweet fails |
 
 **Day 5 DoD**: sealing a prediction with auto-post enabled results in a tweet from the user's X account with a verification link and rich preview.
 
@@ -238,16 +238,16 @@ entry fun seal_approve(id: vector<u8>, c: &Clock) {
 
 ### Tasks
 
-| Task | DoD |
-|---|---|
-| Add Vercel cron job: `app/api/cron/reveal/route.ts` running every 10m | Cron registered; can confirm via logs |
-| Watcher logic: query `prediction_index` for `unlock_at <= now AND status=sealed` | Returns predictions ready to reveal |
-| For each: request decryption from Seal key server, fetch ciphertext from Walrus, decrypt | Plaintext recovered |
-| Compute hash of plaintext; call `reveal_prediction` Move entry | On-chain state updated; `PredictionRevealed` event emitted |
-| If `seal_tweet_id` exists for this prediction: quote-tweet with `VERIFIED: [text]. Sealed [date]. Proof: toldproof.xyz/verify/[id]` | Reveal tweet posted, linked to original |
-| If no original tweet: post standalone reveal tweet from bot account | Bot tweets reveal |
-| Update `prediction_index.status = revealed` | DB consistency |
-| Idempotency: ensure repeat cron runs don't double-tweet | Watcher checks `status` before processing |
+| Task                                                                                                                                | DoD                                                        |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Add Vercel cron job: `app/api/cron/reveal/route.ts` running every 10m                                                               | Cron registered; can confirm via logs                      |
+| Watcher logic: query `prediction_index` for `unlock_at <= now AND status=sealed`                                                    | Returns predictions ready to reveal                        |
+| For each: request decryption from Seal key server, fetch ciphertext from Walrus, decrypt                                            | Plaintext recovered                                        |
+| Compute hash of plaintext; call `reveal_prediction` Move entry                                                                      | On-chain state updated; `PredictionRevealed` event emitted |
+| If `seal_tweet_id` exists for this prediction: quote-tweet with `VERIFIED: [text]. Sealed [date]. Proof: toldproof.xyz/verify/[id]` | Reveal tweet posted, linked to original                    |
+| If no original tweet: post standalone reveal tweet from bot account                                                                 | Bot tweets reveal                                          |
+| Update `prediction_index.status = revealed`                                                                                         | DB consistency                                             |
+| Idempotency: ensure repeat cron runs don't double-tweet                                                                             | Watcher checks `status` before processing                  |
 
 **Day 6 DoD**: a prediction sealed with `unlock_at = now + 30 minutes` is automatically decrypted and tweeted out within 10 minutes of unlock.
 
@@ -259,16 +259,16 @@ entry fun seal_approve(id: vector<u8>, c: &Clock) {
 
 ### Tasks
 
-| Task | DoD |
-|---|---|
-| Vercel cron: `app/api/cron/verify-bot/route.ts` every 5 minutes | Cron registered |
-| Listen for mentions of `@toldproof` containing the word "verify" | Returns list of new mention tweet IDs |
-| For each mention: get parent tweet (the one being verified) | Parent tweet author + text retrieved |
-| Lookup parent author's X handle in `x_handle_links` | Returns Sui address or null |
-| If linked: query `prediction_index` for any predictions matching the claim's timeframe | Returns matching predictions (or empty) |
-| Reply to mention: verdict per matched/not-matched, neutral wording (see CLAUDE.md non-negotiables) | Reply tweet posted |
-| Deduplication: never reply to the same mention twice | `bot_replies` table tracks processed mention IDs |
-| Rate limit: max 5 verifications per requester per day | Returns "rate limited" message gracefully |
+| Task                                                                                               | DoD                                              |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Vercel cron: `app/api/cron/verify-bot/route.ts` every 5 minutes                                    | Cron registered                                  |
+| Listen for mentions of `@toldproof` containing the word "verify"                                   | Returns list of new mention tweet IDs            |
+| For each mention: get parent tweet (the one being verified)                                        | Parent tweet author + text retrieved             |
+| Lookup parent author's X handle in `x_handle_links`                                                | Returns Sui address or null                      |
+| If linked: query `prediction_index` for any predictions matching the claim's timeframe             | Returns matching predictions (or empty)          |
+| Reply to mention: verdict per matched/not-matched, neutral wording (see CLAUDE.md non-negotiables) | Reply tweet posted                               |
+| Deduplication: never reply to the same mention twice                                               | `bot_replies` table tracks processed mention IDs |
+| Rate limit: max 5 verifications per requester per day                                              | Returns "rate limited" message gracefully        |
 
 ### Verdict reply templates
 
@@ -293,17 +293,17 @@ Account not linked:
 
 ### Tasks
 
-| Task | DoD |
-|---|---|
-| Rewrite landing page copy: headline, 3 benefits, "how it works" 3-step, FAQ | Real copy in place, not Lorem Ipsum |
-| Add screenshots and animated GIFs to landing | Visual proof points above the fold |
-| Pricing section: free + Pro ($9.99/mo coming soon) | Clear future monetization signal |
-| Footer: GitHub link, Sui Overflow badge, "built on Walrus + Seal" | Trust signals |
-| Deploy landing page to Walrus Sites as `toldproof.wal.app` (or equivalent) | Walrus Sites mirror live — demo flex |
-| Mobile responsive review | All pages work on mobile |
-| Performance audit: Core Web Vitals, image optimization | LCP < 2.5s, CLS < 0.1 |
-| Write `demo.md` with full 60s video script | Script locked, frame-by-frame |
-| Draft README.md for project root | <200 lines, explains architecture for judges |
+| Task                                                                        | DoD                                          |
+| --------------------------------------------------------------------------- | -------------------------------------------- |
+| Rewrite landing page copy: headline, 3 benefits, "how it works" 3-step, FAQ | Real copy in place, not Lorem Ipsum          |
+| Add screenshots and animated GIFs to landing                                | Visual proof points above the fold           |
+| Pricing section: free + Pro ($9.99/mo coming soon)                          | Clear future monetization signal             |
+| Footer: GitHub link, Sui Overflow badge, "built on Walrus + Seal"           | Trust signals                                |
+| Deploy landing page to Walrus Sites as `toldproof.wal.app` (or equivalent)  | Walrus Sites mirror live — demo flex         |
+| Mobile responsive review                                                    | All pages work on mobile                     |
+| Performance audit: Core Web Vitals, image optimization                      | LCP < 2.5s, CLS < 0.1                        |
+| Write `demo.md` with full 60s video script                                  | Script locked, frame-by-frame                |
+| Draft README.md for project root                                            | <200 lines, explains architecture for judges |
 
 **Day 8 DoD**: production-quality polish on every page; Walrus Sites backup domain live; demo script finalized.
 
@@ -315,16 +315,16 @@ Account not linked:
 
 ### Tasks
 
-| Task | DoD |
-|---|---|
-| Set up screen recording (Loom, ScreenStudio, or OBS) at 4K | Recording at 4K, clear audio |
-| Record each scene per the demo script — multiple takes | All clips on disk |
-| Edit in CapCut / iMovie / DaVinci Resolve | 60s cut |
-| Add captions (75% of viewers watch muted on Twitter) | Captions burned in |
-| Add background music (royalty-free, subtle) | Music doesn't overpower voiceover |
-| Voiceover: record + sync OR use AI narration (ElevenLabs) | Clear narration |
-| Export 1080p MP4 + upload to YouTube + Twitter | Public links live |
-| Test playback on phone | Works on mobile |
+| Task                                                       | DoD                               |
+| ---------------------------------------------------------- | --------------------------------- |
+| Set up screen recording (Loom, ScreenStudio, or OBS) at 4K | Recording at 4K, clear audio      |
+| Record each scene per the demo script — multiple takes     | All clips on disk                 |
+| Edit in CapCut / iMovie / DaVinci Resolve                  | 60s cut                           |
+| Add captions (75% of viewers watch muted on Twitter)       | Captions burned in                |
+| Add background music (royalty-free, subtle)                | Music doesn't overpower voiceover |
+| Voiceover: record + sync OR use AI narration (ElevenLabs)  | Clear narration                   |
+| Export 1080p MP4 + upload to YouTube + Twitter             | Public links live                 |
+| Test playback on phone                                     | Works on mobile                   |
 
 **Day 9 DoD**: a 60-second public video on YouTube + Twitter that follows the script.
 
@@ -338,17 +338,17 @@ Account not linked:
 
 ### Tasks
 
-| Task | DoD |
-|---|---|
-| **Final review of Move contracts** (user reviews every diff against localnet code) | User approval recorded in commit message |
-| Re-run all tests | `sui move test` — all green |
-| Confirm sui client env is testnet, wallet funded | `sui client active-env` = `testnet`, `sui client gas` shows ≥ 2 SUI |
-| Publish: `sui client publish --gas-budget 200000000` | Package ID + Registry ID captured |
-| Update `.env.production` with testnet package + Registry IDs | App points to testnet |
-| Deploy app to Vercel production | `toldproof.xyz` live |
-| Test testnet end-to-end: seal a real prediction (unlock 10 min out), wait, reveal | Full flow on testnet — Walrus blob, Seal key release, reveal tweet |
-| Soft launch: DM 5–10 crypto Twitter contacts with the demo video + URL | At least 2–3 real sealed predictions from non-self accounts |
-| Build-in-public tweet: announce the project with the demo video | Tweet posted |
+| Task                                                                               | DoD                                                                 |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Final review of Move contracts** (user reviews every diff against localnet code) | User approval recorded in commit message                            |
+| Re-run all tests                                                                   | `sui move test` — all green                                         |
+| Confirm sui client env is testnet, wallet funded                                   | `sui client active-env` = `testnet`, `sui client gas` shows ≥ 2 SUI |
+| Publish: `sui client publish --gas-budget 200000000`                               | Package ID + Registry ID captured                                   |
+| Update `.env.production` with testnet package + Registry IDs                       | App points to testnet                                               |
+| Deploy app to Vercel production                                                    | `toldproof.xyz` live                                                |
+| Test testnet end-to-end: seal a real prediction (unlock 10 min out), wait, reveal  | Full flow on testnet — Walrus blob, Seal key release, reveal tweet  |
+| Soft launch: DM 5–10 crypto Twitter contacts with the demo video + URL             | At least 2–3 real sealed predictions from non-self accounts         |
+| Build-in-public tweet: announce the project with the demo video                    | Tweet posted                                                        |
 
 **Day 10 DoD**: live on **testnet**; tested end-to-end with real users; demo video shared. Mainnet is parked.
 
@@ -360,15 +360,15 @@ Account not linked:
 
 ### Tasks
 
-| Task | DoD |
-|---|---|
-| Create project page on deepsurge.xyz | Page exists |
-| Fill out: name (TOLDPROOF), description (under 500 chars), track (Special — Walrus), media files | All fields complete |
-| Links: GitHub (github.com/toldproof), demo video, live URL (toldproof.xyz), Walrus Sites mirror, Sui package ID | All filled |
-| Project description: 2-3 paragraphs with problem, solution, what makes it unique | Description matches `spec.md` summary |
-| Upload logo + screenshots | At least 3 visuals |
-| Submit and verify it appears in `/projects?status=submitted` | Public submission confirmed |
-| React to feedback / DMs from soft launch | Iterations applied if critical |
+| Task                                                                                                            | DoD                                   |
+| --------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Create project page on deepsurge.xyz                                                                            | Page exists                           |
+| Fill out: name (TOLDPROOF), description (under 500 chars), track (Special — Walrus), media files                | All fields complete                   |
+| Links: GitHub (github.com/toldproof), demo video, live URL (toldproof.xyz), Walrus Sites mirror, Sui package ID | All filled                            |
+| Project description: 2-3 paragraphs with problem, solution, what makes it unique                                | Description matches `spec.md` summary |
+| Upload logo + screenshots                                                                                       | At least 3 visuals                    |
+| Submit and verify it appears in `/projects?status=submitted`                                                    | Public submission confirmed           |
+| React to feedback / DMs from soft launch                                                                        | Iterations applied if critical        |
 
 **Day 11 DoD**: hackathon entry submitted and publicly visible on DeepSurge.
 

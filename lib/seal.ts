@@ -45,24 +45,25 @@ export async function encryptAesKey(args: {
   return encryptedObject;
 }
 
-// Server-side session key: we sign the personal-message challenge with our keypair
-// directly (no wallet round trip).
+// Server-side session key: pass the signer directly so SessionKey auto-signs
+// the personal-message challenge inside getCertificate(). The manual
+// setPersonalMessageSignature() path triggers an internal
+// verifyPersonalMessageSignature call that we've observed failing intermittently
+// (server then rejects with "Invalid certificate time or ttl" — misleading).
+// Auto-sign skips that verification entirely.
 export async function createSessionKey(args: {
   suiClient: SuiClient;
   packageId: string;
   signer: Ed25519Keypair;
   ttlMin?: number;
 }): Promise<SessionKey> {
-  const sessionKey = await SessionKey.create({
+  return await SessionKey.create({
     address: args.signer.getPublicKey().toSuiAddress(),
     packageId: ensure0x(args.packageId),
     ttlMin: args.ttlMin ?? 10,
+    signer: args.signer,
     suiClient: args.suiClient,
   });
-  const personalMessage = sessionKey.getPersonalMessage();
-  const { signature } = await args.signer.signPersonalMessage(personalMessage);
-  sessionKey.setPersonalMessageSignature(signature);
-  return sessionKey;
 }
 
 export async function decryptAesKey(args: {

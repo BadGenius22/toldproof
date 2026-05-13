@@ -64,7 +64,7 @@ async function main() {
     suiClient: sui,
     packageId: env.packageId,
     signer,
-    ttlMin: 5,
+    ttlMin: 10,  // raised from 5 — Mysten testnet servers reject some cert flows
   });
 
   // 4. Seal releases the AES key (or aborts if clock < unlock)
