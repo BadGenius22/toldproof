@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   CurrentAccountSigner,
@@ -35,12 +35,21 @@ const STEP_LABELS: Record<Step, string> = {
   error: 'Failed.',
 };
 
-function defaultUnlockIso(): string {
-  // 1 hour from now, formatted for datetime-local input (YYYY-MM-DDTHH:MM)
+// datetime-local expects LOCAL time formatted "YYYY-MM-DDTHH:mm" — not UTC.
+// toISOString() returns UTC and would be off by the user's timezone offset.
+function formatLocalDatetimeInput(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
+function defaultUnlockLocal(): string {
   const d = new Date(Date.now() + 60 * 60 * 1000);
   d.setSeconds(0);
   d.setMilliseconds(0);
-  return d.toISOString().slice(0, 16);
+  return formatLocalDatetimeInput(d);
 }
 
 // NEXT_PUBLIC_* are inlined at build time for client bundles. Reading them
@@ -64,7 +73,13 @@ export function PredictionForm() {
   );
 
   const [text, setText] = useState('');
-  const [unlockIso, setUnlockIso] = useState(defaultUnlockIso());
+  // Empty at SSR / first paint to avoid hydration mismatch (Date.now() differs
+  // between server render and client hydration). useEffect populates the
+  // default on mount; user can still edit immediately.
+  const [unlockIso, setUnlockIso] = useState('');
+  useEffect(() => {
+    setUnlockIso((prev) => prev || defaultUnlockLocal());
+  }, []);
   const [xHandle, setXHandle] = useState('');
 
   const [step, setStep] = useState<Step>('idle');
