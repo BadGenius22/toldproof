@@ -16,6 +16,10 @@
     {
       "path": "/api/cron/reputation",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/agent-fleet",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

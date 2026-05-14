@@ -1,24 +1,22 @@
 // Resolution Agent — multi-step tool-using AI that judges prediction outcomes.
 //
-// Full loop per prediction:
-//   1. Read the revealed plaintext from on-chain SealedPrediction.
-//   2. Run a tool-using Claude session via Vercel AI Gateway:
-//        - web_search (Tavily) for general claims + news
-//        - get_token_price (CoinGecko) for current price/marketcap
-//        - get_price_history (CoinGecko) for time-bounded price claims
-//        - submit_verdict to finalize
-//      Up to 8 steps. The agent decides what to investigate.
-//   3. Capture the full step-by-step trace + verdict into a JSON artifact.
-//   4. Write the artifact to Walrus.
-//   5. Submit resolve(prediction, hit, walrus_blob_id) on Sui — gated to the
-//      Registry's `resolver` address.
+// Two modes, switchable via RESOLUTION_AGENT_MODE env var:
+//   - "single" (default): one model (Claude) runs the tool-loop and submits a verdict.
+//   - "consensus": Claude + GPT + Gemini each run the tool-loop independently in
+//     parallel. A Critic Agent synthesizes the three verdicts into the final
+//     attestation. All four reasoning paths are captured in the Walrus artifact.
 //
-// The Walrus artifact is the auditable record subscribers see: every search
-// query, every tool result, every reasoning step. That's the Walrus-track
-// "persistent verifiable agent memory" hook.
+// The Walrus artifact is the auditable record subscribers see — every model's
+// thinking, every search query, every tool result. That's the Walrus-track
+// "persistent verifiable agent memory + multi-agent coordination" hook.
 
 import type { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
-import { generateText, stepCountIs, type LanguageModelUsage } from 'ai';
+import {
+  generateObject,
+  generateText,
+  stepCountIs,
+  type LanguageModelUsage,
+} from 'ai';
 import { env } from './env';
 import { storeBlob } from './walrus';
 import {
@@ -27,16 +25,39 @@ import {
   fetchSealedPrediction,
   type SuiClient,
 } from './sui';
-import { RESOLUTION_AGENT_TOOLS, type Verdict } from './agent-tools';
+import {
+  RESOLUTION_AGENT_TOOLS,
+  VerdictSchema,
+  type Verdict,
+} from './agent-tools';
 
-const AGENT_MODEL = 'anthropic/claude-sonnet-4.5';
 const MAX_AGENT_STEPS = 8;
 const REASONING_TRACE_EPOCHS = 53;
 
-const SYSTEM_PROMPT = `You are the TOLDPROOF Resolution Agent. Your one job: determine \
-whether a sealed prediction actually came true. You operate on natural-language \
-predictions about public events — crypto prices, ecosystem milestones, \
-announcements, real-world outcomes.
+// Default single-model mode uses Claude. Consensus mode fans out to all three.
+const SINGLE_MODEL = 'anthropic/claude-sonnet-4.5';
+
+// Multi-agent consensus models. Each runs the same worker prompt + tools
+// independently. The Critic compares verdicts and synthesizes the final call.
+// All three are routed through Vercel AI Gateway (no provider SDKs needed).
+const CONSENSUS_MODELS = [
+  'anthropic/claude-sonnet-4.5',
+  'openai/gpt-5',
+  'google/gemini-2.5-pro',
+] as const;
+
+const CRITIC_MODEL = 'anthropic/claude-sonnet-4.5';
+
+type ResolutionMode = 'single' | 'consensus';
+
+function modeFromEnv(): ResolutionMode {
+  return process.env.RESOLUTION_AGENT_MODE === 'consensus' ? 'consensus' : 'single';
+}
+
+const WORKER_SYSTEM_PROMPT = `You are a TOLDPROOF Resolution Worker Agent. Your one job: \
+determine whether a sealed prediction actually came true. You operate on \
+natural-language predictions about public events — crypto prices, ecosystem \
+milestones, announcements, real-world outcomes.
 
 You have these tools available:
   - web_search(query, maxResults): search the web for current information
@@ -56,11 +77,29 @@ Rules:
   - Every source in your verdict.sources MUST be a URL you actually saw via web_search,
     OR a tool name like "coingecko:ethereum" for price-tool data.
   - Maximum 8 tool calls total. Be efficient.
-  - The reasoning you submit will be stored on Walrus where subscribers can audit
-    every word. Be precise and cite specifics.`;
+  - In consensus mode you are ONE of three independent investigators. Don't try to
+    agree with the others — they're not visible. State your honest view, your
+    confidence, and your evidence. A Critic Agent will synthesize.`;
+
+const CRITIC_SYSTEM_PROMPT = `You are the TOLDPROOF Critic Agent. Three independent \
+Worker Agents (Claude, GPT, Gemini) each investigated a sealed prediction \
+and submitted a verdict. Your job: synthesize their three verdicts into one \
+final attestation.
+
+Synthesis rules:
+  - All 3 agree on hit/miss: commit consensus, confidence = average of the 3.
+  - 2 of 3 agree: commit the majority view, confidence slightly below the
+    majority's average, note the dissenting view in caveats (1-2 sentences).
+  - All 3 disagree (rare, only if hit/miss is genuinely ambiguous): commit
+    hit=false, confidence=0.0, write the disagreement honestly in caveats.
+  - Merge sources from all 3 workers into your final sources array (dedupe URLs).
+  - Your reasoning summarizes the workers' findings — do NOT invent new claims.
+  - Never accuse the author of dishonesty. Just describe whether reality matched.`;
+
+// ─── Shared types ─────────────────────────────────────────────────────
 
 export interface ReasoningTrace {
-  version: 2;
+  version: 3;
   predictionId: string;
   predictionText: string;
   identity: string;
@@ -68,23 +107,39 @@ export interface ReasoningTrace {
   sealedAtMs: number;
   revealedAtMs: number;
   resolvedAtMs: number;
-  model: string;
+  mode: ResolutionMode;
   verdict: Verdict;
-  // Full agent step-by-step trace. Each entry captures one model turn:
-  // what the model said + what tool calls it made + each tool's result.
-  agentSteps: AgentStep[];
+  // Single-mode: one path under `singleAgent`.
+  // Consensus-mode: one entry per worker model under `workers`, plus
+  // `criticVerdicts` showing the three input verdicts the critic synthesized.
+  singleAgent?: AgentRunRecord;
+  workers?: AgentRunRecord[];
+  criticInputs?: WorkerVerdict[];
+  criticReasoning?: string;
+  totalTokenUsage: SerializedUsage;
+}
+
+export interface AgentRunRecord {
+  model: string;
+  steps: AgentStep[];
   totalSteps: number;
   tokenUsage: SerializedUsage;
+  verdict: Verdict;
 }
 
 export interface AgentStep {
   stepIndex: number;
-  text: string; // model's reasoning text at this step (may be empty if tool-only step)
+  text: string;
   toolCalls: Array<{
     tool: string;
     input: unknown;
     output: unknown;
   }>;
+}
+
+interface WorkerVerdict {
+  model: string;
+  verdict: Verdict;
 }
 
 interface SerializedUsage {
@@ -99,8 +154,10 @@ export interface ResolveResult {
   reasoningBlobId: string;
   hit: boolean;
   confidence: number;
-  totalSteps: number;
+  mode: ResolutionMode;
 }
+
+// ─── Main entry ───────────────────────────────────────────────────────
 
 export async function resolveOnce(opts: {
   suiClient: SuiClient;
@@ -108,72 +165,42 @@ export async function resolveOnce(opts: {
   predictionId: string;
 }): Promise<ResolveResult> {
   const { suiClient, signer, predictionId } = opts;
+  const mode = modeFromEnv();
 
-  // 1. Fetch + sanity-check prediction
+  // 1. Fetch + sanity-check
   const pred = await fetchSealedPrediction(suiClient, predictionId);
   if (!pred.revealed) throw new Error(`prediction ${predictionId} not yet revealed`);
-  if (pred.resolved === true) throw new Error(`prediction ${predictionId} already resolved`);
+  if (pred.resolved === true)
+    throw new Error(`prediction ${predictionId} already resolved`);
 
   const plaintext = new TextDecoder().decode(toBytes(pred.revealed_plaintext));
   const sealedAtMs = Number(pred.sealed_at_ms);
   const revealedAtMs = Number(pred.revealed_at_ms);
-  const now = Date.now();
-  const isAgent = pred.entity_type === 1;
-  const entityLabel = isAgent ? 'AI agent' : 'human X user';
 
-  const userPrompt = [
-    `Prediction text: "${plaintext}"`,
-    `Sealed by ${entityLabel}: ${pred.identity}`,
-    `Locked at: ${new Date(sealedAtMs).toISOString()}`,
-    `Opened at: ${new Date(revealedAtMs).toISOString()}`,
-    `Current date: ${new Date(now).toISOString()}`,
-    '',
-    'Investigate this prediction and produce a verdict. Use the tools to gather ' +
-      'evidence, then call submit_verdict.',
-  ].join('\n');
-
-  // 2. Run the multi-step tool-using agent loop
-  const result = await generateText({
-    model: AGENT_MODEL,
-    system: SYSTEM_PROMPT,
-    prompt: userPrompt,
-    tools: RESOLUTION_AGENT_TOOLS,
-    stopWhen: stepCountIs(MAX_AGENT_STEPS),
-  });
-
-  // 3. Extract the verdict from the most recent submit_verdict tool call.
-  //    If the agent never called submit_verdict (it ran out of steps), we
-  //    fall back to a low-confidence "unable to determine" verdict.
-  const verdict = extractVerdict(result.toolCalls, plaintext);
-
-  // 4. Build the structured reasoning trace artifact
-  const agentSteps = serializeSteps(result.steps);
-  const trace: ReasoningTrace = {
-    version: 2,
-    predictionId,
-    predictionText: plaintext,
+  // 2. Run agent(s) — single or consensus
+  const ctx = {
+    plaintext,
     identity: pred.identity,
     entityType: pred.entity_type ?? 0,
     sealedAtMs,
     revealedAtMs,
-    resolvedAtMs: Date.now(),
-    model: AGENT_MODEL,
-    verdict,
-    agentSteps,
-    totalSteps: agentSteps.length,
-    tokenUsage: serializeUsage(result.usage),
   };
-  const traceBytes = new TextEncoder().encode(JSON.stringify(trace, null, 2));
 
-  // 5. Store on Walrus
+  const trace: ReasoningTrace =
+    mode === 'consensus'
+      ? await runConsensus(predictionId, ctx)
+      : await runSingleModel(predictionId, ctx);
+
+  // 3. Store rich trace on Walrus
+  const traceBytes = new TextEncoder().encode(JSON.stringify(trace, null, 2));
   const { blobId } = await storeBlob(traceBytes, REASONING_TRACE_EPOCHS);
 
-  // 6. Commit on Sui
+  // 4. Commit on Sui
   const tx = resolvePredictionTx({
     registryId: env.registryId,
     packageId: env.packageId,
     predictionId,
-    hit: verdict.hit,
+    hit: trace.verdict.hit,
     reasoningBlobIdBytes: new TextEncoder().encode(blobId),
   });
   const signed = await suiClient.signAndExecuteTransaction({
@@ -181,8 +208,7 @@ export async function resolveOnce(opts: {
     signer,
     options: { showEffects: true },
   });
-  const status = signed.effects?.status?.status;
-  if (status !== 'success') {
+  if (signed.effects?.status?.status !== 'success') {
     throw new Error(`resolve tx failed: ${JSON.stringify(signed.effects?.status)}`);
   }
 
@@ -190,37 +216,226 @@ export async function resolveOnce(opts: {
     predictionId,
     digest: signed.digest,
     reasoningBlobId: blobId,
-    hit: verdict.hit,
-    confidence: verdict.confidence,
-    totalSteps: agentSteps.length,
+    hit: trace.verdict.hit,
+    confidence: trace.verdict.confidence,
+    mode,
   };
 }
 
-// Pull the verdict out of the agent's `submit_verdict` tool call.
-// Falls back to a low-confidence "indeterminate" if the agent ran out of steps
-// without committing — preserves auditability over silent failure.
+// ─── Single-model path (default) ──────────────────────────────────────
+
+interface AgentContext {
+  plaintext: string;
+  identity: string;
+  entityType: number;
+  sealedAtMs: number;
+  revealedAtMs: number;
+}
+
+async function runSingleModel(
+  predictionId: string,
+  ctx: AgentContext,
+): Promise<ReasoningTrace> {
+  const run = await runWorkerAgent(SINGLE_MODEL, ctx);
+  return {
+    version: 3,
+    predictionId,
+    predictionText: ctx.plaintext,
+    identity: ctx.identity,
+    entityType: ctx.entityType,
+    sealedAtMs: ctx.sealedAtMs,
+    revealedAtMs: ctx.revealedAtMs,
+    resolvedAtMs: Date.now(),
+    mode: 'single',
+    verdict: run.verdict,
+    singleAgent: run,
+    totalTokenUsage: run.tokenUsage,
+  };
+}
+
+// ─── Consensus path (Claude + GPT + Gemini + Critic) ──────────────────
+
+async function runConsensus(
+  predictionId: string,
+  ctx: AgentContext,
+): Promise<ReasoningTrace> {
+  // 1. Fan out to all three worker models in parallel.
+  const workerResults = await Promise.allSettled(
+    CONSENSUS_MODELS.map((model) => runWorkerAgent(model, ctx)),
+  );
+  const workers = workerResults
+    .map((r) => (r.status === 'fulfilled' ? r.value : null))
+    .filter((r): r is AgentRunRecord => r !== null);
+
+  // If every worker failed, fall back to a synthetic "indeterminate" trace.
+  if (workers.length === 0) {
+    return {
+      version: 3,
+      predictionId,
+      predictionText: ctx.plaintext,
+      identity: ctx.identity,
+      entityType: ctx.entityType,
+      sealedAtMs: ctx.sealedAtMs,
+      revealedAtMs: ctx.revealedAtMs,
+      resolvedAtMs: Date.now(),
+      mode: 'consensus',
+      verdict: {
+        hit: false,
+        confidence: 0,
+        reasoning: 'All three consensus worker agents failed to produce a verdict.',
+        sources: [],
+        caveats:
+          'Treat this resolution as INDETERMINATE — every model errored before submitting.',
+      },
+      workers: [],
+      criticInputs: [],
+      criticReasoning: 'No successful worker verdicts to synthesize.',
+      totalTokenUsage: {},
+    };
+  }
+
+  // 2. Critic synthesizes
+  const criticInputs: WorkerVerdict[] = workers.map((w) => ({
+    model: w.model,
+    verdict: w.verdict,
+  }));
+  const { finalVerdict, criticReasoning, criticUsage } = await runCriticAgent(
+    ctx,
+    criticInputs,
+  );
+
+  // 3. Aggregate token usage
+  const totalUsage: SerializedUsage = {
+    inputTokens:
+      workers.reduce((acc, w) => acc + (w.tokenUsage.inputTokens ?? 0), 0) +
+      (criticUsage.inputTokens ?? 0),
+    outputTokens:
+      workers.reduce((acc, w) => acc + (w.tokenUsage.outputTokens ?? 0), 0) +
+      (criticUsage.outputTokens ?? 0),
+    totalTokens:
+      workers.reduce((acc, w) => acc + (w.tokenUsage.totalTokens ?? 0), 0) +
+      (criticUsage.totalTokens ?? 0),
+  };
+
+  return {
+    version: 3,
+    predictionId,
+    predictionText: ctx.plaintext,
+    identity: ctx.identity,
+    entityType: ctx.entityType,
+    sealedAtMs: ctx.sealedAtMs,
+    revealedAtMs: ctx.revealedAtMs,
+    resolvedAtMs: Date.now(),
+    mode: 'consensus',
+    verdict: finalVerdict,
+    workers,
+    criticInputs,
+    criticReasoning,
+    totalTokenUsage: totalUsage,
+  };
+}
+
+// ─── Worker agent (one model, full tool loop) ────────────────────────
+
+async function runWorkerAgent(
+  model: string,
+  ctx: AgentContext,
+): Promise<AgentRunRecord> {
+  const now = Date.now();
+  const isAgent = ctx.entityType === 1;
+  const entityLabel = isAgent ? 'AI agent' : 'human X user';
+
+  const userPrompt = [
+    `Prediction text: "${ctx.plaintext}"`,
+    `Sealed by ${entityLabel}: ${ctx.identity}`,
+    `Locked at: ${new Date(ctx.sealedAtMs).toISOString()}`,
+    `Opened at: ${new Date(ctx.revealedAtMs).toISOString()}`,
+    `Current date: ${new Date(now).toISOString()}`,
+    '',
+    'Investigate this prediction. Use the tools to gather evidence, then call ' +
+      'submit_verdict.',
+  ].join('\n');
+
+  const result = await generateText({
+    model,
+    system: WORKER_SYSTEM_PROMPT,
+    prompt: userPrompt,
+    tools: RESOLUTION_AGENT_TOOLS,
+    stopWhen: stepCountIs(MAX_AGENT_STEPS),
+  });
+
+  return {
+    model,
+    steps: serializeSteps(result.steps),
+    totalSteps: result.steps.length,
+    tokenUsage: serializeUsage(result.usage),
+    verdict: extractVerdict(result.toolCalls, ctx.plaintext),
+  };
+}
+
+// ─── Critic agent (synthesizes worker verdicts) ──────────────────────
+
+async function runCriticAgent(
+  ctx: AgentContext,
+  inputs: WorkerVerdict[],
+): Promise<{ finalVerdict: Verdict; criticReasoning: string; criticUsage: SerializedUsage }> {
+  const inputBlock = inputs
+    .map(
+      (i, idx) =>
+        `WORKER ${idx + 1} — ${i.model}\n` +
+        `  hit: ${i.verdict.hit}\n` +
+        `  confidence: ${i.verdict.confidence.toFixed(2)}\n` +
+        `  reasoning: ${i.verdict.reasoning}\n` +
+        `  sources: ${JSON.stringify(i.verdict.sources)}\n` +
+        (i.verdict.caveats ? `  caveats: ${i.verdict.caveats}\n` : ''),
+    )
+    .join('\n');
+
+  const prompt = [
+    `Prediction: "${ctx.plaintext}"`,
+    `Sealed by: ${ctx.identity} (${ctx.entityType === 1 ? 'AI agent' : 'human'})`,
+    `Sealed at: ${new Date(ctx.sealedAtMs).toISOString()}`,
+    `Opened at: ${new Date(ctx.revealedAtMs).toISOString()}`,
+    '',
+    'WORKER VERDICTS:',
+    inputBlock,
+    '',
+    'Synthesize the final verdict per the critic rules. Include all unique sources ' +
+      'from the workers in your sources array.',
+  ].join('\n');
+
+  const result = await generateObject({
+    model: CRITIC_MODEL,
+    schema: VerdictSchema,
+    system: CRITIC_SYSTEM_PROMPT,
+    prompt,
+  });
+
+  return {
+    finalVerdict: result.object,
+    criticReasoning: result.object.reasoning,
+    criticUsage: serializeUsage(result.usage),
+  };
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────
+
 function extractVerdict(
   toolCalls: ReadonlyArray<{ toolName: string; input?: unknown }>,
   plaintext: string,
 ): Verdict {
-  // Iterate in reverse — the agent should call submit_verdict last
   for (let i = toolCalls.length - 1; i >= 0; i -= 1) {
     const call = toolCalls[i]!;
     if (call.toolName === 'submit_verdict' && call.input) {
-      // input is already validated against VerdictSchema by AI SDK
       return call.input as Verdict;
     }
   }
-  // Agent never finalized — synthesize a placeholder verdict so the on-chain
-  // record is honest about the failure. Confidence is set to 0 so this never
-  // contaminates an analyst's hit-rate.
   return {
     hit: false,
     confidence: 0,
     reasoning:
       `Resolution Agent did not produce a verdict for "${plaintext.slice(0, 80)}…" ` +
-      `within the step limit. This typically means the tools available could not ` +
-      `surface enough evidence. Treat this resolution as INDETERMINATE.`,
+      `within the step limit. Treat this resolution as INDETERMINATE.`,
     sources: [],
     caveats: 'Agent timed out without calling submit_verdict.',
   };
@@ -236,17 +451,12 @@ function serializeSteps(
   return steps.map((s, idx) => {
     const calls = s.toolCalls ?? [];
     const results = s.toolResults ?? [];
-    // Pair each tool call with its corresponding result (by index — they're aligned in AI SDK).
     const toolCalls = calls.map((c, i) => ({
       tool: c.toolName,
       input: c.input,
       output: results[i]?.output ?? null,
     }));
-    return {
-      stepIndex: idx,
-      text: s.text ?? '',
-      toolCalls,
-    };
+    return { stepIndex: idx, text: s.text ?? '', toolCalls };
   });
 }
 
