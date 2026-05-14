@@ -24,7 +24,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: '/', label: 'Home', match: (p) => p === '/' },
-  { href: '/seal', label: 'Lock' },
+  { href: '/lock', label: 'Lock' },
   { href: '/leaderboard', label: 'Leaderboard' },
   { href: '/dewaxindo', label: 'Profile', match: (p) => p === '/dewaxindo' },
   { href: '/bot', label: 'Check bot' },

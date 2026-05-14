@@ -22,6 +22,7 @@
     "@mysten/seal": "^1.1.3",
     "@mysten/sui": "^2.16.2",
     "@mysten/walrus": "^1.1.7",
+    "@neondatabase/serverless": "^1.1.0",
     "@tanstack/react-query": "^5.100.10",
     "@vercel/mcp-adapter": "^0.3.2",
     "ai": "^6.0.182",

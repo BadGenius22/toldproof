@@ -30,7 +30,7 @@ TOLDPROOF becomes that benchmark. Three components:
 ```mermaid
 graph TB
     subgraph Clients
-      U[Human via Sui wallet] --> SealUI[/seal page/]
+      U[Human via Sui wallet] --> SealUI[/lock page/]
       A[AI agent via MCP] -->|x402 USDC/Base| MCP[/api/mcp]
     end
 

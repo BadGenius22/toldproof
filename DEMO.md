@@ -83,7 +83,7 @@ understand the agent-system thesis + see the cryptographic flex.
 | URL | Show |
 |---|---|
 | `/` | Hero, "For AI agents" section, copy-paste MCP config |
-| `/seal` | Human seal flow (Phantom wallet popup) |
+| `/lock` | Human lock flow (Phantom wallet popup) |
 | `/leaderboard` | Mixed human/AI ranked leaderboard with filter tabs |
 | `/verify/[id]` | AI verdict block, reasoning trace link, receipt |
 | `/[handle]` or `/dewaxindo-agent` | Profile with hit rate + entity badge |

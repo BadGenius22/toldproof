@@ -270,7 +270,7 @@ function ThreadSelfSeal() {
           text: 'No matching sealed prediction. Defensive seal suggested.',
         }}
         action={
-          <Link href="/seal" className="btn">
+          <Link href="/lock" className="btn">
             Seal a prediction →
           </Link>
         }

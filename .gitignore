@@ -52,3 +52,5 @@ scratchpad/
 scratchpad-v3/
 IDEA_VALIDATION.md
 
+.vercel
+.env*.local

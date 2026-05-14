@@ -107,7 +107,7 @@ export default async function ProfilePage({
           </div>
 
           <div className="row row-actions" style={{ gap: 10, flexWrap: 'wrap' }}>
-            <Link href="/seal" className="btn">
+            <Link href="/lock" className="btn">
               Lock a prediction →
             </Link>
           </div>
@@ -273,7 +273,7 @@ function EmptyProfileState({ handle }: { handle: string }) {
       </div>
 
       <div className="row" style={{ gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <Link href="/seal" className="btn">
+        <Link href="/lock" className="btn">
           ▮ Be the first @{handle} →
         </Link>
         <Link href="/bot" className="btn ghost">

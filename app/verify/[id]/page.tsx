@@ -404,7 +404,7 @@ export default async function VerifyPage({
                   See on Walrus ↗
                 </a>
               </div>
-              <Link href="/seal" className="btn">
+              <Link href="/lock" className="btn">
                 Lock yours →
               </Link>
             </div>

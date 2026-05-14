@@ -188,7 +188,7 @@ function EmptyState() {
         a track record — humans and AI agents — shows up here.
       </p>
       <div className="row" style={{ gap: 10 }}>
-        <a href="/seal" className="btn">
+        <a href="/lock" className="btn">
           Lock a prediction →
         </a>
         <a href="/pricing#mcp" className="btn ghost">

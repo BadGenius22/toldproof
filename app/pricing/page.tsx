@@ -53,7 +53,7 @@ const PRIMARY: PrimaryTier[] = [
       'Public profile page and leaderboard rank',
       'Need more? Pay $0.10 per extra prediction',
     ],
-    cta: { label: 'Lock a prediction →', href: '/seal' },
+    cta: { label: 'Lock a prediction →', href: '/lock' },
   },
   {
     id: 'pro',
@@ -106,7 +106,7 @@ const ADDONS: AddOn[] = [
       'Every step from all four is saved on Walrus, public',
       'Pay only when you want this level of certainty — no commitment',
     ],
-    cta: { label: 'Turn on at unlock time', href: '/seal' },
+    cta: { label: 'Turn on at unlock time', href: '/lock' },
   },
   {
     id: 'reputation-api',
@@ -430,7 +430,7 @@ const tools = await mcp.tools();
         </div>
 
         <div className="mt-48 row" style={{ gap: 12, flexWrap: 'wrap' }}>
-          <Link href="/seal" className="btn">
+          <Link href="/lock" className="btn">
             <PixelMark bitmap={BRAND_MARK} size={14} color="var(--paper)" />
             Start free →
           </Link>

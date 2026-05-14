@@ -86,7 +86,7 @@ export default function HomePage() {
                 <Link href="/pricing#mcp" className="btn lg">
                   For your AI agent →
                 </Link>
-                <Link href="/seal" className="btn lg ghost">
+                <Link href="/lock" className="btn lg ghost">
                   For you →
                 </Link>
               </div>
