@@ -12,7 +12,8 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useCurrentAccount } from '@mysten/dapp-kit-react';
 import { XSignInButton } from './XSignInButton';
-import { useXSession } from '../lib/useXSession';
+import { ReleaseFlow } from './ReleaseFlow';
+import { useXSession, startXOAuth } from '../lib/useXSession';
 
 function BannerInner() {
   // The server doesn't know whether a wallet is connected (it's in
@@ -26,6 +27,7 @@ function BannerInner() {
   const account = useCurrentAccount();
   const { session } = useXSession();
   const params = useSearchParams();
+  const [showRelease, setShowRelease] = useState(false);
 
   const verified = params.get('verified') === '1';
   const verifiedHandle = params.get('handle');
@@ -133,7 +135,33 @@ function BannerInner() {
 
       <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
         <XSignInButton size="sm" />
+        {/* Squat-recovery CTA: only show when we got handle_taken AND the
+            user's wallet is connected (so we have a wallet address to put
+            in the verification tweet). */}
+        {error === 'handle_taken' && errorHandle && account && (
+          <button
+            type="button"
+            onClick={() => setShowRelease(true)}
+            className="btn"
+            style={{ padding: '6px 12px', fontSize: 12 }}
+          >
+            Prove @{errorHandle} is yours →
+          </button>
+        )}
       </div>
+
+      {showRelease && account && errorHandle && (
+        <ReleaseFlow
+          walletAddress={account.address}
+          xHandle={errorHandle}
+          onClose={() => setShowRelease(false)}
+          onReleased={() => {
+            setShowRelease(false);
+            // Kick off a fresh OAuth round-trip now that the handle is free.
+            void startXOAuth(account.address);
+          }}
+        />
+      )}
     </div>
   );
 }

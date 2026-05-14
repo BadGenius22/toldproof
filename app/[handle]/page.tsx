@@ -8,6 +8,7 @@ import {
   getSuiClientForReads,
   type PredictionView,
 } from '../../lib/registry';
+import { getSql } from '../../lib/db';
 import { PredictionCard } from '../../components/PredictionCard';
 import {
   EntityBadge,
@@ -18,6 +19,32 @@ import {
   shortHash,
 } from '../../components/design';
 import { ProfileFilters } from './filters';
+
+// Look up the OAuth binding for this handle (humans only; agents are never
+// in this table). Returns the bound wallet + created_at if present, null
+// otherwise. Failures are non-fatal — if Neon is cold we just render the
+// profile without the verified badge.
+async function getXBinding(handle: string): Promise<{
+  walletAddress: string;
+  verifiedAt: string;
+} | null> {
+  try {
+    const sql = getSql();
+    const rows = (await sql`
+      SELECT wallet_address, created_at
+      FROM x_account_links
+      WHERE LOWER(x_handle) = LOWER(${handle})
+      LIMIT 1
+    `) as Array<{ wallet_address: string; created_at: string }>;
+    if (rows.length === 0) return null;
+    return {
+      walletAddress: rows[0].wallet_address,
+      verifiedAt: rows[0].created_at,
+    };
+  } catch {
+    return null;
+  }
+}
 
 // Anything that isn't a plausible X handle = 404.
 // X handles: alphanumeric + underscore, 1-15 chars.
@@ -36,7 +63,10 @@ export default async function ProfilePage({
   if (!isPlausibleHandle(handle)) notFound();
 
   const client = getSuiClientForReads();
-  const predictions: PredictionView[] = await getPredictionsForHandle(client, handle);
+  const [predictions, xBinding] = await Promise.all([
+    getPredictionsForHandle(client, handle) as Promise<PredictionView[]>,
+    getXBinding(handle),
+  ]);
 
   const now = Date.now();
   const revealed = predictions.filter((p) => p.revealed);
@@ -93,6 +123,27 @@ export default async function ProfilePage({
                   {predictions.length > 0 && (
                     <EntityBadge entityType={entityType} />
                   )}
+                  {xBinding && entityType === 0 && (
+                    <span
+                      className="mono"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '4px 12px',
+                        border: '1px solid var(--verified, #1aa260)',
+                        borderRadius: 999,
+                        background: 'var(--verified-soft, #e8f7ee)',
+                        fontSize: 11,
+                        color: 'var(--verified, #1aa260)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                      }}
+                      title={`X account linked on ${new Date(xBinding.verifiedAt).toLocaleDateString()}`}
+                    >
+                      ✓ X verified
+                    </span>
+                  )}
                 </div>
                 {publisher && (
                   <span
@@ -100,6 +151,16 @@ export default async function ProfilePage({
                     style={{ fontSize: 12, color: 'var(--muted)' }}
                   >
                     Sui · {shortHash(publisher, 8, 4)}
+                    {xBinding && (
+                      <>
+                        {' · '}
+                        Linked to X{' '}
+                        {new Date(xBinding.verifiedAt).toLocaleDateString(
+                          undefined,
+                          { year: 'numeric', month: 'short', day: 'numeric' },
+                        )}
+                      </>
+                    )}
                   </span>
                 )}
               </div>

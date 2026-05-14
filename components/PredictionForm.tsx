@@ -14,6 +14,8 @@ import { aesGcmEncrypt, randomAesKey, sha256 } from '../lib/crypto';
 import { storeBlob, epochsForUnlock } from '../lib/walrus';
 import { getSealClient, encryptAesKey } from '../lib/seal';
 import { env } from '../lib/env';
+import { useXSession } from '../lib/useXSession';
+import { useQuota } from '../lib/useQuota';
 import {
   Chip,
   HexDump,
@@ -84,6 +86,8 @@ export function PredictionForm() {
   const account = useCurrentAccount();
   const dAppKit = useDAppKit();
   const router = useRouter();
+  const { session } = useXSession();
+  const { quota, refetch: refetchQuota } = useQuota();
   const [suiClient] = useState(
     () => new SuiJsonRpcClient({ url: RPC_URL, network: NETWORK }),
   );
@@ -94,6 +98,13 @@ export function PredictionForm() {
     setUnlockIso((prev) => prev || defaultUnlockLocal());
   }, []);
   const [xHandle, setXHandle] = useState('');
+  // Auto-fill + lock the X handle from the OAuth session so users can't
+  // claim a handle they don't own. The seal-gate API does the
+  // authoritative check, but pre-filling makes the UX obvious.
+  useEffect(() => {
+    if (session?.xHandle) setXHandle(session.xHandle);
+  }, [session?.xHandle]);
+  const handleLocked = !!session;
   const [autoTweet, setAutoTweet] = useState(true);
 
   const [step, setStep] = useState<Step>('idle');
@@ -130,6 +141,56 @@ export function PredictionForm() {
       const unlockAtMs = BigInt(unlockMs);
       const cleanHandle = xHandle.trim().toLowerCase().replace(/^@/, '');
       if (!cleanHandle) throw new Error('Please enter your X handle.');
+
+      // 0. Seal-gate preflight — verify (a) the user is signed in with X and
+      // the handle matches their OAuth session, and (b) the user has free
+      // quota remaining this month. Prevents both the squat path
+      // ("type @vitalik even though my X is @random123") and unbounded free
+      // sealing. The Move contract is permissionless; this is API-level only.
+      const preflightRes = await fetch('/api/seal/preflight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: account.address,
+          identity: cleanHandle,
+        }),
+      });
+      if (!preflightRes.ok) {
+        const data = (await preflightRes.json().catch(() => null)) as
+          | { error?: string; boundHandle?: string }
+          | null;
+        if (data?.error === 'no_session') {
+          throw new Error(
+            'Sign in with X first — click the X button at the top to bind your handle.',
+          );
+        }
+        if (data?.error === 'handle_mismatch' && data.boundHandle) {
+          throw new Error(
+            `Your X account is @${data.boundHandle}. Use that handle, or sign out and sign in with the X account for @${cleanHandle}.`,
+          );
+        }
+        if (data?.error === 'wallet_mismatch') {
+          throw new Error(
+            'This wallet is not bound to your X account. Sign in with X again from this wallet, or switch wallets.',
+          );
+        }
+        throw new Error('Could not verify your X account. Please refresh and try again.');
+      }
+      const preflight = (await preflightRes.json()) as {
+        mode: 'free' | 'overage';
+        freeRemaining: number;
+        freeLimit: number;
+        overagePriceUsd: number;
+      };
+      // Hackathon scope: only the free path is wired through the UI today.
+      // Overage payment via seal_prediction_paid<T> ships in Phase 5c.
+      if (preflight.mode === 'overage') {
+        throw new Error(
+          `You have used all ${preflight.freeLimit} free predictions this month. ` +
+            `Overage at $${preflight.overagePriceUsd.toFixed(2)}/seal lands next — ` +
+            'or upgrade to Pro for 100/month (waitlist on /pricing).',
+        );
+      }
 
       // 1. AES envelope
       setStep('encrypting');
@@ -202,6 +263,18 @@ export function PredictionForm() {
         unlockAtMs: Number(unlockAtMs),
         xHandle: cleanHandle,
       });
+
+      // Fire-and-forget quota increment. Failure is non-fatal — the on-chain
+      // seal is already final; we just lose accuracy on the off-chain counter
+      // (gets corrected on next preflight read).
+      void fetch('/api/seal/record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'free' }),
+      })
+        .then(() => refetchQuota())
+        .catch(() => {});
+
       setTimeout(() => router.push(`/verify/${created.objectId}`), 2200);
     } catch (e: unknown) {
       console.error(e);
@@ -302,11 +375,46 @@ export function PredictionForm() {
                   className="input"
                   value={xHandle}
                   onChange={(e) => setXHandle(e.target.value.replace(/^@/, ''))}
-                  disabled={disabled || !!result}
+                  disabled={disabled || !!result || handleLocked}
                   required
                   placeholder="elonmusk"
+                  readOnly={handleLocked}
                 />
-                <span className="hint">We&apos;ll link your X account in a future update.</span>
+                <span className="hint">
+                  {handleLocked
+                    ? `Linked to your X account ✓ — your prediction will be filed under @${xHandle}.`
+                    : 'Sign in with X (top of page) to verify this handle.'}
+                </span>
+                {quota && (
+                  <span
+                    className="mono"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      marginTop: 6,
+                      padding: '3px 10px',
+                      border: `1px solid ${
+                        quota.mode === 'overage'
+                          ? 'var(--danger, #c25400)'
+                          : 'var(--ink)'
+                      }`,
+                      borderRadius: 999,
+                      fontSize: 10.5,
+                      color:
+                        quota.mode === 'overage'
+                          ? 'var(--danger, #c25400)'
+                          : 'var(--ink)',
+                      width: 'fit-content',
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {quota.mode === 'overage'
+                      ? `${quota.freeUsed}/${quota.freeLimit} free used · overage $${quota.overagePriceUsd.toFixed(2)}`
+                      : `${quota.freeUsed}/${quota.freeLimit} free this month`}
+                  </span>
+                )}
               </div>
               <div className="field">
                 <label htmlFor="unlock">Open it on</label>

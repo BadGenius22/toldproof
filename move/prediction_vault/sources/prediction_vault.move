@@ -562,6 +562,7 @@ public fun reveal(
 
 // ---------- Resolution (AI agent attestation) ----------
 
+#[allow(lint(prefer_mut_tx_context))]
 public fun resolve(
     reg: &Registry,
     prediction: &mut SealedPrediction,
@@ -602,6 +603,7 @@ public fun resolve(
 /// system, two roles). `previous_blob_id` should be empty for version 1 and
 /// the prior profile's blob_id for later versions — gives subscribers a
 /// linked-list audit trail.
+#[allow(lint(prefer_mut_tx_context))]
 public fun publish_reputation_profile(
     reg: &Registry,
     identity: String,
@@ -633,6 +635,7 @@ public fun publish_reputation_profile(
 // ---------- Admin entries ----------
 
 /// Rotate admin authority. Only the current admin can call.
+#[allow(lint(prefer_mut_tx_context))]
 public fun set_admin(reg: &mut Registry, new_admin: address, ctx: &TxContext) {
     check_version(reg);
     assert_admin(reg, ctx);
@@ -649,6 +652,7 @@ public fun set_admin(reg: &mut Registry, new_admin: address, ctx: &TxContext) {
 
 /// Rotate the Resolution Agent address. Admin-gated (was resolver-gated in v1
 /// but admin is the cleaner authority — resolver is just an operational role).
+#[allow(lint(prefer_mut_tx_context))]
 public fun set_resolver(reg: &mut Registry, new_resolver: address, ctx: &TxContext) {
     check_version(reg);
     assert_admin(reg, ctx);
@@ -664,6 +668,7 @@ public fun set_resolver(reg: &mut Registry, new_resolver: address, ctx: &TxConte
 }
 
 /// Rotate the treasury destination. All future agent seal fees forward here.
+#[allow(lint(prefer_mut_tx_context))]
 public fun set_treasury_addr(reg: &mut Registry, new_addr: address, ctx: &TxContext) {
     check_version(reg);
     assert_admin(reg, ctx);
@@ -687,6 +692,7 @@ public fun set_treasury_addr(reg: &mut Registry, new_addr: address, ctx: &TxCont
 /// deployer before any fee can be enabled, and fee_amount must clear
 /// MIN_FEE_FLOOR_MIST so an admin can't accidentally open a zero-fee
 /// alias-squatting path.
+#[allow(lint(prefer_mut_tx_context))]
 public fun set_fee<T>(reg: &mut Registry, fee_amount: u64, ctx: &TxContext) {
     check_version(reg);
     assert_admin(reg, ctx);
