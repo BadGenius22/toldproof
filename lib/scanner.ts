@@ -2,13 +2,14 @@
 // Iterates the Registry's `by_handle` Table dynamic fields, fetches all
 // SealedPrediction objects, filters revealed=false AND unlock_at_ms <= now.
 
-import { getByHandleTableId } from './registry';
+import { getByIdentityTableId } from './registry';
 import type { SuiClient } from './sui';
 import { fetchSealedPrediction } from './sui';
 
 export interface DuePrediction {
   id: string;
-  xHandle: string;
+  identity: string;
+  entityType: number;
   unlockAtMs: number;
   sealedAtMs: number;
 }
@@ -52,11 +53,9 @@ export async function findDueForReveal(client: SuiClient): Promise<{
   totalChecked: number;
   due: DuePrediction[];
 }> {
-  const byHandleId = await getByHandleTableId(client);
-  const handles = await listAllHandleEntries(client, byHandleId);
+  const tableId = await getByIdentityTableId(client);
+  const handles = await listAllHandleEntries(client, tableId);
 
-  // Gather every prediction ID across every handle (dedupe in case of fancy
-  // future patterns — currently 1:1 prediction:handle but cheap insurance).
   const idSet = new Set<string>();
   for (const h of handles) {
     const ids = await getPredictionIdsFromDynamicField(client, h.objectId);
@@ -66,7 +65,6 @@ export async function findDueForReveal(client: SuiClient): Promise<{
 
   const now = Date.now();
   const due: DuePrediction[] = [];
-  // Fetch in chunks to stay under any RPC batch limit
   const CHUNK = 25;
   for (let i = 0; i < allIds.length; i += CHUNK) {
     const slice = allIds.slice(i, i + CHUNK);
@@ -79,7 +77,8 @@ export async function findDueForReveal(client: SuiClient): Promise<{
       const content = obj?.data?.content;
       if (!content || content.dataType !== 'moveObject') continue;
       const fields = content.fields as unknown as {
-        x_handle: string;
+        identity: string;
+        entity_type: number;
         sealed_at_ms: string;
         unlock_at_ms: string;
         revealed: boolean;
@@ -89,7 +88,8 @@ export async function findDueForReveal(client: SuiClient): Promise<{
       if (unlockAtMs > now) continue;
       due.push({
         id: slice[j]!,
-        xHandle: fields.x_handle,
+        identity: fields.identity,
+        entityType: fields.entity_type ?? 0,
         unlockAtMs,
         sealedAtMs: Number(fields.sealed_at_ms),
       });
@@ -109,8 +109,68 @@ export async function due_or_throw(
   if (Number(fields.unlock_at_ms) > Date.now()) throw new Error('not yet unlocked');
   return {
     id: predictionId,
-    xHandle: fields.x_handle,
+    identity: fields.identity,
+    entityType: fields.entity_type ?? 0,
     sealedAtMs: Number(fields.sealed_at_ms),
     unlockAtMs: Number(fields.unlock_at_ms),
   };
+}
+
+export interface DueResolution {
+  id: string;
+  identity: string;
+  entityType: number;
+  sealedAtMs: number;
+  revealedAtMs: number;
+}
+
+// Find revealed predictions that the Resolution Agent hasn't attested yet.
+export async function findDueForResolve(client: SuiClient): Promise<{
+  totalHandles: number;
+  totalChecked: number;
+  due: DueResolution[];
+}> {
+  const tableId = await getByIdentityTableId(client);
+  const handles = await listAllHandleEntries(client, tableId);
+
+  const idSet = new Set<string>();
+  for (const h of handles) {
+    const ids = await getPredictionIdsFromDynamicField(client, h.objectId);
+    for (const id of ids) idSet.add(id);
+  }
+  const allIds = Array.from(idSet);
+
+  const due: DueResolution[] = [];
+  const CHUNK = 25;
+  for (let i = 0; i < allIds.length; i += CHUNK) {
+    const slice = allIds.slice(i, i + CHUNK);
+    const objs = await client.multiGetObjects({
+      ids: slice,
+      options: { showContent: true },
+    });
+    for (let j = 0; j < objs.length; j += 1) {
+      const obj = objs[j];
+      const content = obj?.data?.content;
+      if (!content || content.dataType !== 'moveObject') continue;
+      const fields = content.fields as unknown as {
+        identity: string;
+        entity_type: number;
+        sealed_at_ms: string;
+        revealed_at_ms: string;
+        revealed: boolean;
+        resolved?: boolean;
+      };
+      if (!fields.revealed) continue;
+      if (fields.resolved === true) continue;
+      due.push({
+        id: slice[j]!,
+        identity: fields.identity,
+        entityType: fields.entity_type ?? 0,
+        sealedAtMs: Number(fields.sealed_at_ms),
+        revealedAtMs: Number(fields.revealed_at_ms),
+      });
+    }
+  }
+
+  return { totalHandles: handles.length, totalChecked: allIds.length, due };
 }

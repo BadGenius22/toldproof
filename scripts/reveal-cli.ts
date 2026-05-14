@@ -35,7 +35,7 @@ async function main() {
 
   console.log(`prediction_id : ${predictionId}`);
   console.log(`  publisher : ${pred.publisher}`);
-  console.log(`  x_handle  : ${pred.x_handle}`);
+  console.log(`  identity  : ${pred.identity} (entity_type=${pred.entity_type})`);
   console.log(`  unlock_at : ${new Date(Number(unlockAtMs)).toISOString()}`);
   console.log(`  now       : ${new Date(Number(nowMs)).toISOString()}`);
   console.log(`  delta     : ${Number(unlockAtMs - nowMs) / 1000}s`);

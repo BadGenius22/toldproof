@@ -30,7 +30,8 @@ const NETWORK = (process.env.NEXT_PUBLIC_SUI_NETWORK ?? 'testnet') as
 
 interface Fields {
   publisher: string;
-  x_handle: string;
+  identity: string;
+  entity_type: number;
   sealed_at_ms: string;
   unlock_at_ms: string;
   content_hash: number[] | string;
@@ -39,6 +40,12 @@ interface Fields {
   revealed: boolean;
   revealed_at_ms: string;
   revealed_plaintext: number[] | string;
+  // Resolution Agent attestation fields.
+  resolved?: boolean;
+  hit?: boolean;
+  resolved_at_ms?: string;
+  reasoning_blob_id?: number[] | string;
+  resolver?: string;
 }
 
 function decodeBytesField(v: number[] | string): Uint8Array {
@@ -87,6 +94,17 @@ export default async function VerifyPage({
       .join('') + '…';
   const revealed = p.revealed;
   const revealedText = revealed ? utf8(p.revealed_plaintext) : '';
+  const isAgent = p.entity_type === 1;
+  const identityPrefix = isAgent ? '🤖' : '@';
+  const identityLabel = isAgent ? 'Agent alias' : 'X handle';
+  const resolved = p.resolved === true;
+  const hit = p.hit === true;
+  const resolvedAtMs = Number(p.resolved_at_ms ?? '0');
+  const reasoningBlobId = p.reasoning_blob_id ? utf8(p.reasoning_blob_id) : '';
+  const resolverAddr = p.resolver ?? '';
+  const reasoningUrl = reasoningBlobId
+    ? `https://aggregator.walrus-testnet.walrus.space/v1/blobs/${reasoningBlobId}`
+    : '';
 
   const status: 'sealed' | 'unlocked' | 'revealed' = revealed
     ? 'revealed'
@@ -108,8 +126,8 @@ export default async function VerifyPage({
       <div className="container narrow">
         <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <PageEyebrow>Verification</PageEyebrow>
-          <Link href={`/${p.x_handle}`} className="btn ghost">
-            ← @{p.x_handle}&apos;s profile
+          <Link href={`/${p.identity}`} className="btn ghost">
+            ← {identityPrefix}{p.identity}&apos;s profile
           </Link>
         </div>
 
@@ -156,6 +174,91 @@ export default async function VerifyPage({
             >
               &quot;{revealedText}&quot;
             </p>
+          </div>
+        )}
+
+        {/* Resolution Agent verdict */}
+        {revealed && (
+          <div className="mt-24">
+            {resolved ? (
+              <div
+                style={{
+                  border: '1px solid var(--ink)',
+                  borderRadius: 4,
+                  background: 'var(--paper)',
+                  padding: '20px 22px',
+                }}
+              >
+                <div
+                  className="row"
+                  style={{
+                    justifyContent: 'space-between',
+                    marginBottom: 12,
+                    flexWrap: 'wrap',
+                    gap: 8,
+                  }}
+                >
+                  <span className="eyebrow">
+                    AI Resolution Agent · attested {fmtRel(resolvedAtMs)}
+                  </span>
+                  <Chip status={hit ? 'verified' : 'warn'}>
+                    {hit ? '✓ Hit · they called it' : '✗ Miss · they didn’t'}
+                  </Chip>
+                </div>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    lineHeight: 1.55,
+                    color: 'var(--ink-2)',
+                  }}
+                >
+                  A multi-agent system read the prediction, checked what
+                  actually happened, and stored its full reasoning on Walrus
+                  so anyone can audit the call.
+                </p>
+                <div
+                  className="mt-12 row"
+                  style={{ gap: 10, flexWrap: 'wrap' }}
+                >
+                  {reasoningUrl ? (
+                    <a
+                      className="btn ghost"
+                      target="_blank"
+                      rel="noreferrer"
+                      href={reasoningUrl}
+                    >
+                      ↗ Read full reasoning trace
+                    </a>
+                  ) : null}
+                  <span
+                    className="mono"
+                    style={{ fontSize: 11, color: 'var(--muted)' }}
+                  >
+                    Attested by {shortHash(resolverAddr, 6, 4)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  border: '1px dashed var(--border)',
+                  borderRadius: 4,
+                  padding: '14px 16px',
+                  background: 'var(--paper-2)',
+                  fontFamily: 'var(--font-mono), monospace',
+                  fontSize: 12,
+                  color: 'var(--muted)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 8,
+                }}
+              >
+                <span>AI Resolution Agent · waiting in queue</span>
+                <span>verdict + reasoning posted within 5 min</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -208,7 +311,18 @@ export default async function VerifyPage({
               <dl style={{ margin: 0 }}>
                 <ReceiptRow k="Prediction ID" v={id} />
                 <ReceiptRow k="Locked by (wallet)" v={p.publisher} />
-                <ReceiptRow k="X handle" v={<span>@{p.x_handle}</span>} />
+                <ReceiptRow
+                  k={identityLabel}
+                  v={
+                    <span>
+                      {identityPrefix}{p.identity}{isAgent ? ' (AI agent)' : ''}
+                    </span>
+                  }
+                />
+                <ReceiptRow
+                  k="Entity type"
+                  v={isAgent ? '🤖 AI agent' : '👤 Human'}
+                />
                 <ReceiptRow
                   k="Locked at"
                   v={`${fmtAbs(sealedAtMs)} (${sealedAgo})`}
@@ -231,6 +345,25 @@ export default async function VerifyPage({
                   />
                 )}
                 <ReceiptRow k="Status" v={<StatusChip p={view} />} />
+                {resolved && (
+                  <>
+                    <ReceiptRow
+                      k="AI verdict"
+                      v={
+                        <span
+                          style={{
+                            color: hit ? 'var(--verified)' : 'var(--warn)',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {hit ? 'HIT' : 'MISS'}
+                        </span>
+                      }
+                    />
+                    <ReceiptRow k="Attested at" v={fmtAbs(resolvedAtMs)} />
+                    <ReceiptRow k="Reasoning (Walrus)" v={reasoningBlobId} />
+                  </>
+                )}
                 <ReceiptRow k="Text fingerprint" v={contentHashHex} />
                 <ReceiptRow k="Walrus storage ID" v={blobId} />
                 <ReceiptRow k="Locked key (preview)" v={sealedKeyPreview} />

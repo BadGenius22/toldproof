@@ -8,6 +8,14 @@
     {
       "path": "/api/cron/verify-bot",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/resolve",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/reputation",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

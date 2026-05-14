@@ -25,11 +25,10 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: '/', label: 'Home', match: (p) => p === '/' },
   { href: '/seal', label: 'Lock' },
-  // Profile, bot, reveal, reputation, brand all live at named routes
+  { href: '/leaderboard', label: 'Leaderboard' },
   { href: '/dewaxindo', label: 'Profile', match: (p) => p === '/dewaxindo' },
   { href: '/bot', label: 'Check bot' },
-  { href: '/reveal', label: 'Open it' },
-  { href: '/reputation', label: 'Score' },
+  { href: '/pricing', label: 'Pricing' },
   { href: '/brand', label: 'Brand' },
 ];
 

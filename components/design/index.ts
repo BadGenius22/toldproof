@@ -7,5 +7,6 @@ export { DarkModeToggle } from './DarkModeToggle';
 export { LiveTicker } from './LiveTicker';
 export { HeroStamp } from './HeroStamp';
 export { TweetCard } from './TweetCard';
+export { EntityBadge, identityDisplay } from './EntityBadge';
 export * from './bitmaps';
 export * from './format';

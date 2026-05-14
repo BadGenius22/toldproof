@@ -41,7 +41,29 @@ export function PredictionCard({ p }: { p: PredictionView }) {
       <div style={{ background: accent }} />
       <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div className="row" style={{ gap: 10, justifyContent: 'space-between', flexWrap: 'wrap' }}>
-          <StatusChip p={p} now={now} />
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <StatusChip p={p} now={now} />
+            {p.resolved && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '3px 8px',
+                  borderRadius: 3,
+                  border: `1px solid ${p.hit ? 'var(--verified)' : 'var(--warn)'}`,
+                  background: p.hit ? 'var(--verified-soft)' : 'var(--warn-soft)',
+                  color: p.hit ? 'oklch(0.35 0.12 150)' : 'oklch(0.4 0.14 30)',
+                  fontFamily: 'var(--font-mono), monospace',
+                  fontSize: 10,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                {p.hit ? '✓ Hit' : '✗ Miss'} · AI
+              </span>
+            )}
+          </div>
           <span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
             Locked {fmtRel(p.sealedAtMs, now)}
           </span>

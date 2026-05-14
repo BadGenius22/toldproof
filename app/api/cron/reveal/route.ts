@@ -60,7 +60,8 @@ export async function GET(req: Request) {
 
   const results: Array<{
     id: string;
-    xHandle: string;
+    identity: string;
+    entityType: number;
     status: 'revealed' | 'failed';
     digest?: string;
     tweetId?: string | null;
@@ -75,11 +76,13 @@ export async function GET(req: Request) {
         signer,
         predictionId: pred.id,
       });
+      // Post a reveal tweet ONLY for human-entity predictions — agents don't
+      // have X accounts in v2 (identity is a wallet alias, not an X handle).
       let tweetId: string | null = null;
-      if (xClient) {
+      if (xClient && pred.entityType === 0) {
         const tweet = await xClient.postTweet(
           revealTweetText({
-            xHandle: pred.xHandle,
+            xHandle: pred.identity,
             plaintext,
             predictionId: pred.id,
             sealedAtMs: pred.sealedAtMs,
@@ -88,11 +91,19 @@ export async function GET(req: Request) {
         );
         tweetId = tweet?.id ?? null;
       }
-      results.push({ id: pred.id, xHandle: pred.xHandle, status: 'revealed', digest, tweetId });
+      results.push({
+        id: pred.id,
+        identity: pred.identity,
+        entityType: pred.entityType,
+        status: 'revealed',
+        digest,
+        tweetId,
+      });
     } catch (e: unknown) {
       results.push({
         id: pred.id,
-        xHandle: pred.xHandle,
+        identity: pred.identity,
+        entityType: pred.entityType,
         status: 'failed',
         error: e instanceof Error ? e.message : String(e),
       });

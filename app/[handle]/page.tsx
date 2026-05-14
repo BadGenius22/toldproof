@@ -10,9 +10,11 @@ import {
 } from '../../lib/registry';
 import { PredictionCard } from '../../components/PredictionCard';
 import {
+  EntityBadge,
   PageEyebrow,
   PixelMark,
   BIG_SEAL,
+  identityDisplay,
   shortHash,
 } from '../../components/design';
 import { ProfileFilters } from './filters';
@@ -41,13 +43,19 @@ export default async function ProfilePage({
   const sealed = predictions.filter((p) => !p.revealed && now < p.unlockAtMs);
   const awaiting = predictions.filter((p) => !p.revealed && now >= p.unlockAtMs);
 
-  // "Hit rate" placeholder — until manual resolution exists, hits = revealed.
-  // Will become hits/revealed once the manual-resolution flow ships.
-  const totalResolved = revealed.length + awaiting.length;
-  const hitRate = totalResolved > 0 ? Math.round((revealed.length / totalResolved) * 100) : null;
+  // Real hit-rate: only AI-resolved predictions count toward the rate. Revealed
+  // predictions the Resolution Agent hasn't gotten to yet stay "pending" and
+  // don't move the percentage in either direction. This is the trust-minimized
+  // version of the old "hits = revealed" placeholder.
+  const resolvedPreds = predictions.filter((p) => p.resolved);
+  const hits = resolvedPreds.filter((p) => p.hit).length;
+  const totalResolved = resolvedPreds.length;
+  const hitRate = totalResolved > 0 ? Math.round((hits / totalResolved) * 100) : null;
 
   // Pick the publisher address of the most recent prediction (if any) for the header.
   const publisher = predictions[0]?.publisher;
+  // Anchor entity type to the first prediction (first-claim-wins on Move side).
+  const entityType = predictions[0]?.entityType ?? 0;
 
   return (
     <div className="page">
@@ -74,13 +82,18 @@ export default async function ProfilePage({
               >
                 {handle.slice(0, 1).toUpperCase()}
               </div>
-              <div className="col" style={{ gap: 2 }}>
-                <h1
-                  className="display"
-                  style={{ fontSize: 'clamp(34px, 5vw, 56px)', margin: 0 }}
-                >
-                  @{handle}
-                </h1>
+              <div className="col" style={{ gap: 6 }}>
+                <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <h1
+                    className="display"
+                    style={{ fontSize: 'clamp(34px, 5vw, 56px)', margin: 0 }}
+                  >
+                    {identityDisplay(handle, entityType)}
+                  </h1>
+                  {predictions.length > 0 && (
+                    <EntityBadge entityType={entityType} />
+                  )}
+                </div>
                 {publisher && (
                   <span
                     className="mono"
@@ -118,7 +131,12 @@ export default async function ProfilePage({
               <Stat
                 label="Got it right"
                 value={hitRate != null ? `${hitRate}%` : '—'}
-                sub={`${revealed.length}/${totalResolved} settled`}
+                sub={
+                  totalResolved > 0
+                    ? `${hits}/${totalResolved} settled by AI agent`
+                    : 'awaiting AI agent resolution'
+                }
+                hue="verified"
                 border
               />
             </div>
