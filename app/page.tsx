@@ -1,53 +1,394 @@
 import Link from 'next/link';
+import {
+  Chip,
+  HeroStamp,
+  LiveTicker,
+  PageEyebrow,
+  PixelMark,
+  SEAL_KEY_MARK,
+  SUI_MARK,
+  WALRUS_MARK,
+  fakeHexBlock,
+  fmtAbs,
+  fmtRel,
+  shortHash,
+} from '../components/design';
 
-export default function Home() {
+// A small bag of sample-data the AfterCard renders; matches the proto's mock.
+const SAMPLE = {
+  id: '0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
+  handle: 'dewaxindo',
+  sealedAtMs: Date.now() - 9 * 86_400_000,
+  unlockAtMs: Date.now() - 1 * 86_400_000,
+  contentHash: '4f8e2a7d1c9b5e3f6a8d2c4b7e9f1a3d5c7e9b1f3a5c7e9b1d3f5a7c9e1b3d5',
+  blobId: 'K9pM2nL5tY7wB1eS6jH4uA8vF3xK9pM2nL5tY7wB1e',
+};
+
+export default function HomePage() {
   return (
-    <section className="flex flex-1 w-full max-w-3xl flex-col items-start gap-8 px-6 py-24">
-      <div className="flex flex-col gap-3">
-        <p className="font-mono text-xs uppercase tracking-widest text-neutral-500">
-          Sui Overflow 2026 · Walrus Track
-        </p>
-        <h1 className="text-4xl font-bold leading-tight tracking-tight md:text-6xl">
-          Cryptographic receipts<br />for crypto Twitter.
-        </h1>
-        <p className="max-w-xl text-lg text-neutral-700 dark:text-neutral-300">
-          Sealed predictions on Sui + Walrus + Seal. Time-locked, immutable,
-          verifiable. No more hindsight farming.
-        </p>
-      </div>
+    <div className="page">
+      <div className="container">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 48, minWidth: 0 }}>
+          {/* Hero */}
+          <div className="hero-split">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+              <PageEyebrow>Sui Overflow 2026 · Walrus Track · v0.1 testnet</PageEyebrow>
+              <h1 className="display">
+                Cryptographic receipts
+                <br />
+                for <span className="accent">crypto Twitter.</span>
+              </h1>
+              <p
+                style={{
+                  fontSize: 18,
+                  lineHeight: 1.5,
+                  color: 'var(--ink-2)',
+                  margin: 0,
+                  textWrap: 'pretty',
+                }}
+              >
+                Seal a prediction now. Walrus stores the ciphertext. Seal time-locks the key.
+                At unlock, anyone can verify exactly when you said it — or call out the people
+                who didn&apos;t.
+              </p>
+              <div className="row" style={{ gap: 10, marginTop: 8 }}>
+                <Link href="/seal" className="btn lg">
+                  Seal a prediction →
+                </Link>
+                <Link href="/dewaxindo" className="btn lg ghost">
+                  See an example
+                </Link>
+              </div>
+              <div
+                className="row"
+                style={{
+                  gap: 18,
+                  marginTop: 12,
+                  color: 'var(--muted)',
+                  fontFamily: 'var(--font-mono), monospace',
+                  fontSize: 11,
+                  letterSpacing: '0.06em',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <PixelMark bitmap={SUI_MARK} size={14} color="var(--ink-3)" /> SUI
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <PixelMark bitmap={WALRUS_MARK} size={14} color="var(--ink-3)" /> WALRUS
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <PixelMark bitmap={SEAL_KEY_MARK} size={14} color="var(--ink-3)" /> SEAL
+                </span>
+                <span>· no oracle, no judge, no edit</span>
+              </div>
+            </div>
 
-      <div className="flex gap-3">
-        <Link
-          href="/seal"
-          className="rounded-md bg-black px-5 py-3 text-sm font-medium text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
-        >
-          Seal a prediction →
-        </Link>
-        <a
-          href="https://github.com/BadGenius22/toldproof"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-md border border-neutral-300 px-5 py-3 text-sm font-medium hover:border-black dark:border-neutral-700 dark:hover:border-white"
-        >
-          GitHub
-        </a>
-      </div>
+            <div
+              className="hero-mark"
+              style={{
+                alignSelf: 'stretch',
+                display: 'grid',
+                placeItems: 'center',
+                minWidth: 220,
+              }}
+            >
+              <HeroStamp />
+            </div>
+          </div>
 
-      <div className="grid w-full gap-6 pt-12 md:grid-cols-3">
-        <Step n="1" title="Seal" body="Type your prediction. Pick an unlock date. It's AES-encrypted in your browser; Walrus stores the ciphertext; Seal time-locks the key." />
-        <Step n="2" title="Wait" body="Until the unlock moment passes, no one — not even you — can decrypt. The hash is anchored on Sui from second one." />
-        <Step n="3" title="Reveal" body="At unlock, the cron decrypts via Seal and posts a tweet quoting the original seal. Skeptics can mention @toldproof verify on any claim." />
+          {/* Live ticker */}
+          <div className="mt-24">
+            <LiveTicker />
+          </div>
+
+          {/* Before / after */}
+          <div className="mt-24" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
+            <PageEyebrow>The difference</PageEyebrow>
+            <div className="grid-2" style={{ alignItems: 'stretch' }}>
+              <BeforeCard />
+              <AfterCard />
+            </div>
+          </div>
+
+          {/* How it works */}
+          <div className="mt-48">
+            <PageEyebrow>How it works</PageEyebrow>
+            <div className="grid-3" style={{ marginTop: 18, gap: 20 }}>
+              <HowStep
+                n="01"
+                title="Seal"
+                body="Type the claim. Pick an unlock date. AES-encrypt in your browser. Walrus stores the ciphertext. The key is sealed under a time-lock identity until the unlock moment passes."
+              />
+              <HowStep
+                n="02"
+                title="Wait"
+                body="Until unlock, no one — including you — can decrypt. The SHA-256 commitment is anchored on a Sui Move object from second one. The promise is unforgeable."
+              />
+              <HowStep
+                n="03"
+                title="Reveal"
+                body="At unlock the cron decrypts via Seal and quote-tweets your original seal-tweet with the plaintext. Skeptics can reply @toldproof verify on any claim to summon a verdict."
+              />
+            </div>
+          </div>
+
+          {/* The three guarantees */}
+          <div className="mt-48">
+            <PageEyebrow>The three guarantees</PageEyebrow>
+            <div
+              className="grid-3"
+              style={{
+                marginTop: 18,
+                gap: 0,
+                border: '1px solid var(--ink)',
+                borderRadius: 4,
+                overflow: 'hidden',
+              }}
+            >
+              <Guarantee
+                title="When"
+                detail="Sealed at a timestamp written into a Sui Move object. No off-chain edits. No retroactive backdating."
+                glyph="⏱"
+              />
+              <Guarantee
+                title="What"
+                detail="The SHA-256 of your plaintext is committed before unlock. Reveal must produce a preimage that matches — or it fails on-chain."
+                glyph="≡"
+                border
+              />
+              <Guarantee
+                title="Who"
+                detail="Sealed by a Sui address linked to an X handle. The handle in the tweet is the handle that signed the seal."
+                glyph="ʘ"
+              />
+            </div>
+          </div>
+
+          {/* Bot tease */}
+          <div className="mt-48">
+            <PageEyebrow>The bot</PageEyebrow>
+            <div
+              className="mt-16"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr auto',
+                gap: 24,
+                alignItems: 'center',
+              }}
+            >
+              <h2 className="section">
+                Reply{' '}
+                <span
+                  className="mono"
+                  style={{ fontWeight: 500, color: 'var(--sealed)' }}
+                >
+                  @toldproof verify
+                </span>{' '}
+                on any &quot;I called it&quot; tweet. The bot replies with a verdict.
+              </h2>
+              <Link href="/bot" className="btn">
+                See the bot →
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
 
-function Step({ n, title, body }: { n: string; title: string; body: string }) {
+function BeforeCard() {
   return (
-    <div className="flex flex-col gap-2">
-      <p className="font-mono text-xs text-neutral-500">{n}.</p>
-      <p className="text-lg font-medium">{title}</p>
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">{body}</p>
+    <div
+      style={{
+        border: '1px solid var(--border)',
+        borderRadius: 4,
+        padding: 18,
+        background: 'var(--paper-2)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+      }}
+    >
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <span className="eyebrow">Before · the X status quo</span>
+        <Chip status="warn">Hindsight farming</Chip>
+      </div>
+      <div className="tweet" style={{ background: 'var(--paper)' }}>
+        <div className="avatar" style={{ background: 'var(--ink-3)' }}>?</div>
+        <div className="grow">
+          <div className="tweet-head">
+            <span className="name">crypto_oracle_9000</span>
+            <span className="handle">@crypto_oracle_9000</span>
+            <span className="time">· 2h</span>
+          </div>
+          <div className="tweet-body">
+            Told you last year ETH would do this. Been calling it since 2024.
+            Anyone else see this coming? <span className="l">$ETH</span>{' '}
+            <span className="l">$SOL</span>
+          </div>
+        </div>
+      </div>
+      <p
+        className="mono"
+        style={{ fontSize: 11, color: 'var(--muted)', margin: 0, lineHeight: 1.55 }}
+      >
+        No proof. Edits allowed. Could have been posted seconds ago. The loud voice wins by
+        default.
+      </p>
+    </div>
+  );
+}
+
+function AfterCard() {
+  return (
+    <div
+      style={{
+        border: '1px solid var(--ink)',
+        borderRadius: 4,
+        padding: 18,
+        background: 'var(--paper)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+      }}
+    >
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <span className="eyebrow">After · with toldproof</span>
+        <Chip status="verified">Sealed {fmtRel(SAMPLE.sealedAtMs)}</Chip>
+      </div>
+      <div className="tweet">
+        <div className="avatar">D</div>
+        <div className="grow">
+          <div className="tweet-head">
+            <span className="name">dewaxindo</span>
+            <span className="handle">@dewaxindo</span>
+            <span className="time">· {fmtRel(SAMPLE.sealedAtMs)}</span>
+          </div>
+          <div className="tweet-body">
+            Sealed prediction. Verifies on {fmtAbs(SAMPLE.unlockAtMs).slice(0, 10)}.
+            <br />
+            <span className="l">
+              toldproof.xyz/verify/{shortHash(SAMPLE.id, 6, 4)}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 8,
+          fontFamily: 'var(--font-mono), monospace',
+          fontSize: 10.5,
+          color: 'var(--muted)',
+        }}
+      >
+        <span>sha256:{SAMPLE.contentHash.slice(0, 18)}…</span>
+        <span style={{ textAlign: 'right' }}>walrus:{SAMPLE.blobId.slice(0, 12)}…</span>
+      </div>
+      {/* Suppress unused-import warning — fakeHexBlock kept for future variants */}
+      <span style={{ display: 'none' }}>{fakeHexBlock('x', 1)}</span>
+    </div>
+  );
+}
+
+function HowStep({ n, title, body }: { n: string; title: string; body: string }) {
+  return (
+    <div
+      style={{
+        border: '1px solid var(--border)',
+        borderRadius: 4,
+        padding: 18,
+        background: 'var(--paper)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}
+    >
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <span
+          className="mono"
+          style={{ fontSize: 11, color: 'var(--muted)', letterSpacing: '0.1em' }}
+        >
+          STEP {n}
+        </span>
+        <span
+          style={{
+            width: 18,
+            height: 18,
+            background: 'var(--ink)',
+            color: 'var(--paper)',
+            borderRadius: 2,
+            display: 'grid',
+            placeItems: 'center',
+            fontFamily: 'var(--font-mono), monospace',
+            fontSize: 10,
+          }}
+        >
+          {n.slice(1)}
+        </span>
+      </div>
+      <h3 style={{ margin: 0, fontSize: 22, letterSpacing: '-0.01em', fontWeight: 600 }}>
+        {title}
+      </h3>
+      <p
+        style={{
+          margin: 0,
+          fontSize: 14,
+          lineHeight: 1.55,
+          color: 'var(--ink-3)',
+          textWrap: 'pretty',
+        }}
+      >
+        {body}
+      </p>
+    </div>
+  );
+}
+
+function Guarantee({
+  title,
+  detail,
+  glyph,
+  border = false,
+}: {
+  title: string;
+  detail: string;
+  glyph: string;
+  border?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        padding: '24px 22px',
+        borderLeft: border ? '1px solid var(--ink)' : 'none',
+        borderRight: border ? '1px solid var(--ink)' : 'none',
+        background: 'var(--paper)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}
+    >
+      <div className="row" style={{ gap: 12 }}>
+        <span
+          style={{
+            fontSize: 22,
+            fontFamily: 'var(--font-mono), monospace',
+            color: 'var(--sealed)',
+          }}
+        >
+          {glyph}
+        </span>
+        <span style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.01em' }}>
+          {title}
+        </span>
+      </div>
+      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: 'var(--ink-3)' }}>
+        {detail}
+      </p>
     </div>
   );
 }

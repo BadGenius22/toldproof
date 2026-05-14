@@ -44,3 +44,7 @@ pnpm-debug.log*
 # Sui keys (extra safety — keystore lives in ~/.sui already, but in case of mishaps)
 *.keystore
 *.key
+
+# Internal — kept on disk for our own use, not for the public repo
+buildplan.md
+docs/design/

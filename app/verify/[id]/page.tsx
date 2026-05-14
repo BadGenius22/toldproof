@@ -1,8 +1,25 @@
-// Verification page — stub for Day 3. Day 4 adds full Walrus/Seal links + reveal status polling.
+// Verification page — the product's centerpiece. Reads the SealedPrediction
+// Move object directly from a Sui fullnode and renders the receipt.
 
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
+import {
+  Chip,
+  HexDump,
+  PageEyebrow,
+  Perforation,
+  PixelMark,
+  ReceiptRow,
+  StatusChip,
+  BIG_SEAL,
+  BRAND_MARK,
+  fakeHexBlock,
+  fmtAbs,
+  fmtRel,
+  shortHash,
+} from '../../../components/design';
+import { VerifyLiveCountdown } from './live';
 
 const RPC_URL = process.env.NEXT_PUBLIC_SUI_RPC ?? 'https://fullnode.testnet.sui.io:443';
 const NETWORK = (process.env.NEXT_PUBLIC_SUI_NETWORK ?? 'testnet') as
@@ -58,78 +75,260 @@ export default async function VerifyPage({
   const p = await fetchPrediction(id);
   if (!p) notFound();
 
-  const sealedAt = new Date(Number(p.sealed_at_ms));
-  const unlockAt = new Date(Number(p.unlock_at_ms));
+  const sealedAtMs = Number(p.sealed_at_ms);
+  const unlockAtMs = Number(p.unlock_at_ms);
+  const revealedAtMs = Number(p.revealed_at_ms);
   const blobId = utf8(p.blob_id);
+  const contentHashHex = hex(p.content_hash);
+  const sealedKeyBytes = decodeBytesField(p.sealed_key);
+  const sealedKeyPreview =
+    Array.from(sealedKeyBytes.slice(0, 6))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('') + '…';
+  const revealed = p.revealed;
+  const revealedText = revealed ? utf8(p.revealed_plaintext) : '';
+
+  const status: 'sealed' | 'unlocked' | 'revealed' = revealed
+    ? 'revealed'
+    : Date.now() >= unlockAtMs
+      ? 'unlocked'
+      : 'sealed';
+
+  const view = { unlockAtMs, revealed };
+
+  const sealedAgo = fmtRel(sealedAtMs);
+  const cipherDump = fakeHexBlock('cipher:' + id, 96);
+  const idShort = shortHash(id, 8, 6);
+
   const explorerUrl = `https://${NETWORK}.suivision.xyz/object/${id}`;
   const walrusUrl = `https://aggregator.walrus-testnet.walrus.space/v1/blobs/${blobId}`;
 
   return (
-    <section className="flex flex-1 w-full max-w-3xl flex-col gap-6 px-6 py-16">
-      <div className="flex flex-col gap-2">
-        <p className="font-mono text-xs uppercase tracking-widest text-neutral-500">
-          Verification
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight">
-          {p.revealed ? 'Revealed' : 'Sealed'} prediction
-        </h1>
-      </div>
-
-      {p.revealed && (
-        <div className="rounded-md border border-green-300 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950">
-          <p className="text-xs font-medium uppercase text-green-700 dark:text-green-300">
-            On-chain plaintext
-          </p>
-          <p className="mt-1 font-mono text-base text-green-900 dark:text-green-100">
-            {utf8(p.revealed_plaintext)}
-          </p>
+    <div className="page">
+      <div className="container narrow">
+        <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <PageEyebrow>Verification</PageEyebrow>
+          <Link href={`/${p.x_handle}`} className="btn ghost">
+            ← @{p.x_handle}&apos;s profile
+          </Link>
         </div>
-      )}
 
-      <dl className="grid gap-3 rounded-md border border-neutral-200 p-4 text-sm dark:border-neutral-800">
-        <Row k="Prediction ID" v={id} mono />
-        <Row k="Publisher" v={p.publisher} mono />
-        <Row k="X handle" v={`@${p.x_handle}`} />
-        <Row k="Sealed at" v={`${sealedAt.toISOString()} (${p.sealed_at_ms} ms)`} />
-        <Row k="Unlock at" v={`${unlockAt.toISOString()} (${p.unlock_at_ms} ms)`} />
-        <Row k="Status" v={p.revealed ? `Revealed at ${new Date(Number(p.revealed_at_ms)).toISOString()}` : 'Sealed — not yet unlocked'} />
-        <Row k="Content hash (SHA-256)" v={hex(p.content_hash)} mono />
-        <Row k="Walrus blob ID" v={blobId} mono />
-      </dl>
+        <h1 className="display" style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}>
+          {status === 'revealed' ? 'Revealed.' : status === 'unlocked' ? 'Unlocked.' : 'Sealed.'}
+        </h1>
 
-      <div className="flex gap-3">
-        <a
-          href={explorerUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-md border border-neutral-300 px-4 py-2 text-sm hover:border-black dark:border-neutral-700 dark:hover:border-white"
-        >
-          View on Sui Explorer →
-        </a>
-        <a
-          href={walrusUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-md border border-neutral-300 px-4 py-2 text-sm hover:border-black dark:border-neutral-700 dark:hover:border-white"
-        >
-          Walrus ciphertext →
-        </a>
-        <Link
-          href="/seal"
-          className="rounded-md border border-neutral-300 px-4 py-2 text-sm hover:border-black dark:border-neutral-700 dark:hover:border-white"
-        >
-          Seal yours
-        </Link>
+        {/* Revealed plaintext block */}
+        {revealed && (
+          <div
+            className="mt-24"
+            style={{
+              border: '1px solid var(--verified)',
+              background: 'var(--verified-soft)',
+              borderRadius: 4,
+              padding: '20px 22px',
+            }}
+          >
+            <div
+              className="row"
+              style={{ justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}
+            >
+              <span
+                className="mono"
+                style={{
+                  fontSize: 11,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: 'oklch(0.35 0.12 150)',
+                }}
+              >
+                On-chain plaintext · revealed {fmtRel(revealedAtMs)}
+              </span>
+              <Chip status="verified">SHA-256 match ✓</Chip>
+            </div>
+            <p
+              className="mono"
+              style={{
+                margin: 0,
+                fontSize: 18,
+                lineHeight: 1.4,
+                color: 'oklch(0.3 0.12 150)',
+              }}
+            >
+              &quot;{revealedText}&quot;
+            </p>
+          </div>
+        )}
+
+        {/* Sealed payload */}
+        {!revealed && (
+          <div className="mt-24">
+            <div
+              style={{
+                border: '1px solid var(--ink)',
+                borderRadius: 4,
+                padding: '18px 20px',
+                background: 'var(--paper)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                className="row"
+                style={{ justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}
+              >
+                <span className="eyebrow">Walrus ciphertext · {blobId.slice(0, 22)}…</span>
+                <Chip status={status === 'unlocked' ? 'warn' : 'sealed'}>
+                  {status === 'unlocked' ? (
+                    <>Unlocked · awaiting reveal cron</>
+                  ) : (
+                    <>
+                      Unlocks in <VerifyLiveCountdown unlockAtMs={unlockAtMs} />
+                    </>
+                  )}
+                </Chip>
+              </div>
+              <HexDump hex={cipherDump} rows={6} highlightFirst={0} />
+            </div>
+          </div>
+        )}
+
+        {/* The receipt */}
+        <div className="mt-24">
+          <div className="receipt receipt-settle">
+            <div className="receipt-header">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <PixelMark bitmap={BRAND_MARK} size={14} color="var(--paper)" />
+                TOLDPROOF · receipt · v0.1
+              </span>
+              <span style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 10, opacity: 0.7 }}>
+                #{idShort}
+              </span>
+            </div>
+            <div className="receipt-body">
+              <dl style={{ margin: 0 }}>
+                <ReceiptRow k="Prediction ID" v={id} />
+                <ReceiptRow k="Publisher" v={p.publisher} />
+                <ReceiptRow k="X handle" v={<span>@{p.x_handle}</span>} />
+                <ReceiptRow
+                  k="Sealed at"
+                  v={`${fmtAbs(sealedAtMs)} (${sealedAgo})`}
+                />
+                <ReceiptRow k="Unlock at" v={fmtAbs(unlockAtMs)} />
+                {revealed ? (
+                  <ReceiptRow k="Revealed at" v={fmtAbs(revealedAtMs)} />
+                ) : (
+                  <ReceiptRow
+                    k="Countdown"
+                    v={
+                      <span
+                        style={{
+                          color: status === 'unlocked' ? 'var(--warn)' : 'var(--sealed)',
+                        }}
+                      >
+                        <VerifyLiveCountdown unlockAtMs={unlockAtMs} />
+                      </span>
+                    }
+                  />
+                )}
+                <ReceiptRow k="Status" v={<StatusChip p={view} />} />
+                <ReceiptRow k="SHA-256 hash" v={contentHashHex} />
+                <ReceiptRow k="Walrus blob" v={blobId} />
+                <ReceiptRow k="Sealed key (preview)" v={sealedKeyPreview} />
+                <ReceiptRow
+                  k="Network"
+                  v={`sui:${NETWORK} · walrus:testnet · seal:testnet`}
+                />
+              </dl>
+            </div>
+
+            <Perforation />
+
+            <div
+              className="receipt-body"
+              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+            >
+              <div className="row" style={{ alignItems: 'flex-start', gap: 18, flexWrap: 'wrap' }}>
+                <SealMark idShort={idShort} />
+                <div className="col" style={{ gap: 6, flex: 1, minWidth: 240 }}>
+                  <span className="eyebrow">Cryptographic seal</span>
+                  <p
+                    className="mono"
+                    style={{ margin: 0, fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}
+                  >
+                    This receipt is generated from a Sui Move object at{' '}
+                    <span style={{ color: 'var(--ink)' }}>{idShort}</span>. The ciphertext lives at
+                    a Walrus blob; the AES key is sealed under the time-lock identity{' '}
+                    <span style={{ color: 'var(--sealed)' }}>bcs({unlockAtMs})</span>. Neither can
+                    be modified after sealing.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <Perforation />
+
+            <div
+              className="receipt-body row"
+              style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}
+            >
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                <a
+                  className="btn ghost"
+                  target="_blank"
+                  rel="noreferrer"
+                  href={explorerUrl}
+                >
+                  Sui Explorer ↗
+                </a>
+                <a className="btn ghost" target="_blank" rel="noreferrer" href={walrusUrl}>
+                  Walrus blob ↗
+                </a>
+              </div>
+              <Link href="/seal" className="btn">
+                Seal yours →
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
 
-function Row({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
+function SealMark({ idShort }: { idShort: string }) {
   return (
-    <div className="grid grid-cols-1 gap-1 md:grid-cols-[200px_1fr]">
-      <dt className="text-neutral-500">{k}</dt>
-      <dd className={`break-all ${mono ? 'font-mono text-xs' : ''}`}>{v}</dd>
+    <div
+      style={{
+        border: '2px solid var(--ink)',
+        padding: 14,
+        background: 'var(--paper)',
+        borderRadius: 4,
+        display: 'grid',
+        gap: 8,
+        placeItems: 'center',
+        minWidth: 132,
+        boxShadow: '3px 3px 0 var(--ink)',
+        transform: 'rotate(-3deg)',
+      }}
+    >
+      <PixelMark bitmap={BIG_SEAL} size={86} color="var(--ink)" />
+      <div
+        className="mono"
+        style={{
+          fontSize: 9,
+          color: 'var(--ink)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.14em',
+          textAlign: 'center',
+          borderTop: '1px dashed var(--ink)',
+          paddingTop: 6,
+          width: '100%',
+        }}
+      >
+        sealed
+        <br />
+        <span style={{ color: 'var(--muted)' }}>{idShort}</span>
+      </div>
     </div>
   );
 }

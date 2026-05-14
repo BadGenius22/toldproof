@@ -1,67 +1,103 @@
+// Profile card — renders a SealedPrediction row on /[handle].
+// Uses the design's status-stripe + chip + cipher-blur treatment.
+
 import Link from 'next/link';
 import type { PredictionView } from '../lib/registry';
-
-function fmt(ms: number): string {
-  if (!ms) return '—';
-  return new Date(ms).toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
-}
-
-function timeUntil(ms: number): string {
-  const delta = ms - Date.now();
-  if (delta <= 0) return 'unlocked';
-  const m = Math.floor(delta / 60000);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  return `${Math.floor(h / 24)}d`;
-}
+import {
+  StatusChip,
+  fakeHexBlock,
+  fmtAbs,
+  fmtRel,
+  predictionStatus,
+  shortHash,
+} from './design';
 
 export function PredictionCard({ p }: { p: PredictionView }) {
   const now = Date.now();
-  const unlocked = now >= p.unlockAtMs;
-  const status: { label: string; tone: 'sealed' | 'unlocked' | 'revealed' } = p.revealed
-    ? { label: 'Revealed', tone: 'revealed' }
-    : unlocked
-      ? { label: 'Unlocked · awaiting reveal', tone: 'unlocked' }
-      : { label: `Sealed · unlocks in ${timeUntil(p.unlockAtMs)}`, tone: 'sealed' };
-
-  const tone = {
-    sealed:
-      'border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900',
-    unlocked:
-      'border-yellow-300 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950',
-    revealed:
-      'border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950',
-  }[status.tone];
+  const status = predictionStatus(p, now);
+  const accent =
+    status === 'revealed'
+      ? 'var(--verified)'
+      : status === 'unlocked'
+        ? 'var(--warn)'
+        : 'var(--sealed)';
 
   return (
     <Link
       href={`/verify/${p.id}`}
-      className={`flex flex-col gap-3 rounded-md border p-4 transition hover:border-black dark:hover:border-white ${tone}`}
+      style={{
+        all: 'unset',
+        cursor: 'pointer',
+        display: 'grid',
+        gridTemplateColumns: '8px 1fr auto',
+        gap: 0,
+        background: 'var(--paper)',
+        border: '1px solid var(--border)',
+        borderRadius: 4,
+        overflow: 'hidden',
+        transition: 'border-color 0.12s',
+      }}
     >
-      <div className="flex items-center justify-between gap-3 text-xs">
-        <span className="font-mono text-neutral-500">{fmt(p.sealedAtMs)}</span>
-        <span className="font-mono">{status.label}</span>
+      <div style={{ background: accent }} />
+      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="row" style={{ gap: 10, justifyContent: 'space-between', flexWrap: 'wrap' }}>
+          <StatusChip p={p} now={now} />
+          <span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
+            Sealed {fmtRel(p.sealedAtMs, now)}
+          </span>
+        </div>
+
+        {status === 'revealed' ? (
+          <p className="mono" style={{ margin: 0, fontSize: 15, lineHeight: 1.4, color: 'var(--ink)' }}>
+            &quot;{p.revealedPlaintext}&quot;
+          </p>
+        ) : (
+          <div
+            className="mono"
+            style={{
+              margin: 0,
+              fontSize: 13,
+              color: 'var(--muted)',
+              letterSpacing: '0.04em',
+            }}
+          >
+            <span style={{ filter: 'blur(0.6px)', letterSpacing: '0.15em' }}>
+              {fakeHexBlock(p.id, 22).match(/.{1,2}/g)!.join(' ')}
+            </span>
+            <span style={{ color: 'var(--ink-3)', marginLeft: 8 }}>
+              · encrypted until {fmtAbs(p.unlockAtMs).slice(0, 16)} UTC
+            </span>
+          </div>
+        )}
+
+        <div
+          className="row"
+          style={{
+            gap: 14,
+            fontFamily: 'var(--font-mono), monospace',
+            fontSize: 11,
+            color: 'var(--muted)',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span>id:{shortHash(p.id, 6, 4)}</span>
+          <span>·</span>
+          <span>sha256:{p.contentHashHex.slice(0, 12)}…</span>
+          <span>·</span>
+          <span>walrus:{p.blobId.slice(0, 10)}…</span>
+        </div>
       </div>
-
-      {p.revealed ? (
-        <p className="font-mono text-base leading-snug">{p.revealedPlaintext}</p>
-      ) : (
-        <p className="font-mono text-base leading-snug text-neutral-400">
-          ▢▢▢▢▢ encrypted until {fmt(p.unlockAtMs)}
-        </p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-500">
-        <span className="font-mono">
-          {p.id.slice(0, 10)}…{p.id.slice(-6)}
-        </span>
-        <span className="hidden md:inline">·</span>
-        <span className="hidden font-mono md:inline">
-          sha256:{p.contentHashHex.slice(0, 12)}…
-        </span>
-        <span className="hidden md:inline">·</span>
-        <span className="hidden md:inline">walrus:{p.blobId.slice(0, 10)}…</span>
+      <div
+        style={{
+          padding: '16px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          color: 'var(--muted)',
+          fontFamily: 'var(--font-mono), monospace',
+          fontSize: 18,
+        }}
+      >
+        →
       </div>
     </Link>
   );
