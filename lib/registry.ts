@@ -12,6 +12,11 @@ import {
   ENTITY_AGENT,
   type EntityType,
 } from './sui';
+import {
+  RegistryFieldsSchema,
+  IdentityPredictionListSchema,
+  SealedPredictionFieldsSchema,
+} from './schemas';
 
 export interface PredictionView {
   id: string;
@@ -59,12 +64,7 @@ export async function getByIdentityTableId(client: SuiClient): Promise<string> {
   if (!content || content.dataType !== 'moveObject') {
     throw new Error(`Registry ${env.registryId} not found or not a Move object`);
   }
-  type RegistryShape = {
-    by_identity: { fields: { id: { id: string }; size: string } };
-    total_count: string;
-    version: string;
-  };
-  const fields = content.fields as unknown as RegistryShape;
+  const fields = RegistryFieldsSchema.parse(content.fields);
   return fields.by_identity.fields.id.id;
 }
 
@@ -82,13 +82,16 @@ export async function getPredictionIdsForIdentity(
       parentId: tableId,
       name: { type: '0x1::string::String', value: identity },
     });
-  } catch {
+  } catch (e) {
+    // RPC errors here look identical to "no predictions" downstream — log so
+    // an actual outage is visible in cron/profile-page debugging.
+    console.warn(`[registry] getDynamicFieldObject failed for ${identity}:`, e);
     return [];
   }
   const content = res.data?.content;
   if (!content || content.dataType !== 'moveObject') return [];
-  const fields = content.fields as unknown as { value: string[] };
-  return fields.value ?? [];
+  const parsed = IdentityPredictionListSchema.safeParse(content.fields);
+  return parsed.success ? parsed.data.value : [];
 }
 
 // Back-compat alias.
@@ -143,7 +146,12 @@ export async function getPredictionsForIdentity(
     const obj = res[i];
     const content = obj?.data?.content;
     if (!content || content.dataType !== 'moveObject') continue;
-    out.push(parsePrediction(ids[i]!, content.fields as unknown as SealedPredictionFields));
+    const parsed = SealedPredictionFieldsSchema.safeParse(content.fields);
+    if (!parsed.success) {
+      console.warn(`[registry] schema mismatch for ${ids[i]}:`, parsed.error.message);
+      continue;
+    }
+    out.push(parsePrediction(ids[i]!, parsed.data));
   }
   out.sort((a, b) => b.sealedAtMs - a.sealedAtMs);
   return out;
@@ -165,8 +173,11 @@ export async function listAllIdentities(client: SuiClient): Promise<string[]> {
       cursor: cursor ?? undefined,
     });
     for (const entry of page.data) {
-      const value = (entry as unknown as { name: { value: unknown } }).name.value;
-      if (typeof value === 'string') out.push(value);
+      // page.data is typed by the SDK; we only need the unwrapped name.value
+      // which is a string for `Table<String, _>`. Narrow with `unknown` so any
+      // shape change surfaces here, not deeper.
+      const name = (entry as { name?: { value?: unknown } }).name;
+      if (name && typeof name.value === 'string') out.push(name.value);
     }
     cursor = page.hasNextPage ? page.nextCursor : null;
   } while (cursor);
@@ -180,7 +191,8 @@ export async function getPredictionView(
   try {
     const fields = await fetchSealedPrediction(client, predictionId);
     return parsePrediction(predictionId, fields);
-  } catch {
+  } catch (e) {
+    console.warn(`[registry] getPredictionView(${predictionId}) failed:`, e);
     return null;
   }
 }

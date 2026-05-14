@@ -12,21 +12,11 @@ import { findDueForReveal } from '../../../../lib/scanner';
 import { revealOnce } from '../../../../lib/reveal';
 import { getXBotClient, revealTweetText } from '../../../../lib/x';
 import { env } from '../../../../lib/env';
+import { checkCronAuth } from '../../../../lib/cron-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-function checkAuth(req: Request): boolean {
-  // Vercel cron sends `Authorization: Bearer ${CRON_SECRET}` for protected crons.
-  // We accept the same header for local testing.
-  const expected = process.env.CRON_SECRET;
-  if (!expected) {
-    // No secret configured — only allow when explicitly in dev
-    return process.env.NODE_ENV !== 'production';
-  }
-  return req.headers.get('authorization') === `Bearer ${expected}`;
-}
 
 function loadCronKeypair(): Ed25519Keypair {
   // Production: env var (Bech32 suiprivkey1...). Local dev: ~/.sui/sui_config/sui.keystore.
@@ -36,7 +26,7 @@ function loadCronKeypair(): Ed25519Keypair {
 }
 
 export async function GET(req: Request) {
-  if (!checkAuth(req)) {
+  if (!checkCronAuth(req, '/api/cron/reveal')) {
     return Response.json({ error: 'unauthorized' }, { status: 401 });
   }
 

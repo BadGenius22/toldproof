@@ -5,6 +5,13 @@
 import { getByIdentityTableId } from './registry';
 import type { SuiClient } from './sui';
 import { fetchSealedPrediction } from './sui';
+import {
+  DynamicFieldEntrySchema,
+  IdentityPredictionListSchema,
+  PredictionRevealSliceSchema,
+  PredictionResolveSliceSchema,
+  type DynamicFieldEntry,
+} from './schemas';
 
 export interface DuePrediction {
   id: string;
@@ -12,11 +19,6 @@ export interface DuePrediction {
   entityType: number;
   unlockAtMs: number;
   sealedAtMs: number;
-}
-
-interface DynamicFieldEntry {
-  name: { type: string; value: unknown };
-  objectId: string;
 }
 
 // Paginate getDynamicFields until we've collected every handle.
@@ -31,7 +33,10 @@ async function listAllHandleEntries(
       parentId: byHandleId,
       cursor: cursor ?? undefined,
     });
-    all.push(...(page.data as unknown as DynamicFieldEntry[]));
+    for (const entry of page.data) {
+      const parsed = DynamicFieldEntrySchema.safeParse(entry);
+      if (parsed.success) all.push(parsed.data);
+    }
     cursor = page.hasNextPage ? page.nextCursor : null;
   } while (cursor);
   return all;
@@ -44,8 +49,8 @@ async function getPredictionIdsFromDynamicField(
   const res = await client.getObject({ id: dfObjectId, options: { showContent: true } });
   const content = res.data?.content;
   if (!content || content.dataType !== 'moveObject') return [];
-  const fields = content.fields as unknown as { value: string[] };
-  return fields.value ?? [];
+  const parsed = IdentityPredictionListSchema.safeParse(content.fields);
+  return parsed.success ? parsed.data.value : [];
 }
 
 export async function findDueForReveal(client: SuiClient): Promise<{
@@ -76,13 +81,9 @@ export async function findDueForReveal(client: SuiClient): Promise<{
       const obj = objs[j];
       const content = obj?.data?.content;
       if (!content || content.dataType !== 'moveObject') continue;
-      const fields = content.fields as unknown as {
-        identity: string;
-        entity_type: number;
-        sealed_at_ms: string;
-        unlock_at_ms: string;
-        revealed: boolean;
-      };
+      const parsed = PredictionRevealSliceSchema.safeParse(content.fields);
+      if (!parsed.success) continue;
+      const fields = parsed.data;
       if (fields.revealed) continue;
       const unlockAtMs = Number(fields.unlock_at_ms);
       if (unlockAtMs > now) continue;
@@ -152,14 +153,9 @@ export async function findDueForResolve(client: SuiClient): Promise<{
       const obj = objs[j];
       const content = obj?.data?.content;
       if (!content || content.dataType !== 'moveObject') continue;
-      const fields = content.fields as unknown as {
-        identity: string;
-        entity_type: number;
-        sealed_at_ms: string;
-        revealed_at_ms: string;
-        revealed: boolean;
-        resolved?: boolean;
-      };
+      const parsed = PredictionResolveSliceSchema.safeParse(content.fields);
+      if (!parsed.success) continue;
+      const fields = parsed.data;
       if (!fields.revealed) continue;
       if (fields.resolved === true) continue;
       due.push({

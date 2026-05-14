@@ -4,6 +4,14 @@
 
 import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
 import { Transaction } from '@mysten/sui/transactions';
+import {
+  SealedPredictionFieldsSchema,
+  type SealedPredictionFields,
+} from './schemas';
+
+// Re-exported for back-compat with callers that import these from this module.
+export { SealedPredictionFieldsSchema };
+export type { SealedPredictionFields };
 
 export const CLOCK_ID = '0x6';
 
@@ -248,27 +256,7 @@ export function sealApproveTx(args: {
   return tx;
 }
 
-// ---------- On-chain field shape ----------
-
-export interface SealedPredictionFields {
-  publisher: string;
-  identity: string;
-  entity_type: number;
-  sealed_at_ms: string;
-  unlock_at_ms: string;
-  content_hash: number[] | string;
-  blob_id: number[] | string;
-  sealed_key: number[] | string;
-  revealed: boolean;
-  revealed_at_ms: string;
-  revealed_plaintext: number[] | string;
-  // Resolution Agent attestation
-  resolved?: boolean;
-  hit?: boolean;
-  resolved_at_ms?: string;
-  reasoning_blob_id?: number[] | string;
-  resolver?: string;
-}
+// ---------- On-chain field reader ----------
 
 export async function fetchSealedPrediction(
   client: SuiClient,
@@ -282,7 +270,7 @@ export async function fetchSealedPrediction(
   if (!content || content.dataType !== 'moveObject') {
     throw new Error(`prediction ${predictionId} not found or not a Move object`);
   }
-  return content.fields as unknown as SealedPredictionFields;
+  return SealedPredictionFieldsSchema.parse(content.fields);
 }
 
 // Sui RPC returns vector<u8> either as base64 string or as number[] depending on

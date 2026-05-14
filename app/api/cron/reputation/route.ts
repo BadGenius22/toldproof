@@ -13,18 +13,16 @@ import { getSuiClient, loadDevKeypair } from '../../../../lib/sui-node';
 import { findDueForResolve } from '../../../../lib/scanner';
 import { buildAndPublishProfile } from '../../../../lib/reputation';
 import { env } from '../../../../lib/env';
+import { checkCronAuth } from '../../../../lib/cron-auth';
+import {
+  ReputationProfileUpdatedEventSchema,
+  PredictionResolvedEventSchema,
+  PredictionIdentitySliceSchema,
+} from '../../../../lib/schemas';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
-
-function checkAuth(req: Request): boolean {
-  const expected = process.env.CRON_SECRET;
-  if (!expected) {
-    return process.env.NODE_ENV !== 'production';
-  }
-  return req.headers.get('authorization') === `Bearer ${expected}`;
-}
 
 function loadAgentKeypair(): Ed25519Keypair {
   const envKey = process.env.REVEAL_BOT_PRIVATE_KEY;
@@ -49,10 +47,9 @@ async function findLatestProfile(
       order: 'descending',
     });
     for (const e of res.data) {
-      const fields = e.parsedJson as
-        | { identity: string; profile_blob_id: number[] | string; version: string }
-        | undefined;
-      if (!fields) continue;
+      const parsed = ReputationProfileUpdatedEventSchema.safeParse(e.parsedJson);
+      if (!parsed.success) continue;
+      const fields = parsed.data;
       if (fields.identity !== identity) continue;
       const blobBytes = Array.isArray(fields.profile_blob_id)
         ? new Uint8Array(fields.profile_blob_id)
@@ -69,7 +66,7 @@ async function findLatestProfile(
 }
 
 export async function GET(req: Request) {
-  if (!checkAuth(req)) {
+  if (!checkCronAuth(req, '/api/cron/reputation')) {
     return Response.json({ error: 'unauthorized' }, { status: 401 });
   }
 
@@ -93,19 +90,21 @@ export async function GET(req: Request) {
   // includes prediction_id). Cheap enough for hackathon scale.
   const identitySet = new Set<string>();
   for (const e of recentResolves.data) {
-    const fields = e.parsedJson as { prediction_id: string } | undefined;
-    if (!fields) continue;
+    const parsedEvent = PredictionResolvedEventSchema.safeParse(e.parsedJson);
+    if (!parsedEvent.success) continue;
+    const predictionId = parsedEvent.data.prediction_id;
     try {
       const obj = await suiClient.getObject({
-        id: fields.prediction_id,
+        id: predictionId,
         options: { showContent: true },
       });
       const content = obj.data?.content;
       if (!content || content.dataType !== 'moveObject') continue;
-      const predFields = content.fields as unknown as { identity: string };
-      if (predFields.identity) identitySet.add(predFields.identity);
+      const parsedFields = PredictionIdentitySliceSchema.safeParse(content.fields);
+      if (!parsedFields.success) continue;
+      if (parsedFields.data.identity) identitySet.add(parsedFields.data.identity);
     } catch (err) {
-      console.warn(`[reputation] failed to fetch ${fields.prediction_id}:`, err);
+      console.warn(`[reputation] failed to fetch ${predictionId}:`, err);
     }
   }
 

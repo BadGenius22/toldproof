@@ -15,16 +15,11 @@ import { getSuiClient } from '../../../../lib/sui-node';
 import { AGENT_FLEET, type AgentPersona } from '../../../../lib/agent-personas';
 import { generateAndSealAgentPrediction } from '../../../../lib/agent-seal-flow';
 import { env } from '../../../../lib/env';
+import { checkCronAuth } from '../../../../lib/cron-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
-
-function checkAuth(req: Request): boolean {
-  const expected = process.env.CRON_SECRET;
-  if (!expected) return process.env.NODE_ENV !== 'production';
-  return req.headers.get('authorization') === `Bearer ${expected}`;
-}
 
 function loadAgentKey(persona: AgentPersona): Ed25519Keypair | null {
   const key = process.env[persona.privateKeyEnvVar];
@@ -38,7 +33,7 @@ function loadAgentKey(persona: AgentPersona): Ed25519Keypair | null {
 }
 
 export async function GET(req: Request) {
-  if (!checkAuth(req)) {
+  if (!checkCronAuth(req, '/api/cron/agent-fleet')) {
     return Response.json({ error: 'unauthorized' }, { status: 401 });
   }
 

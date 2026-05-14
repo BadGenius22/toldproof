@@ -3,6 +3,7 @@
 // For production: run your own publisher or use a managed provider (per /sui-dev ref 09).
 
 import { env } from './env';
+import { assertValidWalrusBlobId } from './schemas';
 
 // Walrus epoch is ~1 day on testnet, ~14 days on mainnet (per /sui-dev ref 09).
 // Per `walrus info`, max_epochs_ahead = 53 across networks. Testnet is the active
@@ -60,6 +61,10 @@ export async function storeBlob(
 }
 
 export async function readBlob(blobId: string): Promise<Uint8Array> {
+  // Reject malformed blob IDs before they reach the URL — Walrus aggregators
+  // validate server-side, but a `..`-shaped id would still cost a redirect
+  // round-trip and could redirect the GET to an unintended path on our side.
+  assertValidWalrusBlobId(blobId);
   const url = `${env.walrusAggregator}/v1/blobs/${blobId}`;
   const res = await fetch(url);
   if (!res.ok) {

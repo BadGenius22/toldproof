@@ -19,6 +19,11 @@ import {
   fmtRel,
   shortHash,
 } from '../../../components/design';
+import {
+  SealedPredictionFieldsSchema,
+  type BytesField,
+} from '../../../lib/schemas';
+import type { SealedPredictionFields } from '../../../lib/sui';
 import { VerifyLiveCountdown } from './live';
 
 const RPC_URL = process.env.NEXT_PUBLIC_SUI_RPC ?? 'https://fullnode.testnet.sui.io:443';
@@ -28,46 +33,27 @@ const NETWORK = (process.env.NEXT_PUBLIC_SUI_NETWORK ?? 'testnet') as
   | 'devnet'
   | 'localnet';
 
-interface Fields {
-  publisher: string;
-  identity: string;
-  entity_type: number;
-  sealed_at_ms: string;
-  unlock_at_ms: string;
-  content_hash: number[] | string;
-  blob_id: number[] | string;
-  sealed_key: number[] | string;
-  revealed: boolean;
-  revealed_at_ms: string;
-  revealed_plaintext: number[] | string;
-  // Resolution Agent attestation fields.
-  resolved?: boolean;
-  hit?: boolean;
-  resolved_at_ms?: string;
-  reasoning_blob_id?: number[] | string;
-  resolver?: string;
-}
-
-function decodeBytesField(v: number[] | string): Uint8Array {
+function decodeBytesField(v: BytesField): Uint8Array {
   if (Array.isArray(v)) return new Uint8Array(v);
   const binary = atob(v);
   const out = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) out[i] = binary.charCodeAt(i);
   return out;
 }
-const utf8 = (v: number[] | string) => new TextDecoder().decode(decodeBytesField(v));
-const hex = (v: number[] | string) =>
+const utf8 = (v: BytesField) => new TextDecoder().decode(decodeBytesField(v));
+const hex = (v: BytesField) =>
   Array.from(decodeBytesField(v))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 
-async function fetchPrediction(id: string): Promise<Fields | null> {
+async function fetchPrediction(id: string): Promise<SealedPredictionFields | null> {
   const client = new SuiJsonRpcClient({ url: RPC_URL, network: NETWORK });
   try {
     const res = await client.getObject({ id, options: { showContent: true } });
     const content = res.data?.content;
     if (!content || content.dataType !== 'moveObject') return null;
-    return content.fields as unknown as Fields;
+    const parsed = SealedPredictionFieldsSchema.safeParse(content.fields);
+    return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }

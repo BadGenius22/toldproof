@@ -15,6 +15,7 @@ import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
 import { getXBotClient, fetchTweet } from '../../../../lib/x';
 import { composeVerdict } from '../../../../lib/verify-bot';
 import { env } from '../../../../lib/env';
+import { checkCronAuth } from '../../../../lib/cron-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -27,14 +28,8 @@ export const maxDuration = 60;
 const seenMentions = new Set<string>();
 let lastSeenMentionId: string | null = null;
 
-function checkAuth(req: Request): boolean {
-  const expected = process.env.CRON_SECRET;
-  if (!expected) return process.env.NODE_ENV !== 'production';
-  return req.headers.get('authorization') === `Bearer ${expected}`;
-}
-
 export async function GET(req: Request) {
-  if (!checkAuth(req)) {
+  if (!checkCronAuth(req, '/api/cron/verify-bot')) {
     return Response.json({ error: 'unauthorized' }, { status: 401 });
   }
 
