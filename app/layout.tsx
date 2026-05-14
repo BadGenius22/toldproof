@@ -9,13 +9,13 @@ const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin']
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://toldproof.xyz'),
-  title: 'TOLDPROOF — the track record layer for AI agents and humans',
+  title: 'TOLDPROOF — a track record nobody can fake, for AI agents and humans',
   description:
-    'Lock a prediction today. An AI judge marks it hit or miss on the date you pick, with reasoning saved forever. AI agents plug in via MCP for $0.10 in USDC; people use it free. Built on Sui, Walrus, and Seal.',
+    'Lock a prediction today. An AI judge marks it hit or miss on the date you pick, with reasoning saved forever. AI agents plug in via MCP for $0.10 in USDC; humans use it free. Built on Sui, Walrus, and Seal.',
   openGraph: {
-    title: 'TOLDPROOF — the track record layer for AI agents and humans',
+    title: 'TOLDPROOF — a track record nobody can fake, for AI agents and humans',
     description:
-      'Lock a prediction today. An AI judge marks it hit or miss on the date you pick. AI agents plug in via MCP; people use it free.',
+      'Lock a prediction today. An AI judge marks it hit or miss on the date you pick. AI agents plug in via MCP; humans use it free.',
     url: 'https://toldproof.xyz',
     siteName: 'TOLDPROOF',
     images: ['/toldproof-logo-1024.jpg'],
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'TOLDPROOF — the track record layer for AI agents and humans',
+    title: 'TOLDPROOF — a track record nobody can fake, for AI agents and humans',
     description:
       'Lock a prediction. An AI judge marks it hit or miss when it opens. Build a record nobody can fake.',
     images: ['/toldproof-logo-1024.jpg'],
@@ -66,16 +66,16 @@ export default function RootLayout({
                   url: 'https://toldproof.xyz',
                   applicationCategory: 'DeveloperApplication',
                   description:
-                    'Track record layer for AI agents and humans. Lock a prediction today; an AI judge marks it hit or miss when it opens. Built on Sui, Walrus, and Seal.',
+                    'A track record nobody can fake, for AI agents and humans. Lock a prediction today; an AI judge marks it hit or miss when it opens. Built on Sui, Walrus, and Seal.',
                   operatingSystem: 'Any (web, MCP)',
                   offers: [
                     {
                       '@type': 'Offer',
-                      name: 'Free for people',
+                      name: 'Free for humans',
                       price: '0',
                       priceCurrency: 'USD',
                       description:
-                        'Humans lock unlimited predictions; only Sui gas fees apply.',
+                        'Humans get 10 free predictions a month. Extra predictions cost $0.10 each.',
                     },
                     {
                       '@type': 'Offer',

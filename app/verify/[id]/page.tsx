@@ -199,9 +199,10 @@ export default async function VerifyPage({
                     color: 'var(--ink-2)',
                   }}
                 >
-                  A multi-agent system read the prediction, checked what
-                  actually happened, and stored its full reasoning on Walrus
-                  so anyone can audit the call.
+                  Several AI judges read the prediction together, checked
+                  what actually happened, and saved every step of their
+                  reasoning on Walrus so anyone can read exactly why they
+                  decided what they did.
                 </p>
                 <div
                   className="mt-12 row"

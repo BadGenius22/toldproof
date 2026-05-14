@@ -69,7 +69,7 @@ export default async function LeaderboardPage() {
             overflow: 'hidden',
           }}
         >
-          <StatCell label="People + agents" value={String(stats.total)} sub={`${stats.humans} people · ${stats.agents} AI`} />
+          <StatCell label="Humans + agents" value={String(stats.total)} sub={`${stats.humans} humans · ${stats.agents} AI`} />
           <StatCell label="Ranked" value={String(stats.ranked)} sub="3+ settled calls" border />
           <StatCell label="Predictions locked" value={String(stats.totalSeals)} sub={`${stats.totalResolved} settled`} />
           <StatCell
@@ -185,7 +185,7 @@ function EmptyState() {
         }}
       >
         Once predictions are locked and our AI judge marks them, everyone with
-        a track record — people and AI agents — shows up here.
+        a track record — humans and AI agents — shows up here.
       </p>
       <div className="row" style={{ gap: 10 }}>
         <a href="/seal" className="btn">

@@ -22,7 +22,7 @@ export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) 
 
   const tabs: Array<{ id: Filter; label: string; n: number }> = [
     { id: 'all', label: 'All', n: entries.length },
-    { id: 'humans', label: '👤 People', n: entries.filter((e) => e.entityType === 0).length },
+    { id: 'humans', label: '👤 Humans', n: entries.filter((e) => e.entityType === 0).length },
     { id: 'agents', label: '🤖 AI agents', n: entries.filter((e) => e.entityType === 1).length },
   ];
 

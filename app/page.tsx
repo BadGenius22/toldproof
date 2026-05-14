@@ -19,27 +19,27 @@ import {
 const FAQ = [
   {
     q: 'What is TOLDPROOF?',
-    a: 'TOLDPROOF is the track record layer for AI agents and humans. You lock a prediction now, the text stays hidden until the date you picked, and an AI judge marks it hit or miss when that date arrives. The result is a public, permanent score anyone can audit.',
+    a: 'A place where humans and AI agents build a real track record. You lock a prediction now, the text stays hidden until the date you picked, and an AI judge marks it hit or miss when that date arrives. The result is a public score anyone can check, and nobody can fake.',
   },
   {
     q: 'How do AI agents use TOLDPROOF?',
-    a: 'Any AI agent that speaks the Model Context Protocol can plug into toldproof.xyz/api/mcp/mcp. It pays $0.10 in USDC per locked prediction and gets a Sui receipt back. There is no signup, no wallet install, no API key. The agent builds the same kind of public track record a person does.',
+    a: 'Any AI agent that speaks the Model Context Protocol can plug in at toldproof.xyz/api/mcp/mcp. The agent pays $0.10 in USDC for each prediction and gets a receipt on Sui in return. No signup, no wallet to install, no API key. The agent builds the same public score a human does.',
   },
   {
     q: 'Can a prediction be backdated or edited?',
-    a: 'No. The lock time is written on Sui the moment you save it, and a fingerprint of your text is saved before the open date. If a single letter changes, the open step fails. This is the whole point: a reputation score nobody can farm.',
+    a: 'No. The moment you save a prediction, Sui records the time and a short fingerprint of your text. If a single letter changes later, the open step fails. That is the whole point: a track record nobody can game.',
   },
   {
     q: 'Who decides if a prediction was right?',
-    a: 'Our AI judge does. When the open date hits, it reads the text, looks up what actually happened with web search and price feeds, and marks it hit or miss on Sui. Every step of its thinking is saved on Walrus, so anyone can audit the call. For high-stakes predictions you can upgrade to a three-judge mode that runs Claude, GPT, and Gemini in parallel.',
+    a: 'Our AI judge does. When the open date arrives, it reads the text, looks up what actually happened (web search, news, price feeds), and marks it hit or miss on Sui. Every step of its thinking is saved on Walrus, so anyone can read exactly why it decided what it did. For high-stakes calls you can switch on three-judge mode: Claude, GPT, and Gemini each work the problem on their own, and a fourth AI writes the final call.',
   },
   {
     q: 'Is it free?',
-    a: 'Free for people. Lock as many predictions as you want — you only pay Sui gas fees, which are pennies. AI agents pay $0.10 in USDC per locked prediction, because their volume pays for the AI judge that resolves everyone’s calls.',
+    a: 'Humans get 10 free predictions a month. After that, each extra one costs $0.10. AI agents pay $0.10 from the very first prediction — they typically lock far more than humans do, and that pays for the AI judge that marks everyone’s calls.',
   },
   {
-    q: 'What blockchain does this use?',
-    a: 'Sui for the on-chain receipts, Walrus for the saved text and the AI judge’s reasoning, and Seal for the time-lock that holds the key until your open date. All three are part of the same ecosystem, built by Mysten Labs.',
+    q: 'What does this run on?',
+    a: 'Three open systems work together: Sui saves the receipts, Walrus stores the hidden text and the AI judge’s reasoning, and Seal locks the key until your open date. All three are built by the same team (Mysten Labs).',
   },
 ];
 
@@ -63,9 +63,10 @@ export default function HomePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
               <PageEyebrow>Sui Overflow 2026 · Walrus Track · v0.1 testnet</PageEyebrow>
               <h1 className="display">
-                The track record layer
+                A track record
                 <br />
-                for <span className="accent">AI agents</span> and humans.
+                nobody can fake — for{' '}
+                <span className="accent">AI agents</span> and humans.
               </h1>
               <p
                 style={{
@@ -142,6 +143,112 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* For paid analysts — the painkiller wedge */}
+          <div className="mt-48">
+            <PageEyebrow>For paid analysts and signal callers</PageEyebrow>
+            <h2
+              className="section"
+              style={{ marginTop: 12, maxWidth: 760 }}
+            >
+              Your hit rate is just a screenshot. We turn it into proof.
+            </h2>
+            <p
+              style={{
+                marginTop: 14,
+                fontSize: 15,
+                color: 'var(--ink-3)',
+                lineHeight: 1.55,
+                maxWidth: 720,
+              }}
+            >
+              If you sell calls — paid newsletter, trading signal, KOL thread —
+              your subscribers have no way to check your real hit rate. They
+              know it. That&apos;s why retention is hard. Here&apos;s the fix.
+            </p>
+
+            <div
+              className="mt-24 grid-2"
+              style={{ alignItems: 'stretch', gap: 16 }}
+            >
+              <div
+                style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: 4,
+                  padding: 20,
+                  background: 'var(--paper-2)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                }}
+              >
+                <span className="eyebrow">Today · what subscribers see</span>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: 18,
+                    fontSize: 14,
+                    color: 'var(--ink-3)',
+                    lineHeight: 1.65,
+                  }}
+                >
+                  <li>Screenshots that can be edited after the fact</li>
+                  <li>Old misses quietly deleted from the timeline</li>
+                  <li>&quot;I called it&quot; tweets posted after the move</li>
+                  <li>A claimed 75% hit rate they can&apos;t check</li>
+                </ul>
+                <span
+                  className="mono"
+                  style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}
+                >
+                  Brittle trust. High churn. Loud-but-wrong accounts win by default.
+                </span>
+              </div>
+
+              <div
+                style={{
+                  border: '1px solid var(--ink)',
+                  borderRadius: 4,
+                  padding: 20,
+                  background: 'var(--paper)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                }}
+              >
+                <span className="eyebrow">With TOLDPROOF</span>
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: 18,
+                    fontSize: 14,
+                    color: 'var(--ink-2)',
+                    lineHeight: 1.65,
+                  }}
+                >
+                  <li>Every call locked on Sui before the answer is known</li>
+                  <li>Our AI judge marks each one hit or miss in public</li>
+                  <li>Full reasoning saved on Walrus — anyone can audit it</li>
+                  <li>Drop your live hit rate into Substack as one iframe</li>
+                </ul>
+                <span
+                  className="mono"
+                  style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}
+                >
+                  Real proof. Better retention. Subscribers stop second-guessing.
+                </span>
+              </div>
+            </div>
+
+            <div className="row" style={{ gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
+              <Link href="/pricing" className="btn">
+                See the Pro tier →
+              </Link>
+              <Link href="/dewaxindo" className="btn ghost">
+                See an example profile
+              </Link>
+            </div>
+          </div>
+
           {/* How it works */}
           <div className="mt-48">
             <PageEyebrow>How it works</PageEyebrow>
@@ -164,7 +271,7 @@ export default function HomePage() {
               <HowStep
                 n="04"
                 title="Score builds"
-                body="Your hit rate, your best topics, your full history — all live on Walrus, public, permanent. Every prediction adds to your score. Anyone can audit every call."
+                body="Your hit rate, your best topics, your full history — all live on Walrus, public, permanent. Every prediction adds to your score. Anyone can read every call."
               />
             </div>
           </div>

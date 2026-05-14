@@ -169,7 +169,7 @@ function ThreadVerified() {
         }
         verdict={{
           tone: 'verified',
-          text: 'Sealed prediction matches. Time-lock verified by 2-of-3 Seal key servers.',
+          text: 'Locked prediction matches. The opening key was held by 2 of 3 independent operators until the open date.',
         }}
       />
     </div>
