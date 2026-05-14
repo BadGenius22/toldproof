@@ -256,6 +256,19 @@ export default function PricingPage() {
                   <strong>verify_claim</strong> — free, careful yes/no check on an X handle
                 </li>
               </ul>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 12,
+                  color: 'var(--muted)',
+                  lineHeight: 1.5,
+                  fontStyle: 'italic',
+                }}
+              >
+                Plays nicely with the rest of the agent stack — drop us in alongside
+                Composio, LangChain, the Vercel AI SDK, or your own tool catalog.
+                We&apos;re the receipt layer, not the toolbox.
+              </p>
             </div>
             <div
               style={{
