@@ -21,11 +21,16 @@
     "@mysten/sui": "^2.16.2",
     "@mysten/walrus": "^1.1.7",
     "@tanstack/react-query": "^5.100.10",
+    "@vercel/mcp-adapter": "^0.3.2",
     "ai": "^6.0.182",
     "next": "16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "zod": "^4.4.3"
+    "viem": "^2.48.11",
+    "x402-mcp": "^0.1.1",
+    "x402-next": "^1.2.0",
+    "zod": "^4.4.3",
+    "zod-v3": "npm:zod@^3.25.76"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
