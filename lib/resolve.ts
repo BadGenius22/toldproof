@@ -427,7 +427,11 @@ function extractVerdict(
   for (let i = toolCalls.length - 1; i >= 0; i -= 1) {
     const call = toolCalls[i]!;
     if (call.toolName === 'submit_verdict' && call.input) {
-      return call.input as Verdict;
+      // The AI SDK validates against VerdictSchema before executing the tool,
+      // but the toolCalls array is typed `input?: unknown` — re-parse here so
+      // a partially-validated or malformed entry can't lie about its shape.
+      const parsed = VerdictSchema.safeParse(call.input);
+      if (parsed.success) return parsed.data;
     }
   }
   return {

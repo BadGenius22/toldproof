@@ -20,6 +20,12 @@ export function getSealClient(suiClient: SuiClient): SealClient {
     { objectId: env.sealKeyServer2, weight: 1 },
     { objectId: env.sealKeyServer3, weight: 1 },
   ].filter((s) => s.objectId);
+  // verifyKeyServers: false skips an extra on-chain check that each configured
+  // server object exists in the published key-server registry. We already trust
+  // the operator set (Mysten + Ruby Nodes + a third operator) by hard-coding
+  // their objectIds in NEXT_PUBLIC_SEAL_KEY_SERVER_*; the registry check would
+  // just re-verify what env config already pins. Safe to skip in this trust
+  // model; revisit if NEXT_PUBLIC_SEAL_KEY_SERVER_* ever becomes user-supplied.
   return new SealClient({
     suiClient,
     serverConfigs,

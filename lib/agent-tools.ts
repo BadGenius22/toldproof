@@ -12,22 +12,13 @@
 
 import { tool } from 'ai';
 import { z } from 'zod';
+import {
+  TavilyResponseSchema,
+  CoinGeckoSimplePriceSchema,
+  CoinGeckoMarketChartSchema,
+} from './schemas';
 
 // ─── Tavily web search ────────────────────────────────────────────────
-
-interface TavilyResult {
-  title: string;
-  url: string;
-  content: string;
-  score: number;
-  published_date?: string;
-}
-
-interface TavilyResponse {
-  query: string;
-  answer?: string;
-  results: TavilyResult[];
-}
 
 export const webSearchTool = tool({
   description:
@@ -83,7 +74,15 @@ export const webSearchTool = tool({
           results: [],
         };
       }
-      const data = (await resp.json()) as TavilyResponse;
+      const parsed = TavilyResponseSchema.safeParse(await resp.json());
+      if (!parsed.success) {
+        return {
+          ok: false,
+          error: `Tavily returned unexpected response shape: ${parsed.error.message}`,
+          results: [],
+        };
+      }
+      const data = parsed.data;
       return {
         ok: true,
         query: data.query,
@@ -142,15 +141,6 @@ function resolveTokenId(input: string): string {
   return input.trim().toLowerCase();
 }
 
-interface CoinGeckoSimplePrice {
-  [tokenId: string]: {
-    usd: number;
-    usd_market_cap?: number;
-    usd_24h_change?: number;
-    last_updated_at?: number;
-  };
-}
-
 export const tokenPriceTool = tool({
   description:
     'Get the current USD price, market cap, and 24h change for a crypto token. ' +
@@ -177,8 +167,15 @@ export const tokenPriceTool = tool({
       if (!resp.ok) {
         return { ok: false, error: `CoinGecko ${resp.status}`, id };
       }
-      const data = (await resp.json()) as CoinGeckoSimplePrice;
-      const entry = data[id];
+      const parsed = CoinGeckoSimplePriceSchema.safeParse(await resp.json());
+      if (!parsed.success) {
+        return {
+          ok: false,
+          error: `CoinGecko returned unexpected response shape: ${parsed.error.message}`,
+          id,
+        };
+      }
+      const entry = parsed.data[id];
       if (!entry) {
         return {
           ok: false,
@@ -202,12 +199,6 @@ export const tokenPriceTool = tool({
     }
   },
 });
-
-interface CoinGeckoMarketChart {
-  prices: Array<[number, number]>; // [timestamp_ms, price_usd]
-  market_caps: Array<[number, number]>;
-  total_volumes: Array<[number, number]>;
-}
 
 export const priceHistoryTool = tool({
   description:
@@ -239,8 +230,15 @@ export const priceHistoryTool = tool({
       if (!resp.ok) {
         return { ok: false, error: `CoinGecko ${resp.status}`, id };
       }
-      const data = (await resp.json()) as CoinGeckoMarketChart;
-      const prices = data.prices;
+      const parsed = CoinGeckoMarketChartSchema.safeParse(await resp.json());
+      if (!parsed.success) {
+        return {
+          ok: false,
+          error: `CoinGecko returned unexpected response shape: ${parsed.error.message}`,
+          id,
+        };
+      }
+      const prices = parsed.data.prices;
       if (!prices.length) {
         return { ok: false, error: 'no price data', id };
       }

@@ -147,3 +147,46 @@ export function assertValidWalrusBlobId(blobId: string): void {
     throw new Error(`Invalid Walrus blob ID format: ${JSON.stringify(blobId.slice(0, 32))}`);
   }
 }
+
+// ---------- External HTTP API responses ----------
+//
+// Used by the Resolution Agent's evidence-gathering tools (lib/agent-tools.ts).
+// Schemas are intentionally lenient — these APIs add fields over time and we
+// don't want a benign field rename to break the agent loop. Required fields
+// are the minimum we actually read.
+
+// Tavily web search response. https://docs.tavily.com/docs/rest-api/api-reference
+export const TavilyResponseSchema = z.object({
+  query: z.string(),
+  answer: z.string().nullable().optional(),
+  results: z.array(
+    z.object({
+      title: z.string(),
+      url: z.string(),
+      content: z.string(),
+      score: z.number(),
+      published_date: z.string().optional(),
+    }),
+  ),
+});
+
+// CoinGecko /simple/price response — an object keyed by token id, each value
+// has a usd field and optional market-cap / 24h-change / last-updated fields.
+export const CoinGeckoSimplePriceSchema = z.record(
+  z.string(),
+  z.object({
+    usd: z.number(),
+    usd_market_cap: z.number().optional(),
+    usd_24h_change: z.number().optional(),
+    last_updated_at: z.number().optional(),
+  }),
+);
+
+// CoinGecko /coins/{id}/market_chart response — arrays of [timestamp_ms, value]
+// tuples for prices, market caps, and total volumes.
+const TimestampedSample = z.tuple([z.number(), z.number()]);
+export const CoinGeckoMarketChartSchema = z.object({
+  prices: z.array(TimestampedSample),
+  market_caps: z.array(TimestampedSample),
+  total_volumes: z.array(TimestampedSample),
+});
