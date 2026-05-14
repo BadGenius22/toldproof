@@ -1,14 +1,17 @@
-// One-shot testnet deploy for TOLDPROOF v2.
+// One-shot testnet deploy for TOLDPROOF v3.
 //
 // Runs `sui client publish` on the Move package, captures PACKAGE_ID +
-// REGISTRY_ID + UpgradeCap, then submits the four admin txs needed to bring
+// REGISTRY_ID + UpgradeCap, then submits the admin txs needed to bring
 // the registry to production state:
 //   1. set_treasury_addr(PHANTOM)  — agent seal fees forward to your Phantom.
-//                                    MUST run before set_fee<T> — per M-03
-//                                    the contract rejects set_fee until the
+//                                    MUST run before set_fee<T> — the
+//                                    contract rejects set_fee until the
 //                                    treasury has been rotated off the deployer.
-//   2. set_fee<SUI>(100_000_000)   — 0.1 SUI ≈ $0.20 per agent seal
-//   3. set_fee<USDC>(200_000)      — $0.20 in micro-USDC (USDC has 6 decimals)
+//   2. set_fee<SUI>(50_000_000)    — 0.05 SUI ≈ $0.10 per agent seal
+//   3. set_fee<USDC>(100_000)      — $0.10 in micro-USDC. NOTE: blocked by
+//                                    MIN_FEE_FLOOR_MIST on v3 (audit I-01).
+//                                    Skip USDC on v3 deploys until v1.1
+//                                    lowers the floor; see finish-admin-txs.ts.
 //   4. set_admin(PHANTOM)          — rotate admin authority to Phantom
 //
 // After this, the deployer keystore is dormant — Phantom controls all admin
@@ -16,7 +19,7 @@
 // (rotate via set_resolver later if running a dedicated agent wallet).
 //
 // Run:
-//   pnpm tsx --env-file=.env.local scripts/deploy-v2.ts
+//   pnpm tsx --env-file=.env.local scripts/deploy-v3.ts
 //
 // Required env vars (in .env.local):
 //   PHANTOM_TREASURY_ADDR  — your Phantom Sui testnet address
@@ -36,8 +39,8 @@ import {
   USDC_TESTNET_TYPE,
 } from '../lib/sui';
 
-const SUI_FEE_MIST = 100_000_000n; // 0.1 SUI ≈ $0.20 @ $2/SUI
-const USDC_FEE_MICRO = 200_000n; // 0.2 USDC = $0.20 exact (6 decimals)
+const SUI_FEE_MIST = 50_000_000n; // 0.05 SUI ≈ $0.10 @ $2/SUI
+const USDC_FEE_MICRO = 100_000n; // 0.1 USDC = $0.10 exact (6 decimals)
 
 interface PublishObjects {
   packageId: string;
@@ -85,12 +88,17 @@ async function runAdminTx(
   if (status !== 'success') {
     throw new Error(`${label} failed: ${JSON.stringify(res.effects?.status)}`);
   }
+  // Block until the fullnode has indexed this tx. Without this, the next tx's
+  // simulation (which reads shared-object state from the fullnode) can see
+  // pre-tx state and abort spuriously — e.g. set_fee aborting with
+  // ETreasuryNotInitialized despite set_treasury_addr having just succeeded.
+  await client.waitForTransaction({ digest: res.digest });
   console.log(`  ✓ ${res.digest}`);
 }
 
 async function main() {
   console.log('────────────────────────────────────────────────────────────────');
-  console.log('  TOLDPROOF v2 — testnet deploy');
+  console.log('  TOLDPROOF v3 — testnet deploy');
   console.log('────────────────────────────────────────────────────────────────\n');
 
   const treasury = process.env.PHANTOM_TREASURY_ADDR;
@@ -146,7 +154,7 @@ async function main() {
       coinType: SUI_TYPE,
       feeAmount: SUI_FEE_MIST,
     }),
-    `set_fee<SUI>(${SUI_FEE_MIST}) — 0.1 SUI per agent seal`,
+    `set_fee<SUI>(${SUI_FEE_MIST}) — 0.05 SUI per agent seal`,
   );
 
   await runAdminTx(
@@ -157,7 +165,7 @@ async function main() {
       coinType: usdcType,
       feeAmount: USDC_FEE_MICRO,
     }),
-    `set_fee<USDC>(${USDC_FEE_MICRO}) — 0.2 USDC per agent seal`,
+    `set_fee<USDC>(${USDC_FEE_MICRO}) — 0.1 USDC per agent seal`,
   );
 
   await runAdminTx(

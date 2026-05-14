@@ -14,39 +14,73 @@ import { z } from 'zod';
 export const BytesFieldSchema = z.union([z.array(z.number()), z.string()]);
 export type BytesField = z.infer<typeof BytesFieldSchema>;
 
-// On-chain `SealedPrediction` struct (move/prediction_vault/sources). Optional
-// fields are the v2 resolution attestation — present once the Resolution Agent
-// has called resolve().
-export const SealedPredictionFieldsSchema = z.object({
-  publisher: z.string(),
-  identity: z.string(),
-  entity_type: z.number(),
-  sealed_at_ms: z.string(),
-  unlock_at_ms: z.string(),
-  content_hash: BytesFieldSchema,
-  blob_id: BytesFieldSchema,
-  sealed_key: BytesFieldSchema,
-  revealed: z.boolean(),
-  revealed_at_ms: z.string(),
-  revealed_plaintext: BytesFieldSchema,
-  resolved: z.boolean().optional(),
-  hit: z.boolean().optional(),
-  resolved_at_ms: z.string().optional(),
-  reasoning_blob_id: BytesFieldSchema.optional(),
-  resolver: z.string().optional(),
-});
+// On-chain `SealedPrediction` struct (move/prediction_vault/sources).
+//
+// v1 of the contract used `x_handle: String` and had no resolution attestation.
+// v2 renamed to `identity: String`, added `entity_type: u8`, and added the
+// resolved/hit/resolved_at_ms/reasoning_blob_id/resolver fields. Until v2 is
+// redeployed on testnet, the front-end must handle both shapes.
+//
+// The schema accepts either name (via transform below) and treats every
+// v2-only field as optional. parsePrediction() in lib/registry.ts is the
+// single consumer that bridges this back into the typed PredictionView.
+export const SealedPredictionFieldsSchema = z
+  .object({
+    publisher: z.string(),
+    // v2 field name (preferred)
+    identity: z.string().optional(),
+    // v1 field name (still on live testnet deploy)
+    x_handle: z.string().optional(),
+    entity_type: z.number().optional(),
+    sealed_at_ms: z.string(),
+    unlock_at_ms: z.string(),
+    content_hash: BytesFieldSchema,
+    blob_id: BytesFieldSchema,
+    sealed_key: BytesFieldSchema,
+    revealed: z.boolean(),
+    revealed_at_ms: z.string(),
+    revealed_plaintext: BytesFieldSchema,
+    resolved: z.boolean().optional(),
+    hit: z.boolean().optional(),
+    resolved_at_ms: z.string().optional(),
+    reasoning_blob_id: BytesFieldSchema.optional(),
+    resolver: z.string().optional(),
+  })
+  .refine((d) => d.identity || d.x_handle, {
+    message: 'SealedPrediction has neither identity nor x_handle field',
+  })
+  .transform((d) => ({
+    ...d,
+    // Normalize so every consumer can read .identity regardless of contract version.
+    identity: d.identity ?? d.x_handle ?? '',
+    // v1 had no entity_type — every v1 prediction was a human.
+    entity_type: d.entity_type ?? 0,
+  }));
 export type SealedPredictionFields = z.infer<typeof SealedPredictionFieldsSchema>;
 
-// Subset of `Registry` we read — the by_identity Table object id is all we need
-// to enumerate handles. Extra fields are allowed (Move struct may grow).
-export const RegistryFieldsSchema = z.object({
-  by_identity: z.object({
-    fields: z.object({
-      id: z.object({ id: z.string() }),
-      size: z.string(),
-    }),
+// Subset of `Registry` we read — the lookup Table's object id is all we need
+// to enumerate identities.
+//
+// v2 of the Move contract renamed `by_handle` to `by_identity` (so humans and
+// agents share the same table). The live testnet deploy is still v1, so we
+// accept either name. Whichever is present wins; if both are present the
+// newer `by_identity` is preferred. Extra fields on the Registry are allowed.
+const TableHandle = z.object({
+  fields: z.object({
+    id: z.object({ id: z.string() }),
+    size: z.string(),
   }),
 });
+
+export const RegistryFieldsSchema = z
+  .object({
+    by_identity: TableHandle.optional(),
+    by_handle: TableHandle.optional(),
+  })
+  .refine((d) => d.by_identity || d.by_handle, {
+    message:
+      'Registry object has neither by_identity nor by_handle — wrong package version?',
+  });
 export type RegistryFields = z.infer<typeof RegistryFieldsSchema>;
 
 // Dynamic field value for `by_identity[identity]` → `vector<ID>` of prediction

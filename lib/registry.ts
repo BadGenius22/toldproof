@@ -52,9 +52,10 @@ export function getSuiClientForReads(): SuiClient {
   });
 }
 
-// Fetch the Registry, return the inner Table object id for `by_identity`.
-// (v1 called this `by_handle` — the helper name kept its old shape for
-// minimal call-site churn, but the field on Move side is now by_identity.)
+// Fetch the Registry, return the inner Table object id for the lookup table.
+// v1 of the Move contract called this `by_handle`; v2 renamed to `by_identity`
+// so humans and agents share the same table. The schema accepts either name
+// and we prefer `by_identity` when both are present.
 export async function getByIdentityTableId(client: SuiClient): Promise<string> {
   const res = await client.getObject({
     id: env.registryId,
@@ -65,7 +66,13 @@ export async function getByIdentityTableId(client: SuiClient): Promise<string> {
     throw new Error(`Registry ${env.registryId} not found or not a Move object`);
   }
   const fields = RegistryFieldsSchema.parse(content.fields);
-  return fields.by_identity.fields.id.id;
+  const table = fields.by_identity ?? fields.by_handle;
+  if (!table) {
+    // Schema's refine() should have caught this, but the check is here too so
+    // TypeScript can narrow without a non-null assertion.
+    throw new Error(`Registry ${env.registryId} has no by_identity or by_handle field`);
+  }
+  return table.fields.id.id;
 }
 
 // Back-compat alias for callers still using the old name.

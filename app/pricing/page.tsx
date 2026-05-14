@@ -1,6 +1,11 @@
-// Pricing page — surfaces the four-tier plan to judges + signals that this is
-// a real product, not a hackathon toy. Tiers 1-2 are functionally live; tiers
-// 3-4 are roadmap placeholders ("Join waitlist") so we don't over-promise.
+// Pricing page — three-tier primary row + add-ons.
+// People Free (10/mo) → People Pro ($9/mo, waitlist) → AI Agents ($0.10/seal).
+// Add-ons row: three-judge mode (per-call) + Reputation API (B2B waitlist).
+//
+// Single on-chain price for both humans and agents ($0.10). The 10/mo free
+// quota for humans is enforced off-chain via DB; overage uses the same paid
+// path agents use (seal_prediction_paid<T> in Move). One price oracle, no
+// arbitrage between roles.
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -11,9 +16,9 @@ import {
   BRAND_MARK,
 } from '../../components/design';
 
-interface Tier {
-  id: 'free' | 'agent' | 'analyst' | 'enterprise';
-  name: string;
+interface PrimaryTier {
+  id: 'human' | 'pro' | 'agent';
+  audience: string;
   price: string;
   priceSub: string;
   pitch: string;
@@ -22,72 +27,101 @@ interface Tier {
   highlight?: boolean;
 }
 
-const TIERS: Tier[] = [
+interface AddOn {
+  id: 'consensus' | 'reputation-api';
+  name: string;
+  price: string;
+  priceSub: string;
+  pitch: string;
+  features: string[];
+  cta: { label: string; href: string; disabled?: boolean };
+}
+
+const PRIMARY: PrimaryTier[] = [
   {
-    id: 'free',
-    name: 'Human · Free',
+    id: 'human',
+    audience: '🤝 People · Free',
     price: '$0',
-    priceSub: 'forever',
-    pitch: 'For crypto Twitter. Lock predictions, get AI verdicts.',
+    priceSub: '10 predictions / month',
+    pitch:
+      'For traders, analysts, and anyone who calls things on X. Build a track record nobody can fake.',
     features: [
-      'Lock unlimited predictions on Sui',
-      'Open dates up to 53 days out',
-      'AI Resolution Agent attests outcomes',
-      'Walrus-anchored reasoning trace per resolution',
-      'Public profile page + leaderboard rank',
-      'No subscription, no surprises',
+      '10 locked predictions every month',
+      'Resets the 1st of each month',
+      'Our AI judge marks every outcome',
+      'Full reasoning saved on Walrus, public',
+      'Public profile page and leaderboard rank',
+      'Need more? Pay $0.10 per extra prediction',
     ],
     cta: { label: 'Lock a prediction →', href: '/seal' },
   },
   {
-    id: 'agent',
-    name: 'AI Agent · pay-per-seal',
-    price: '$0.30',
-    priceSub: 'per seal · USDC',
-    pitch:
-      'For AI agents. MCP + x402 native. No wallet install, no API keys, no signup.',
-    features: [
-      'POST /api/mcp/mcp from any MCP-compatible agent',
-      'Pay $0.30 USDC on Base per seal via x402',
-      '4 free read tools (get_prediction, list, leaderboard, verify)',
-      'Wallet-locked agent identity (anti-impersonation)',
-      'Full Resolution Agent attestation at unlock',
-      'Persistent Walrus-anchored reputation profile',
-    ],
-    cta: { label: 'See MCP docs →', href: '#mcp' },
-    highlight: true,
-  },
-  {
-    id: 'analyst',
-    name: 'Analyst Pro',
-    price: '$49',
+    id: 'pro',
+    audience: '⭐ People · Pro',
+    price: '$9',
     priceSub: 'per month · waitlist',
-    pitch: 'For paid newsletters + trading signal services.',
+    pitch:
+      'For paid newsletters and creators who want their track record working for them.',
     features: [
-      'Everything in Free',
-      'Multi-model consensus (Claude + GPT + Gemini + Critic)',
-      'MemWal calibration: per-domain accuracy',
-      'Substack / Beehiiv embed widget',
+      '100 predictions / month included',
+      'Embed your hit rate in Substack or Beehiiv as one iframe',
       'Subscriber-only private picks',
-      'Reasoning-trace affidavits (legal-grade)',
+      'Per-topic accuracy (crypto, sports, politics, tech)',
+      'PDF reports of every call for your subscribers',
+      'Analyst badge on your profile',
     ],
     cta: { label: 'Join waitlist', href: '#', disabled: true },
   },
   {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: '$499+',
-    priceSub: 'per month · contact',
-    pitch: 'For research firms, funds, prediction-market integrations.',
+    id: 'agent',
+    audience: '🤖 AI Agents',
+    price: '$0.10',
+    priceSub: 'per locked prediction · USDC',
+    pitch:
+      'For any AI agent. Pay-as-you-go in USDC. No wallet to install, no API keys, no signup.',
     features: [
-      'White-label receipts (your domain)',
-      'Domain-tuned Resolution Agent',
-      'Custom seal_approve policies (multi-sig, conditional)',
-      'B2B API + agent SDK',
-      'SLA + dedicated key servers',
-      'Compliance pack (audit trail, ISO 27001 friendly)',
+      'Plug into /api/mcp/mcp from Claude, Cursor, or any AI agent',
+      'Pays automatically in USDC on Base — no manual checkout',
+      '4 free read tools (get_prediction, list, leaderboard, verify)',
+      'Wallet-locked identity means nobody can impersonate your agent',
+      'Same AI judge marks every outcome',
+      'A public track record that builds over time on Walrus',
     ],
-    cta: { label: 'Talk to us', href: 'mailto:hello@toldproof.xyz' },
+    cta: { label: 'See agent docs →', href: '#mcp' },
+    highlight: true,
+  },
+];
+
+const ADDONS: AddOn[] = [
+  {
+    id: 'consensus',
+    name: 'Three-judge mode',
+    price: '$0.50',
+    priceSub: 'per prediction · pay only when you use it',
+    pitch:
+      'Upgrade one prediction to three AI judges in parallel when the answer really matters.',
+    features: [
+      'Claude, GPT, and Gemini each work the problem on their own',
+      'A fourth AI reads all three answers and writes a final call',
+      'Every step from all four is saved on Walrus, public',
+      'Pay only when you want this level of certainty — no commitment',
+    ],
+    cta: { label: 'Turn on at unlock time', href: '/seal' },
+  },
+  {
+    id: 'reputation-api',
+    name: 'Reputation API',
+    price: '$99',
+    priceSub: 'per month · waitlist',
+    pitch:
+      'For agent marketplaces, funds, and anyone who needs to know which agents to trust.',
+    features: [
+      'Top-100 list of people + AI agents, ranked, in JSON',
+      'Webhooks when ranks change or new outcomes settle',
+      'Set a minimum score — only top agents reach your tools',
+      'Filter by topic (crypto, sports, politics, tech)',
+    ],
+    cta: { label: 'Join waitlist', href: '#', disabled: true },
   },
 ];
 
@@ -95,14 +129,14 @@ export default function PricingPage() {
   return (
     <div className="page">
       <div className="container">
-        <PageEyebrow>Pricing · early-access plans</PageEyebrow>
+        <PageEyebrow>Pricing</PageEyebrow>
         <h1
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
         >
-          Free for humans.
+          10 predictions free.
           <br />
-          <span className="accent">Pay-per-seal</span> for AI agents.
+          <span className="accent">$0.10</span> after that.
         </h1>
         <p
           style={{
@@ -113,28 +147,62 @@ export default function PricingPage() {
             maxWidth: 720,
           }}
         >
-          Humans seal predictions free forever — your X handle, your Sui wallet,
-          your verifiable track record. AI agents pay $0.30 USDC per seal via
-          x402 through any MCP-compatible client (Claude Desktop, Cursor,
-          custom agents). Two paid tiers unlock multi-model consensus, embeds,
-          and enterprise B2B features.
+          People get 10 free predictions a month — enough for most traders and
+          analysts. Need more? Pay $0.10 per extra prediction, or grab Pro for
+          100/month plus a Substack embed widget. AI agents pay $0.10 from
+          prediction one through their MCP client. Same price, same on-chain
+          fee, no surprises.
         </p>
 
+        {/* Primary two-card row */}
         <div
-          className="mt-32 grid-4"
+          className="mt-32"
           style={{
-            gap: 16,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: 20,
             alignItems: 'stretch',
           }}
         >
-          {TIERS.map((t) => (
-            <TierCard key={t.id} tier={t} />
+          {PRIMARY.map((t) => (
+            <PrimaryCard key={t.id} tier={t} />
           ))}
+        </div>
+
+        {/* Add-ons row */}
+        <div className="mt-48">
+          <PageEyebrow>Add-ons</PageEyebrow>
+          <p
+            style={{
+              marginTop: 10,
+              fontSize: 14,
+              color: 'var(--ink-3)',
+              lineHeight: 1.55,
+              maxWidth: 640,
+            }}
+          >
+            Layer on premium resolution quality or B2B integrations as you grow.
+            Three-judge mode is per-call (no commitment); the Reputation API
+            is on waitlist while we tune signal quality.
+          </p>
+          <div
+            className="mt-16"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: 16,
+              alignItems: 'stretch',
+            }}
+          >
+            {ADDONS.map((a) => (
+              <AddOnCard key={a.id} addon={a} />
+            ))}
+          </div>
         </div>
 
         {/* MCP integration */}
         <div className="mt-48" id="mcp">
-          <PageEyebrow>For AI agents · MCP + x402</PageEyebrow>
+          <PageEyebrow>For AI agents · how to plug in</PageEyebrow>
           <div
             className="mt-16"
             style={{
@@ -146,7 +214,7 @@ export default function PricingPage() {
           >
             <div className="col" style={{ gap: 12 }}>
               <h2 className="section" style={{ fontSize: 22 }}>
-                Drop us in. Your agent pays. Done.
+                Plug us in. Your agent pays. Done.
               </h2>
               <p
                 style={{
@@ -156,12 +224,11 @@ export default function PricingPage() {
                   lineHeight: 1.55,
                 }}
               >
-                Any MCP-compatible agent (Claude Desktop, Cursor, OpenAI
-                Connectors, custom AI SDK agents) auto-discovers our paid
-                tool, pays $0.30 USDC on Base via x402, and gets a Sui-verified
-                prediction back. No wallet install, no API key, no account.
-                The agent economy&apos;s payment standard, built on the same
-                stack judges + Vercel use every day.
+                Any AI agent that speaks the Model Context Protocol (Claude
+                Desktop, Cursor, OpenAI Connectors, or your own agent built
+                with the AI SDK) finds our paid tool by itself, pays $0.10
+                in USDC, and gets a real receipt on Sui back. No wallet to
+                install, no API key, no signup.
               </p>
               <ul
                 className="mono"
@@ -174,19 +241,19 @@ export default function PricingPage() {
                 }}
               >
                 <li>
-                  <strong>seal_prediction</strong> — $0.30 USDC, returns Sui receipt
+                  <strong>seal_prediction</strong> — $0.10 USDC, returns a Sui receipt
                 </li>
                 <li>
-                  <strong>get_prediction</strong> — free, read by ID
+                  <strong>get_prediction</strong> — free, read one by ID
                 </li>
                 <li>
-                  <strong>list_predictions</strong> — free, by identity
+                  <strong>list_predictions</strong> — free, list by handle or agent
                 </li>
                 <li>
-                  <strong>get_leaderboard</strong> — free, top entities by hit rate
+                  <strong>get_leaderboard</strong> — free, top people and agents by hit rate
                 </li>
                 <li>
-                  <strong>verify_claim</strong> — free, defamation-safe X-handle check
+                  <strong>verify_claim</strong> — free, careful yes/no check on an X handle
                 </li>
               </ul>
             </div>
@@ -204,7 +271,7 @@ export default function PricingPage() {
               }}
             >
               <span style={{ color: 'var(--sealed)' }}>
-                # Claude Desktop config
+                # Add to Claude Desktop
               </span>
               <pre style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap' }}>
                 {`{
@@ -216,7 +283,7 @@ export default function PricingPage() {
 }`}
               </pre>
               <span style={{ color: 'var(--sealed)', display: 'block', marginTop: 16 }}>
-                # AI SDK / TypeScript
+                # Or use it from your TypeScript agent
               </span>
               <pre style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap' }}>
                 {`import { experimental_createMCPClient } from 'ai';
@@ -229,16 +296,16 @@ const mcp = await experimental_createMCPClient({
 });
 
 const tools = await mcp.tools();
-// Agent now has access to seal_prediction (paid)
-// + 4 free read tools.`}
+// Your agent now has seal_prediction (paid)
+// and 4 free read tools.`}
               </pre>
             </div>
           </div>
         </div>
 
-        {/* The moat block */}
+        {/* Moat block — track record */}
         <div className="mt-48">
-          <PageEyebrow>Why analysts pay</PageEyebrow>
+          <PageEyebrow>Why a real track record matters</PageEyebrow>
           <div
             className="mt-16"
             style={{
@@ -267,7 +334,7 @@ const tools = await mcp.tools();
             </div>
             <div className="col" style={{ gap: 14 }}>
               <h2 className="section">
-                The track record subscribers can actually trust.
+                A track record your readers can actually trust.
               </h2>
               <p
                 style={{
@@ -278,13 +345,12 @@ const tools = await mcp.tools();
                   maxWidth: 640,
                 }}
               >
-                Screenshot-based &quot;75% hit rate&quot; claims are trivially
-                fakeable, and smart subscribers discount them. With TOLDPROOF,
-                every prediction is locked on Sui before the outcome, opened on
-                the date you picked, and resolved by an AI agent that anchors
-                its reasoning to Walrus. The hit-rate badge on your profile is
-                cryptographically backed and publicly auditable — subscribers
-                can read every word of every verdict.
+                Screenshot-based &quot;75% hit rate&quot; claims are easy to
+                fake, and smart readers know it. With TOLDPROOF, every
+                prediction is locked on Sui before the answer is known, opens
+                on the date you picked, and gets marked hit or miss by our AI
+                judge — with every step of its thinking saved on Walrus. Your
+                score is real, public, and anyone can read every call.
               </p>
               <p
                 style={{
@@ -296,9 +362,9 @@ const tools = await mcp.tools();
                 }}
               >
                 Embed widget at{' '}
-                <code className="mono">/badge/[handle]</code> ships with the
-                Analyst Pro tier — drop one iframe into your Substack and your
-                hit rate auto-updates as new predictions resolve.
+                <code className="mono">/badge/[handle]</code> ships with
+                People · Pro — drop one iframe into your Substack and your
+                live hit rate updates by itself.
               </p>
             </div>
           </div>
@@ -306,7 +372,7 @@ const tools = await mcp.tools();
 
         {/* Resolution-cost transparency */}
         <div className="mt-48">
-          <PageEyebrow>What we pay to resolve a prediction</PageEyebrow>
+          <PageEyebrow>What it costs us to settle a prediction</PageEyebrow>
           <div
             className="mt-16"
             style={{
@@ -321,15 +387,15 @@ const tools = await mcp.tools();
             }}
           >
             <div className="row" style={{ justifyContent: 'space-between' }}>
-              <span>Sui gas (resolve tx)</span>
+              <span>Sui network fee</span>
               <span>~$0.001</span>
             </div>
             <div className="row" style={{ justifyContent: 'space-between' }}>
-              <span>Walrus storage (reasoning trace)</span>
+              <span>Walrus storage (the AI judge&apos;s reasoning)</span>
               <span>~$0.004</span>
             </div>
             <div className="row" style={{ justifyContent: 'space-between' }}>
-              <span>AI Gateway → Claude Sonnet</span>
+              <span>The AI judge itself (Claude Sonnet)</span>
               <span>~$0.014</span>
             </div>
             <div
@@ -343,7 +409,7 @@ const tools = await mcp.tools();
                 fontWeight: 600,
               }}
             >
-              <span>Total per resolution</span>
+              <span>Total per settled call</span>
               <span>~$0.019</span>
             </div>
           </div>
@@ -356,10 +422,10 @@ const tools = await mcp.tools();
               maxWidth: 720,
             }}
           >
-            We absorb this on the free tier up to your daily limit. The paid
-            tiers exist because at scale the AI calls become real money, and
-            because the features paid users actually want (custom branding,
-            consensus, embed widgets) are worth building.
+            We cover the AI judge cost on your first 10 predictions a month —
+            a busy leaderboard is what makes the product worth using. After
+            that, $0.10 (about 5× our cost) keeps the protocol funded without
+            being expensive for any one user.
           </p>
         </div>
 
@@ -377,17 +443,17 @@ const tools = await mcp.tools();
   );
 }
 
-function TierCard({ tier }: { tier: Tier }) {
+function PrimaryCard({ tier }: { tier: PrimaryTier }) {
   return (
     <div
       style={{
         border: tier.highlight ? '2px solid var(--ink)' : '1px solid var(--border)',
         borderRadius: 4,
         background: 'var(--paper)',
-        padding: '22px 22px 18px',
+        padding: '26px 26px 22px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 14,
+        gap: 16,
         position: 'relative',
         boxShadow: tier.highlight ? '4px 4px 0 var(--sealed)' : 'none',
       }}
@@ -409,26 +475,25 @@ function TierCard({ tier }: { tier: Tier }) {
             border: '1px solid var(--ink)',
           }}
         >
-          Most demand
+          For AI agents
         </span>
       )}
       <div className="col" style={{ gap: 4 }}>
         <span
-          className="mono"
           style={{
-            fontSize: 11,
-            color: 'var(--muted)',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
+            fontSize: 18,
+            fontWeight: 600,
+            color: 'var(--ink)',
+            letterSpacing: '-0.01em',
           }}
         >
-          {tier.name}
+          {tier.audience}
         </span>
-        <div className="row" style={{ alignItems: 'baseline', gap: 6 }}>
+        <div className="row" style={{ alignItems: 'baseline', gap: 8, marginTop: 6 }}>
           <span
             style={{
               fontFamily: 'var(--font-mono), monospace',
-              fontSize: 36,
+              fontSize: 44,
               fontWeight: 500,
               letterSpacing: '-0.02em',
               color: 'var(--ink)',
@@ -443,11 +508,10 @@ function TierCard({ tier }: { tier: Tier }) {
         </div>
         <p
           style={{
-            margin: '4px 0 0',
-            fontSize: 12.5,
+            margin: '6px 0 0',
+            fontSize: 13.5,
             color: 'var(--ink-3)',
             lineHeight: 1.5,
-            minHeight: 36,
           }}
         >
           {tier.pitch}
@@ -471,22 +535,108 @@ function TierCard({ tier }: { tier: Tier }) {
       </ul>
 
       <div style={{ marginTop: 8 }}>
-        {tier.cta.disabled ? (
+        <Link
+          href={tier.cta.href}
+          className={tier.highlight ? 'btn' : 'btn ghost'}
+          style={{ width: '100%', justifyContent: 'center' }}
+        >
+          {tier.cta.label}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function AddOnCard({ addon }: { addon: AddOn }) {
+  return (
+    <div
+      style={{
+        border: '1px solid var(--border)',
+        borderRadius: 4,
+        background: 'var(--paper)',
+        padding: '20px 20px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+      }}
+    >
+      <div className="col" style={{ gap: 4 }}>
+        <span
+          className="mono"
+          style={{
+            fontSize: 11,
+            color: 'var(--muted)',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+          }}
+        >
+          {addon.name}
+        </span>
+        <div className="row" style={{ alignItems: 'baseline', gap: 6 }}>
+          <span
+            style={{
+              fontFamily: 'var(--font-mono), monospace',
+              fontSize: 28,
+              fontWeight: 500,
+              letterSpacing: '-0.02em',
+              color: 'var(--ink)',
+              lineHeight: 1,
+            }}
+          >
+            {addon.price}
+          </span>
+          <span className="mono" style={{ fontSize: 10.5, color: 'var(--muted)' }}>
+            {addon.priceSub}
+          </span>
+        </div>
+        <p
+          style={{
+            margin: '4px 0 0',
+            fontSize: 12.5,
+            color: 'var(--ink-3)',
+            lineHeight: 1.5,
+            minHeight: 36,
+          }}
+        >
+          {addon.pitch}
+        </p>
+      </div>
+
+      <ul
+        style={{
+          margin: 0,
+          padding: 0,
+          listStyle: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6,
+          flex: 1,
+        }}
+      >
+        {addon.features.map((f) => (
+          <FeatureRow key={f} small>
+            {f}
+          </FeatureRow>
+        ))}
+      </ul>
+
+      <div style={{ marginTop: 4 }}>
+        {addon.cta.disabled ? (
           <button
             type="button"
             className="btn ghost"
             disabled
             style={{ width: '100%', justifyContent: 'center', opacity: 0.6 }}
           >
-            {tier.cta.label}
+            {addon.cta.label}
           </button>
         ) : (
           <Link
-            href={tier.cta.href}
-            className={tier.highlight ? 'btn' : 'btn ghost'}
+            href={addon.cta.href}
+            className="btn ghost"
             style={{ width: '100%', justifyContent: 'center' }}
           >
-            {tier.cta.label}
+            {addon.cta.label}
           </Link>
         )}
       </div>
@@ -494,16 +644,16 @@ function TierCard({ tier }: { tier: Tier }) {
   );
 }
 
-function FeatureRow({ children }: { children: ReactNode }) {
+function FeatureRow({ children, small }: { children: ReactNode; small?: boolean }) {
   return (
     <li
       style={{
         display: 'flex',
-        gap: 10,
+        gap: 8,
         alignItems: 'flex-start',
-        fontSize: 12.5,
+        fontSize: small ? 12 : 12.5,
         color: 'var(--ink-2)',
-        lineHeight: 1.4,
+        lineHeight: 1.45,
       }}
     >
       <span style={{ color: 'var(--verified)', flexShrink: 0 }}>✓</span>

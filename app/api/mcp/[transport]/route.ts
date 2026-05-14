@@ -1,9 +1,9 @@
 // MCP server with x402 payments — any Claude Desktop / Cursor / OpenAI agent
-// can discover this endpoint and pay $0.20 USDC on Base per seal_prediction
+// can discover this endpoint and pay $0.10 USDC on Base per seal_prediction
 // call. We relay to Sui via the seal_prediction_as_agent<SUI> Move entry.
 //
 // Tools:
-//   - seal_prediction         (PAID, $0.20 USDC/Base)
+//   - seal_prediction         (PAID, $0.10 USDC/Base)
 //   - get_prediction          (free, by ID)
 //   - list_predictions        (free, by identity)
 //   - get_reputation_profile  (free, returns Walrus blob ID for the latest profile)
@@ -63,10 +63,10 @@ const X402_NETWORK = (process.env.TOLDPROOF_X402_NETWORK ?? 'base-sepolia') as
 const X402_FACILITATOR_URL = (process.env.TOLDPROOF_X402_FACILITATOR_URL ??
   'https://x402.org/facilitator') as `${string}://${string}`;
 
-// Price per seal in USD. Pad over actual Sui-side cost to cover the
-// relay-wallet's gas + fee burn. $0.30 USDC paid → $0.20 to your Sui treasury
-// → ~$0.10 covers our infra + AI Gateway resolution cost.
-const SEAL_PRICE_USD = 0.3;
+// Price per seal in USD. Sits in the x402-MCP micropayment band
+// ($0.001-$0.12 typical). $0.10 USDC paid → $0.05-equivalent SUI to treasury
+// on-chain → ~$0.05 covers relay gas + AI resolution cost (~$0.019 cost basis).
+const SEAL_PRICE_USD = 0.1;
 
 const HANDLER_LAZY = (() => {
   let cached: ReturnType<typeof createPaidMcpHandler> | null = null;

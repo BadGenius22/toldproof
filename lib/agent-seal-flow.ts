@@ -22,7 +22,7 @@ import { env } from './env';
 import type { AgentPersona } from './agent-personas';
 
 // Same fee as lib/mcp-seal.ts — must match Registry.fee_for<SUI>().
-const SUI_FEE_MIST = 100_000_000n;
+const SUI_FEE_MIST = 50_000_000n;
 
 export interface AgentSealResult {
   agentAlias: string;

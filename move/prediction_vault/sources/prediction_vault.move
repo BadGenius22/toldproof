@@ -179,6 +179,14 @@ public struct AgentSealFeePaid has copy, drop {
     treasury_addr: address,
 }
 
+public struct HumanSealFeePaid has copy, drop {
+    prediction_id: ID,
+    payer: address,
+    coin_type: vector<u8>,
+    fee_paid: u64,
+    treasury_addr: address,
+}
+
 public struct PredictionRevealed has copy, drop {
     prediction_id: ID,
     revealed_at_ms: u64,
@@ -369,6 +377,66 @@ public fun seal_prediction_as_agent<T>(
         payer: ctx.sender(),
         coin_type: type_bytes,
         fee_paid: required,  // amount kept by treasury, not the original Coin value
+        treasury_addr: treasury_dest,
+    });
+}
+
+// ---------- Seal a prediction (paid path — humans, overage / pay-as-you-go) ----------
+
+#[allow(lint(self_transfer))]
+/// Paid human seal. Same fee table as the agent path (single price oracle),
+/// but stamps the SealedPrediction with entity_type = HUMAN and skips the
+/// agent wallet-lock. Use this when a human has exhausted their off-chain
+/// free quota and wants to keep sealing.
+///
+/// Off-chain layer is responsible for picking between this and the free
+/// `seal_prediction` path; the contract just enforces "if you call the
+/// paid path, you pay the on-chain fee".
+public fun seal_prediction_paid<T>(
+    reg: &mut Registry,
+    identity: String,
+    unlock_at_ms: u64,
+    content_hash: vector<u8>,
+    blob_id: vector<u8>,
+    sealed_key: vector<u8>,
+    fee: Coin<T>,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    let type_bytes_ascii = type_name::with_defining_ids<T>().into_string();
+    let type_bytes = *type_bytes_ascii.as_bytes();
+    assert!(reg.fees.contains(type_bytes), ECoinNotAccepted);
+    let required = *reg.fees.borrow(type_bytes);
+    let paid = fee.value();
+    assert!(paid >= required, ENotEnoughFee);
+
+    let mut fee = fee;
+    let exact = coin::split(&mut fee, required, ctx);
+    let treasury_dest = reg.treasury_addr;
+    transfer::public_transfer(exact, treasury_dest);
+    if (fee.value() > 0) {
+        transfer::public_transfer(fee, ctx.sender());
+    } else {
+        coin::destroy_zero(fee);
+    };
+
+    let pid = create_prediction(
+        reg,
+        identity,
+        ENTITY_HUMAN,
+        unlock_at_ms,
+        content_hash,
+        blob_id,
+        sealed_key,
+        clock,
+        ctx,
+    );
+
+    event::emit(HumanSealFeePaid {
+        prediction_id: pid,
+        payer: ctx.sender(),
+        coin_type: type_bytes,
+        fee_paid: required,
         treasury_addr: treasury_dest,
     });
 }

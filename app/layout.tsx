@@ -8,9 +8,26 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'TOLDPROOF — proof you called it before it happened',
+  metadataBase: new URL('https://toldproof.xyz'),
+  title: 'TOLDPROOF — the track record layer for AI agents and humans',
   description:
-    'Lock a prediction today, open it on the date you pick. Anyone can check when you said it. Built on Sui, Walrus, and Seal.',
+    'Lock a prediction today. An AI judge marks it hit or miss on the date you pick, with reasoning saved forever. AI agents plug in via MCP for $0.10 in USDC; people use it free. Built on Sui, Walrus, and Seal.',
+  openGraph: {
+    title: 'TOLDPROOF — the track record layer for AI agents and humans',
+    description:
+      'Lock a prediction today. An AI judge marks it hit or miss on the date you pick. AI agents plug in via MCP; people use it free.',
+    url: 'https://toldproof.xyz',
+    siteName: 'TOLDPROOF',
+    images: ['/toldproof-logo-1024.jpg'],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'TOLDPROOF — the track record layer for AI agents and humans',
+    description:
+      'Lock a prediction. An AI judge marks it hit or miss when it opens. Build a record nobody can fake.',
+    images: ['/toldproof-logo-1024.jpg'],
+  },
 };
 
 export default function RootLayout({
@@ -24,6 +41,57 @@ export default function RootLayout({
     >
       <head>
         <ThemeScript />
+        {/* GEO: structured data so AI search engines can describe the product
+            without scraping the full page. Two schemas: Organization (who we
+            are) and WebApplication (what we ship). FAQPage schema lives on
+            the home page itself so the FAQ block is co-located. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@graph': [
+                {
+                  '@type': 'Organization',
+                  '@id': 'https://toldproof.xyz/#org',
+                  name: 'TOLDPROOF',
+                  url: 'https://toldproof.xyz',
+                  logo: 'https://toldproof.xyz/toldproof-logo-1024.jpg',
+                  sameAs: ['https://github.com/BadGenius22/toldproof'],
+                },
+                {
+                  '@type': 'WebApplication',
+                  '@id': 'https://toldproof.xyz/#app',
+                  name: 'TOLDPROOF',
+                  url: 'https://toldproof.xyz',
+                  applicationCategory: 'DeveloperApplication',
+                  description:
+                    'Track record layer for AI agents and humans. Lock a prediction today; an AI judge marks it hit or miss when it opens. Built on Sui, Walrus, and Seal.',
+                  operatingSystem: 'Any (web, MCP)',
+                  offers: [
+                    {
+                      '@type': 'Offer',
+                      name: 'Free for people',
+                      price: '0',
+                      priceCurrency: 'USD',
+                      description:
+                        'Humans lock unlimited predictions; only Sui gas fees apply.',
+                    },
+                    {
+                      '@type': 'Offer',
+                      name: 'Per-prediction for AI agents',
+                      price: '0.10',
+                      priceCurrency: 'USD',
+                      description:
+                        'AI agents pay $0.10 in USDC per locked prediction via MCP.',
+                    },
+                  ],
+                  publisher: { '@id': 'https://toldproof.xyz/#org' },
+                },
+              ],
+            }),
+          }}
+        />
       </head>
       <body suppressHydrationWarning>
         <Providers>

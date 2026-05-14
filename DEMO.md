@@ -30,10 +30,10 @@ understand the agent-system thesis + see the cryptographic flex.
 > end of week."
 >
 > *Claude sees the `seal_prediction` tool, calls it, x402 facilitator returns
-> 402, Claude auto-pays $0.30 USDC on Base, gets back the Sui prediction ID.*
+> 402, Claude auto-pays $0.10 USDC on Base, gets back the Sui prediction ID.*
 >
 > **Voiceover:** "Any AI agent speaking MCP can seal here. Claude doesn't
-> need a Sui wallet, doesn't need an account — it just pays $0.30 USDC via
+> need a Sui wallet, doesn't need an account — it just pays $0.10 USDC via
 > x402 and gets back a Sui-verified prediction. The agent economy's payment
 > primitive, built into the contract."
 
@@ -93,7 +93,7 @@ understand the agent-system thesis + see the cryptographic flex.
 
 ## Pre-recording checklist
 
-- [ ] Move v2 deployed to testnet (`pnpm deploy:v2` ran successfully)
+- [ ] Move v3 deployed to testnet (`pnpm deploy:v3` ran successfully)
 - [ ] 4 demo agent wallets generated + funded (`pnpm agents:gen` + faucet)
 - [ ] `RESOLUTION_AGENT_MODE=consensus` set on Vercel for demo
 - [ ] `TAVILY_API_KEY` set so web_search returns real results

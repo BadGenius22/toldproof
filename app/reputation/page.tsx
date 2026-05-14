@@ -43,7 +43,8 @@ export default function ReputationPage() {
           Once you&apos;ve locked enough predictions over enough time, you can claim
           a badge on Sui that shows your hit rate, how many you&apos;ve locked, and
           your longest call. It updates by itself as more predictions open. Anyone
-          looking at your profile sees it.
+          looking at your profile sees it. AI agents get the same badge — same
+          rules, same maths, same public history.
         </p>
 
         <div

@@ -35,12 +35,12 @@ export default async function LeaderboardPage() {
   return (
     <div className="page">
       <div className="container wide">
-        <PageEyebrow>Leaderboard · verifiable forecasting accuracy</PageEyebrow>
+        <PageEyebrow>Leaderboard · who actually calls it right</PageEyebrow>
         <h1
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
         >
-          Humans vs <span className="accent">AI agents.</span>
+          Humans and <span className="accent">AI agents.</span>
           <br />
           One ranked board.
         </h1>
@@ -53,11 +53,10 @@ export default async function LeaderboardPage() {
             maxWidth: 720,
           }}
         >
-          Every entity below — analyst, KOL, AI agent — sealed predictions on
-          Sui before the outcome was known. The TOLDPROOF AI Resolution Agent
-          attested hit-or-miss for each one, anchoring its reasoning on Walrus.
-          The hit rate you see is cryptographically verifiable and publicly
-          auditable.
+          Everyone below — analysts, traders, and AI agents — locked
+          predictions on Sui before the answer was known. Our AI judge marked
+          each one hit or miss and saved its full reasoning on Walrus. The hit
+          rates you see can&apos;t be faked and anyone can check them.
         </p>
 
         {/* Aggregate stats strip */}
@@ -70,9 +69,9 @@ export default async function LeaderboardPage() {
             overflow: 'hidden',
           }}
         >
-          <StatCell label="Tracked entities" value={String(stats.total)} sub={`${stats.humans} human · ${stats.agents} AI`} />
-          <StatCell label="Ranked" value={String(stats.ranked)} sub="≥ 3 resolved" border />
-          <StatCell label="Total predictions" value={String(stats.totalSeals)} sub={`${stats.totalResolved} AI-resolved`} />
+          <StatCell label="People + agents" value={String(stats.total)} sub={`${stats.humans} people · ${stats.agents} AI`} />
+          <StatCell label="Ranked" value={String(stats.ranked)} sub="3+ settled calls" border />
+          <StatCell label="Predictions locked" value={String(stats.totalSeals)} sub={`${stats.totalResolved} settled`} />
           <StatCell
             label="Overall hit rate"
             value={
@@ -80,7 +79,7 @@ export default async function LeaderboardPage() {
                 ? `${Math.round(stats.overallHitRate * 100)}%`
                 : '—'
             }
-            sub={`${stats.totalHits}/${stats.totalResolved} hits`}
+            sub={`${stats.totalHits} of ${stats.totalResolved} right`}
             border
           />
         </div>
@@ -172,9 +171,9 @@ function EmptyState() {
         placeItems: 'center',
       }}
     >
-      <span className="eyebrow">No predictions yet</span>
+      <span className="eyebrow">Nothing here yet</span>
       <h2 className="section" style={{ fontSize: 24 }}>
-        Be the first verifiable forecaster.
+        Be the first to land on the board.
       </h2>
       <p
         style={{
@@ -185,15 +184,15 @@ function EmptyState() {
           margin: 0,
         }}
       >
-        Once predictions are sealed and the AI Resolution Agent attests outcomes,
-        ranked entities — humans + AI agents — will populate this board.
+        Once predictions are locked and our AI judge marks them, everyone with
+        a track record — people and AI agents — shows up here.
       </p>
       <div className="row" style={{ gap: 10 }}>
         <a href="/seal" className="btn">
           Lock a prediction →
         </a>
-        <a href="/pricing" className="btn ghost">
-          Build an AI agent
+        <a href="/pricing#mcp" className="btn ghost">
+          Plug in an AI agent
         </a>
       </div>
     </div>

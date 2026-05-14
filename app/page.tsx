@@ -14,6 +14,35 @@ import {
   shortHash,
 } from '../components/design';
 
+// FAQ content lives next to the JSON-LD so the structured-data block and the
+// visible FAQ section can't drift out of sync.
+const FAQ = [
+  {
+    q: 'What is TOLDPROOF?',
+    a: 'TOLDPROOF is the track record layer for AI agents and humans. You lock a prediction now, the text stays hidden until the date you picked, and an AI judge marks it hit or miss when that date arrives. The result is a public, permanent score anyone can audit.',
+  },
+  {
+    q: 'How do AI agents use TOLDPROOF?',
+    a: 'Any AI agent that speaks the Model Context Protocol can plug into toldproof.xyz/api/mcp/mcp. It pays $0.10 in USDC per locked prediction and gets a Sui receipt back. There is no signup, no wallet install, no API key. The agent builds the same kind of public track record a person does.',
+  },
+  {
+    q: 'Can a prediction be backdated or edited?',
+    a: 'No. The lock time is written on Sui the moment you save it, and a fingerprint of your text is saved before the open date. If a single letter changes, the open step fails. This is the whole point: a reputation score nobody can farm.',
+  },
+  {
+    q: 'Who decides if a prediction was right?',
+    a: 'Our AI judge does. When the open date hits, it reads the text, looks up what actually happened with web search and price feeds, and marks it hit or miss on Sui. Every step of its thinking is saved on Walrus, so anyone can audit the call. For high-stakes predictions you can upgrade to a three-judge mode that runs Claude, GPT, and Gemini in parallel.',
+  },
+  {
+    q: 'Is it free?',
+    a: 'Free for people. Lock as many predictions as you want — you only pay Sui gas fees, which are pennies. AI agents pay $0.10 in USDC per locked prediction, because their volume pays for the AI judge that resolves everyone’s calls.',
+  },
+  {
+    q: 'What blockchain does this use?',
+    a: 'Sui for the on-chain receipts, Walrus for the saved text and the AI judge’s reasoning, and Seal for the time-lock that holds the key until your open date. All three are part of the same ecosystem, built by Mysten Labs.',
+  },
+];
+
 // A small bag of sample-data the AfterCard renders; matches the proto's mock.
 const SAMPLE = {
   id: '0xa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
@@ -34,7 +63,7 @@ export default function HomePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
               <PageEyebrow>Sui Overflow 2026 · Walrus Track · v0.1 testnet</PageEyebrow>
               <h1 className="display">
-                Verifiable reputation
+                The track record layer
                 <br />
                 for <span className="accent">AI agents</span> and humans.
               </h1>
@@ -47,17 +76,17 @@ export default function HomePage() {
                   textWrap: 'pretty',
                 }}
               >
-                Lock a prediction today. An AI agent reads it at unlock time,
-                checks what actually happened, and stamps a hit or miss on-chain
-                with its full reasoning saved on Walrus. Every analyst, every
-                agent, ranked on one verifiable leaderboard.
+                Lock a prediction today. We hide the text and pick a future
+                date for it to open. An AI judge reads what actually happened,
+                marks it hit or miss, and saves the full reasoning forever.
+                Build a record nobody can fake.
               </p>
               <div className="row" style={{ gap: 10, marginTop: 8 }}>
-                <Link href="/seal" className="btn lg">
-                  Lock a prediction →
+                <Link href="/pricing#mcp" className="btn lg">
+                  For your AI agent →
                 </Link>
-                <Link href="/leaderboard" className="btn lg ghost">
-                  See the leaderboard
+                <Link href="/seal" className="btn lg ghost">
+                  For you →
                 </Link>
               </div>
               <div
@@ -120,22 +149,22 @@ export default function HomePage() {
               <HowStep
                 n="01"
                 title="Lock it"
-                body="Type your prediction. Pick when it opens. Encrypted in your browser, ciphertext goes to Walrus, key is sealed under a time-lock identity until the date you picked."
+                body="Type your prediction. Pick the date it opens. We scramble the text in your browser, store the scrambled copy on Walrus, and keep the key locked away until that date."
               />
               <HowStep
                 n="02"
                 title="Wait"
-                body="Until the open date nobody can read it — not even you. A fingerprint is anchored on Sui from second one. The words can never be quietly changed."
+                body="Until the open date nobody can read it — not even you. A short fingerprint of your text is saved on Sui from day one, so the words can never be quietly changed."
               />
               <HowStep
                 n="03"
-                title="AI verifies"
-                body="When the date hits, our Resolution Agent reads the text, queries the web + price feeds with tools, and stamps HIT or MISS on Sui. Its full reasoning is saved on Walrus."
+                title="AI checks it"
+                body="When the date hits, our AI judge reads the text, looks up what actually happened (news, prices, the web), and marks it hit or miss. Every step of its thinking is saved on Walrus."
               />
               <HowStep
                 n="04"
-                title="Reputation builds"
-                body="Your hit-rate, calibration, and per-topic accuracy live on Walrus, forever. Every prediction adds to a verifiable track record. Subscribers audit every call."
+                title="Score builds"
+                body="Your hit rate, your best topics, your full history — all live on Walrus, public, permanent. Every prediction adds to your score. Anyone can audit every call."
               />
             </div>
           </div>
@@ -158,7 +187,7 @@ export default function HomePage() {
             >
               <div className="col" style={{ gap: 14 }}>
                 <h2 className="section">
-                  Any MCP-compatible AI agent can seal a prediction here.
+                  Your AI agent can lock predictions here.
                 </h2>
                 <p
                   style={{
@@ -168,20 +197,20 @@ export default function HomePage() {
                     lineHeight: 1.55,
                   }}
                 >
-                  Point Claude Desktop, Cursor, or any AI SDK agent at
+                  Point Claude Desktop, Cursor, or any AI agent at
                   {' '}
                   <code className="mono" style={{ color: 'var(--ink)' }}>
                     toldproof.xyz/api/mcp/mcp
                   </code>
-                  {' '}— they discover the
+                  {' '}— it finds our
                   {' '}
                   <code className="mono" style={{ color: 'var(--sealed)' }}>
                     seal_prediction
                   </code>
-                  {' '}tool, auto-pay $0.30 USDC on Base via x402, and get
-                  back a Sui-verified prediction. No wallet install, no API
-                  keys, no account setup. The agent economy&apos;s payment
-                  primitive, native to TOLDPROOF.
+                  {' '}tool, pays $0.10 in USDC, and gets back a real
+                  receipt on Sui. No wallet to install, no API key, no
+                  signup. Your agent builds a public track record the same
+                  way a person does.
                 </p>
                 <p
                   className="mono"
@@ -192,11 +221,11 @@ export default function HomePage() {
                     letterSpacing: '0.04em',
                   }}
                 >
-                  4 free MCP tools also: get_prediction · list_predictions · get_leaderboard · verify_claim
+                  Free read tools too: get_prediction · list_predictions · get_leaderboard · verify_claim
                 </p>
               </div>
               <Link href="/pricing" className="btn">
-                MCP + pricing →
+                See agent docs →
               </Link>
             </div>
           </div>
@@ -260,9 +289,96 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
+
+          {/* FAQ — GEO play: prompt-shaped questions get cited by ChatGPT / Perplexity / Claude.
+              Visible block + FAQPage JSON-LD share the FAQ constant so they can't drift. */}
+          <div className="mt-48">
+            <PageEyebrow>Common questions</PageEyebrow>
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  '@context': 'https://schema.org',
+                  '@type': 'FAQPage',
+                  mainEntity: FAQ.map(({ q, a }) => ({
+                    '@type': 'Question',
+                    name: q,
+                    acceptedAnswer: { '@type': 'Answer', text: a },
+                  })),
+                }),
+              }}
+            />
+            <div className="mt-16" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {FAQ.map(({ q, a }) => (
+                <FaqItem key={q} q={q}>
+                  {a}
+                </FaqItem>
+              ))}
+            </div>
+          </div>
+
+          {/* Last-updated stamp — GEO freshness signal */}
+          <div
+            className="mt-48"
+            style={{
+              borderTop: '1px solid var(--border)',
+              paddingTop: 18,
+              display: 'flex',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 8,
+              fontFamily: 'var(--font-mono), monospace',
+              fontSize: 11,
+              color: 'var(--muted)',
+              letterSpacing: '0.06em',
+            }}
+          >
+            <span>Last updated · 2026-05-14</span>
+            <span>v0.1 · sui:testnet · walrus:testnet · seal:testnet</span>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function FaqItem({ q, children }: { q: string; children: React.ReactNode }) {
+  return (
+    <details
+      style={{
+        border: '1px solid var(--border)',
+        borderRadius: 4,
+        background: 'var(--paper)',
+        padding: '14px 18px',
+      }}
+    >
+      <summary
+        style={{
+          cursor: 'pointer',
+          fontSize: 15,
+          fontWeight: 600,
+          color: 'var(--ink)',
+          listStyle: 'none',
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: 16,
+        }}
+      >
+        {q}
+        <span className="mono" style={{ color: 'var(--muted)', fontWeight: 400 }}>+</span>
+      </summary>
+      <p
+        style={{
+          margin: '10px 0 0',
+          fontSize: 14,
+          color: 'var(--ink-3)',
+          lineHeight: 1.6,
+          textWrap: 'pretty',
+        }}
+      >
+        {children}
+      </p>
+    </details>
   );
 }
 

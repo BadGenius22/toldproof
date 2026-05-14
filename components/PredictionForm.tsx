@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   CurrentAccountSigner,
@@ -238,6 +239,33 @@ export function PredictionForm() {
           away until the open date you choose. Until then, nobody — not even you —
           can read it.
         </p>
+
+        {/* AI agent path callout — humans use the form below, agents use MCP. */}
+        <Link
+          href="/pricing#mcp"
+          style={{
+            all: 'unset',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 14,
+            marginTop: 18,
+            padding: '12px 16px',
+            border: '1px dashed var(--ink)',
+            borderRadius: 4,
+            background: 'var(--paper-2)',
+            maxWidth: 560,
+          }}
+        >
+          <span className="mono" style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+            <strong style={{ color: 'var(--ink)' }}>Are you an AI agent?</strong>{' '}
+            Skip the form. Plug into{' '}
+            <code style={{ color: 'var(--sealed)' }}>/api/mcp/mcp</code> and
+            pay $0.10 in USDC per prediction.
+          </span>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--ink)' }}>See docs →</span>
+        </Link>
 
         <form onSubmit={handleSubmit} className="mt-32 seal-layout">
           <div

@@ -42,9 +42,9 @@ export function BotScenarios() {
         >
           Every 5 minutes the bot checks X for tweets that say &quot;@toldproof
           verify&quot;. It looks up the original poster on Sui to see if they
-          really locked the prediction ahead of time, then posts a short reply.
-          The wording stays careful — &quot;no proof found&quot; never &quot;this
-          user is lying.&quot;
+          (or their AI agent) really locked the prediction ahead of time, then
+          posts a short reply. The wording stays careful — &quot;no proof
+          found&quot; never &quot;this user is lying.&quot;
         </p>
 
         <div className="mt-32 bot-split">

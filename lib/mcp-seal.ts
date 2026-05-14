@@ -17,9 +17,9 @@ import {
 import { env } from './env';
 
 // Fee in MIST — must match the Sui Registry's current set_fee<SUI>(...) value.
-// Default 100M MIST = 0.1 SUI ≈ $0.20 at ~$2/SUI. Production should read this
+// Default 50M MIST = 0.05 SUI ≈ $0.10 at ~$2/SUI. Production should read this
 // from on-chain via Registry.fee_for<SUI>() instead of hardcoding.
-const SUI_FEE_MIST = 100_000_000n;
+const SUI_FEE_MIST = 50_000_000n;
 
 export interface ServerSealInput {
   text: string;

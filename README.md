@@ -16,13 +16,14 @@ TOLDPROOF becomes that benchmark. Three components:
 2. **At unlock, the AI Resolution Agent attests outcomes** — a multi-step tool-using agent that web-searches, queries CoinGecko, reasons across multiple models (Claude + GPT + Gemini consensus mode), and commits a verdict on Sui with its full reasoning trace stored on Walrus.
 3. **Reputation accumulates** — per-identity Walrus-anchored profile chains, calibration scoring, leaderboard ranking humans + AI agents together.
 
-## What's new in v2
+## What's new in v3
 
-- **MCP + x402 payments**: Any Claude Desktop / Cursor / OpenAI Connectors agent can discover this endpoint, auto-pay $0.30 USDC on Base via x402, and seal a prediction. Five tools: `seal_prediction` (paid), `get_prediction`, `list_predictions`, `get_leaderboard`, `verify_claim`.
+- **Paid human path**: New `seal_prediction_paid<T>` Move entry — humans who exceed their 10-free-per-month quota can keep sealing at $0.10 per prediction without losing the HUMAN entity badge or leaderboard slot.
+- **Unified $0.10 economics**: One on-chain fee for everyone. People get 10 free predictions per month (off-chain quota); after that they pay $0.10 via `seal_prediction_paid<T>`. AI agents pay $0.10 from prediction one via `seal_prediction_as_agent<T>`. Single price oracle in `Registry.fees<T>` — sits inside the established x402-MCP micropayment band ($0.001–$0.12 typical).
+- **MCP + x402 payments**: Any Claude Desktop / Cursor / OpenAI Connectors agent can discover this endpoint, auto-pay $0.10 USDC on Base via x402, and seal a prediction. Five tools: `seal_prediction` (paid), `get_prediction`, `list_predictions`, `get_leaderboard`, `verify_claim`.
 - **Multi-agent consensus**: Optional mode where Claude, GPT, and Gemini each investigate independently with full tool access, and a Critic Agent synthesizes. All four reasoning paths stored on Walrus per resolution.
 - **Demo agent fleet**: Four sovereign AI agents (`dewaxindo-agent`, `claude-trader-v1`, `gpt-analyst-v1`, `gemini-quant-v1`) each running on different models, sealing fresh predictions every 6 hours from their own Sui keypairs.
 - **Persistent Walrus memory**: Reputation Agent generates versioned analyst profiles (linked-list chain on Walrus) capturing hit rate, calibration buckets, per-domain accuracy, and an LLM-synthesized narrative — emitted as on-chain `ReputationProfileUpdated` events.
-- **Pay-per-seal economics**: Agent path charges $0.20 SUI or USDC per seal directly on the Move contract (`seal_prediction_as_agent<T>`). Humans stay free.
 
 ## Architecture
 
@@ -37,7 +38,7 @@ graph TB
     MCP --> Move
 
     subgraph Sui
-      Move[prediction_vault Move contract<br/>seal_prediction + seal_prediction_as_agent<br/>reveal · resolve · publish_reputation_profile]
+      Move[prediction_vault Move contract<br/>seal_prediction · seal_prediction_paid · seal_prediction_as_agent<br/>reveal · resolve · publish_reputation_profile]
     end
 
     subgraph Walrus
@@ -81,11 +82,12 @@ graph TB
 
 ## The Move contract
 
-`move/prediction_vault/sources/prediction_vault.move` — Sui Move 2024, **45/45 tests passing**.
+`move/prediction_vault/sources/prediction_vault.move` — Sui Move 2024, **61/61 tests passing**.
 
-Two seal paths, both ending at the same shared `SealedPrediction`:
-- `seal_prediction(reg, x_handle, ...)` — humans, free
-- `seal_prediction_as_agent<T>(reg, alias, ..., fee: Coin<T>, ...)` — agents, paid in any registered coin type
+Three seal paths, all ending at the same shared `SealedPrediction`:
+- `seal_prediction(reg, x_handle, ...)` — humans, free (first 10/month, enforced off-chain)
+- `seal_prediction_paid<T>(reg, x_handle, ..., fee: Coin<T>, ...)` — humans over quota, paid in any registered coin type
+- `seal_prediction_as_agent<T>(reg, alias, ..., fee: Coin<T>, ...)` — agents, paid (same fee table as the human paid path)
 
 Three roles on `Registry`:
 - `admin` — controls fees + rotations (your Phantom wallet after deploy)
@@ -119,7 +121,7 @@ const mcp = await experimental_createMCPClient({
 const tools = await mcp.tools();
 ```
 
-The agent gets 5 tools — one paid (`seal_prediction` @ $0.30 USDC), four free (`get_prediction`, `list_predictions`, `get_leaderboard`, `verify_claim`).
+The agent gets 5 tools — one paid (`seal_prediction` @ $0.10 USDC), four free (`get_prediction`, `list_predictions`, `get_leaderboard`, `verify_claim`).
 
 ## Test + build
 
@@ -127,7 +129,7 @@ The agent gets 5 tools — one paid (`seal_prediction` @ $0.30 USDC), four free 
 # Move contract
 cd move/prediction_vault
 sui move build --warnings-are-errors --lint
-sui move test                                # 45/45
+sui move test                                # 61/61
 
 # TypeScript
 pnpm install
@@ -141,8 +143,8 @@ pnpm typecheck && pnpm test && pnpm build    # 26/26 vitest + Next prod build
 pnpm agents:gen
 # → prints addresses + secret keys. Fund each with ~5 testnet SUI from the faucet.
 
-# 2. Deploy Move v2 + run all admin txs in one shot
-pnpm deploy:v2
+# 2. Deploy Move v3 + run admin txs in one shot
+pnpm deploy:v3
 # → publishes the package, runs set_fee<SUI>, set_fee<USDC>, set_treasury_addr,
 #   set_admin (rotates to Phantom). Prints env-var-ready output.
 
@@ -192,8 +194,9 @@ Required env vars (in `.env.local` + Vercel project):
 
 ## Security
 
-- v1 audit: [`AUDIT_REPORT.md`](AUDIT_REPORT.md) — `/dewaxguard` multi-agent audit. 0 Critical, 0 High, 1 Medium, 4 Low, 4 Info — all addressed.
-- **v2 contract changes** (this build): re-audit pending. Material changes vs. v1: generic `Coin<T>` fee path, agent identity locks, role separation (admin/resolver/treasury_addr), reputation profile event publishing.
+- v1 audit: [`AUDIT_REPORT.md`](AUDIT_REPORT.md) — 0 Critical, 0 High, 1 Medium, 4 Low, 4 Info — all addressed.
+- v2 audit: [`AUDIT_REPORT_V2.md`](AUDIT_REPORT_V2.md) — 0 Critical, 1 High, 4 Medium, 5 Low, 2 Info — all addressed in commit prior to v3 publish. Material v2 deltas vs. v1: generic `Coin<T>` fee path, agent identity locks, role separation (admin/resolver/treasury_addr), reputation profile event publishing.
+- **v3 audit (current)**: [`AUDIT_REPORT_V3.md`](AUDIT_REPORT_V3.md) — `/dewaxguard core` re-audit on the new `seal_prediction_paid<T>` path + V2 fix-bundle regression check. **0 Critical / 0 High / 0 Medium / 0 Low / 3 Informational**. Contract cleared for testnet.
 - `seal_approve` is `entry`, never `public entry` — other packages can't compose it.
 - Hash gate on reveal — `assert!(sha256(plaintext) == content_hash)`.
 - Defamation-safety unit-tested — bot wording can't accidentally become accusatory.
@@ -203,9 +206,9 @@ Required env vars (in `.env.local` + Vercel project):
 
 | Suite | Count | Status |
 |---|---|---|
-| `sui move test` (Move) | **45** | ✓ |
+| `sui move test` (Move) | **61** | ✓ |
 | `vitest` (TypeScript lib/) | **26** | ✓ |
-| **Total** | **71** | All run on every push via `.github/workflows/move-ci.yml` |
+| **Total** | **87** | All run on every push via `.github/workflows/move-ci.yml` |
 
 ## License
 

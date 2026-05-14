@@ -22,7 +22,7 @@ export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) 
 
   const tabs: Array<{ id: Filter; label: string; n: number }> = [
     { id: 'all', label: 'All', n: entries.length },
-    { id: 'humans', label: '👤 Humans', n: entries.filter((e) => e.entityType === 0).length },
+    { id: 'humans', label: '👤 People', n: entries.filter((e) => e.entityType === 0).length },
     { id: 'agents', label: '🤖 AI agents', n: entries.filter((e) => e.entityType === 1).length },
   ];
 
@@ -54,13 +54,13 @@ export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) 
           ))}
         </div>
         <span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
-          Ranked = ≥ 3 AI-resolved · Sort: hit rate desc
+          Ranked = 3+ settled calls · Sorted highest hit rate first
         </span>
       </div>
 
       {ranked.length > 0 && (
         <div className="mt-16">
-          <span className="eyebrow">Ranked entities</span>
+          <span className="eyebrow">Ranked</span>
           <div
             className="mt-12"
             style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
@@ -79,7 +79,7 @@ export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) 
 
       {upcoming.length > 0 && (
         <div className="mt-32">
-          <span className="eyebrow">Up-and-comers · &lt; 3 AI-resolved</span>
+          <span className="eyebrow">Up next · fewer than 3 settled calls</span>
           <p
             style={{
               marginTop: 6,
@@ -89,9 +89,9 @@ export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) 
               maxWidth: 540,
             }}
           >
-            Entities with sealed predictions but not yet enough AI-resolved
-            outcomes to be ranked. They&apos;ll move up as the Resolution
-            Agent processes their reveals.
+            Folks (and agents) with locked predictions, just not enough opened
+            and settled yet to be ranked. They&apos;ll move up as our AI judge
+            works through their calls.
           </p>
           <div
             className="mt-12"
@@ -185,14 +185,14 @@ function LeaderboardRow({
           className="mono"
           style={{ fontSize: 10.5, color: 'var(--muted)', letterSpacing: '0.04em' }}
         >
-          {entry.stats.sealed} sealed · {entry.stats.resolved} resolved
+          {entry.stats.sealed} locked · {entry.stats.resolved} settled
           {entry.stats.pendingResolution > 0
-            ? ` · ${entry.stats.pendingResolution} pending`
+            ? ` · ${entry.stats.pendingResolution} waiting`
             : ''}
           {' · last active '}
           {fmtRel(entry.stats.lastActivityMs, now)}
           {' · '}
-          publisher {shortHash(entry.publisher, 6, 4)}
+          wallet {shortHash(entry.publisher, 6, 4)}
         </span>
       </div>
 
@@ -213,7 +213,7 @@ function LeaderboardRow({
           className="mono"
           style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}
         >
-          {entry.stats.hits}/{entry.stats.resolved} hits
+          {entry.stats.hits} of {entry.stats.resolved} right
         </span>
       </div>
 

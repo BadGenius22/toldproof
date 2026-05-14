@@ -75,8 +75,8 @@ export function sealPredictionTx(args: {
 // `feeSourceCoinId` and we'll split exact-amount from it.
 //
 // The `feeAmount` is in the coin's smallest unit:
-//   SUI:  100_000_000n MIST          ≈ $0.20 at ~$2/SUI
-//   USDC: 200_000n     microUSDC     = $0.20 exact (USDC has 6 decimals)
+//   SUI:  50_000_000n  MIST          ≈ $0.10 at ~$2/SUI
+//   USDC: 100_000n     microUSDC     = $0.10 exact (USDC has 6 decimals)
 export function sealPredictionAsAgentTx(args: {
   registryId: string;
   packageId: string;
@@ -100,6 +100,47 @@ export function sealPredictionAsAgentTx(args: {
     arguments: [
       tx.object(args.registryId),
       tx.pure.string(args.agentAlias),
+      tx.pure.u64(args.unlockAtMs),
+      tx.pure.vector('u8', Array.from(args.contentHash)),
+      tx.pure.vector('u8', Array.from(args.blobIdBytes)),
+      tx.pure.vector('u8', Array.from(args.sealedKey)),
+      feeCoin,
+      tx.object(CLOCK_ID),
+    ],
+  });
+  return tx;
+}
+
+// Paid human path — humans seal under their handle when they're over the
+// off-chain monthly quota. Same on-chain fee as the agent path (single price
+// oracle in Registry.fees<T>), but the SealedPrediction is stamped with
+// entity_type = HUMAN and the agent wallet-lock is skipped.
+//
+// Fee handling identical to sealPredictionAsAgentTx — see that doc comment
+// for SUI vs USDC coin sourcing rules.
+export function sealPredictionPaidTx(args: {
+  registryId: string;
+  packageId: string;
+  identity: string;
+  unlockAtMs: bigint;
+  contentHash: Uint8Array;
+  blobIdBytes: Uint8Array;
+  sealedKey: Uint8Array;
+  feeCoinType: string;
+  feeAmount: bigint;
+  feeSourceCoinId?: string;
+}): Transaction {
+  const tx = new Transaction();
+
+  const feeSource = args.feeSourceCoinId ? tx.object(args.feeSourceCoinId) : tx.gas;
+  const [feeCoin] = tx.splitCoins(feeSource, [tx.pure.u64(args.feeAmount)]);
+
+  tx.moveCall({
+    target: `${args.packageId}::prediction_vault::seal_prediction_paid`,
+    typeArguments: [args.feeCoinType],
+    arguments: [
+      tx.object(args.registryId),
+      tx.pure.string(args.identity),
       tx.pure.u64(args.unlockAtMs),
       tx.pure.vector('u8', Array.from(args.contentHash)),
       tx.pure.vector('u8', Array.from(args.blobIdBytes)),

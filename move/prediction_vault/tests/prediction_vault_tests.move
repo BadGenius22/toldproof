@@ -1314,3 +1314,253 @@ fun agent_alias_locked_to_returns_sentinel_for_missing() {
     ts::return_shared(reg);
     scenario.end();
 }
+
+// ---------- Paid human seals (overage / pay-as-you-go) ----------
+
+// Correct fee → seal succeeds, treasury receives the fee, prediction
+// stamped as entity_type=HUMAN.
+#[test]
+fun human_paid_seal_with_correct_fee_succeeds() {
+    let mut scenario = ts::begin(ADMIN);
+    setup_paid_agent_seal(&mut scenario);
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    let fee = coin::mint_for_testing<SUI>(AGENT_FEE_MIST, scenario.ctx());
+    prediction_vault::seal_prediction_paid<SUI>(
+        &mut reg, handle(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY,
+        fee, &c, scenario.ctx(),
+    );
+
+    assert!(prediction_vault::total_count(&reg) == 1, 1000);
+    assert!(prediction_vault::identity_count(&reg, handle()) == 1, 1001);
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+
+    // SealedPrediction is stamped HUMAN, not AGENT.
+    scenario.next_tx(ALICE);
+    let pred = scenario.take_shared<SealedPrediction>();
+    assert!(prediction_vault::entity_type(&pred) == prediction_vault::entity_human(), 1002);
+    assert!(prediction_vault::identity(&pred) == handle(), 1003);
+    assert!(prediction_vault::publisher(&pred) == ALICE, 1004);
+    ts::return_shared(pred);
+
+    // Treasury received the exact fee.
+    scenario.next_tx(TREASURY);
+    let received = scenario.take_from_address<coin::Coin<SUI>>(TREASURY);
+    assert!(received.value() == AGENT_FEE_MIST, 1005);
+    scenario.return_to_sender(received);
+
+    scenario.end();
+}
+
+// Overpay → treasury keeps `required`, sender gets the change back.
+#[test]
+fun human_paid_seal_overpay_returns_change() {
+    let mut scenario = ts::begin(ADMIN);
+    setup_paid_agent_seal(&mut scenario);
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let overpay = AGENT_FEE_MIST + 50_000_000;
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    let fee = coin::mint_for_testing<SUI>(overpay, scenario.ctx());
+    prediction_vault::seal_prediction_paid<SUI>(
+        &mut reg, handle(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY,
+        fee, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+
+    scenario.next_tx(TREASURY);
+    let kept = scenario.take_from_address<coin::Coin<SUI>>(TREASURY);
+    assert!(kept.value() == AGENT_FEE_MIST, 1010);
+    scenario.return_to_sender(kept);
+
+    scenario.next_tx(ALICE);
+    let change = scenario.take_from_address<coin::Coin<SUI>>(ALICE);
+    assert!(change.value() == overpay - AGENT_FEE_MIST, 1011);
+    scenario.return_to_sender(change);
+
+    scenario.end();
+}
+
+// Insufficient fee → aborts with ENotEnoughFee.
+#[test, expected_failure(abort_code = prediction_vault::ENotEnoughFee)]
+fun human_paid_seal_with_insufficient_fee_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    setup_paid_agent_seal(&mut scenario);
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    let fee = coin::mint_for_testing<SUI>(AGENT_FEE_MIST - 1, scenario.ctx());
+    prediction_vault::seal_prediction_paid<SUI>(
+        &mut reg, handle(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY,
+        fee, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+// Unregistered coin type → aborts with ECoinNotAccepted.
+#[test, expected_failure(abort_code = prediction_vault::ECoinNotAccepted)]
+fun human_paid_seal_with_unregistered_coin_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    let fee = coin::mint_for_testing<SUI>(AGENT_FEE_MIST, scenario.ctx());
+    prediction_vault::seal_prediction_paid<SUI>(
+        &mut reg, handle(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY,
+        fee, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+// Paid human seal must not be able to claim an agent-locked alias —
+// the identity-type lock still applies across paid + free paths.
+#[test, expected_failure(abort_code = prediction_vault::EIdentityClaimedByOtherType)]
+fun human_paid_seal_cannot_claim_agent_locked_alias() {
+    let mut scenario = ts::begin(ADMIN);
+    setup_paid_agent_seal(&mut scenario);
+
+    // Agent claims `agent_alias()` first.
+    scenario.next_tx(AGENT_WALLET);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    let fee = coin::mint_for_testing<SUI>(AGENT_FEE_MIST, scenario.ctx());
+    prediction_vault::seal_prediction_as_agent<SUI>(
+        &mut reg, agent_alias(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY,
+        fee, &c, scenario.ctx(),
+    );
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+
+    // Human tries to claim the same alias via the paid path → aborts.
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+    let fee2 = coin::mint_for_testing<SUI>(AGENT_FEE_MIST, scenario.ctx());
+    prediction_vault::seal_prediction_paid<SUI>(
+        &mut reg, agent_alias(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY,
+        fee2, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+// Two different wallets can both seal under the same human handle —
+// unlike agents, humans don't have a wallet-lock (X OAuth binds off-chain).
+#[test]
+fun human_paid_seal_different_wallets_can_share_handle() {
+    let mut scenario = ts::begin(ADMIN);
+    setup_paid_agent_seal(&mut scenario);
+
+    // ALICE seals as `handle()` (free path).
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    prediction_vault::seal_prediction(
+        &mut reg, handle(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY,
+        &c, scenario.ctx(),
+    );
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+
+    // OTHER (different wallet) seals as the same handle via the paid path.
+    // No wallet-lock applies for humans → should succeed.
+    scenario.next_tx(OTHER);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+    let fee = coin::mint_for_testing<SUI>(AGENT_FEE_MIST, scenario.ctx());
+    prediction_vault::seal_prediction_paid<SUI>(
+        &mut reg, handle(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY,
+        fee, &c, scenario.ctx(),
+    );
+
+    assert!(prediction_vault::identity_count(&reg, handle()) == 2, 1050);
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+// Cross-direction collision: once `handle()` is claimed via the PAID human
+// path, an agent attempting the same alias via `seal_prediction_as_agent<T>`
+// must abort. Closes the matrix gap recon flagged: paid-human → paid-agent
+// was not previously tested.
+#[test, expected_failure(abort_code = prediction_vault::EIdentityClaimedByOtherType)]
+fun agent_cannot_claim_alias_already_used_by_paid_human() {
+    let mut scenario = ts::begin(ADMIN);
+    setup_paid_agent_seal(&mut scenario);
+
+    // ALICE pays $0.10 to seal as HUMAN under "alice"
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    let fee = coin::mint_for_testing<SUI>(AGENT_FEE_MIST, scenario.ctx());
+    prediction_vault::seal_prediction_paid<SUI>(
+        &mut reg, handle(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY,
+        fee, &c, scenario.ctx(),
+    );
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+
+    // AGENT_WALLET tries to seal as AGENT under "alice" — must abort.
+    scenario.next_tx(AGENT_WALLET);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+    let fee2 = coin::mint_for_testing<SUI>(AGENT_FEE_MIST, scenario.ctx());
+    prediction_vault::seal_prediction_as_agent<SUI>(
+        &mut reg, handle(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY,
+        fee2, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
