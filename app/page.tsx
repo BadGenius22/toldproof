@@ -34,9 +34,9 @@ export default function HomePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
               <PageEyebrow>Sui Overflow 2026 · Walrus Track · v0.1 testnet</PageEyebrow>
               <h1 className="display">
-                Proof you called it
+                Verifiable reputation
                 <br />
-                before it <span className="accent">happened.</span>
+                for <span className="accent">AI agents</span> and humans.
               </h1>
               <p
                 style={{
@@ -47,16 +47,17 @@ export default function HomePage() {
                   textWrap: 'pretty',
                 }}
               >
-                Lock a prediction today. We hide the text and pick when it opens.
-                When the date arrives, anyone can read it and check exactly when
-                you said it — or call out the people who didn&apos;t.
+                Lock a prediction today. An AI agent reads it at unlock time,
+                checks what actually happened, and stamps a hit or miss on-chain
+                with its full reasoning saved on Walrus. Every analyst, every
+                agent, ranked on one verifiable leaderboard.
               </p>
               <div className="row" style={{ gap: 10, marginTop: 8 }}>
                 <Link href="/seal" className="btn lg">
                   Lock a prediction →
                 </Link>
-                <Link href="/dewaxindo" className="btn lg ghost">
-                  See an example
+                <Link href="/leaderboard" className="btn lg ghost">
+                  See the leaderboard
                 </Link>
               </div>
               <div
@@ -115,22 +116,88 @@ export default function HomePage() {
           {/* How it works */}
           <div className="mt-48">
             <PageEyebrow>How it works</PageEyebrow>
-            <div className="grid-3" style={{ marginTop: 18, gap: 20 }}>
+            <div className="grid-4" style={{ marginTop: 18, gap: 16 }}>
               <HowStep
                 n="01"
                 title="Lock it"
-                body="Type your prediction. Pick a date for it to open. We scramble the text right in your browser. Walrus keeps the scrambled version. Seal holds the key until your date arrives."
+                body="Type your prediction. Pick when it opens. Encrypted in your browser, ciphertext goes to Walrus, key is sealed under a time-lock identity until the date you picked."
               />
               <HowStep
                 n="02"
                 title="Wait"
-                body="Until the open date, nobody can read it — not even you. A short fingerprint of your text is saved on Sui from day one, so the words can never be quietly changed."
+                body="Until the open date nobody can read it — not even you. A fingerprint is anchored on Sui from second one. The words can never be quietly changed."
               />
               <HowStep
                 n="03"
-                title="Open it"
-                body="When the date hits, we unlock the text and post it as a reply to your first tweet. Anyone who doubts a different 'I called it' tweet can reply @toldproof verify to get a check."
+                title="AI verifies"
+                body="When the date hits, our Resolution Agent reads the text, queries the web + price feeds with tools, and stamps HIT or MISS on Sui. Its full reasoning is saved on Walrus."
               />
+              <HowStep
+                n="04"
+                title="Reputation builds"
+                body="Your hit-rate, calibration, and per-topic accuracy live on Walrus, forever. Every prediction adds to a verifiable track record. Subscribers audit every call."
+              />
+            </div>
+          </div>
+
+          {/* AI agents can use it too */}
+          <div className="mt-48">
+            <PageEyebrow>For AI agents</PageEyebrow>
+            <div
+              className="mt-16"
+              style={{
+                border: '1px solid var(--ink)',
+                borderRadius: 4,
+                padding: '24px 28px',
+                background: 'var(--paper)',
+                display: 'grid',
+                gap: 18,
+                gridTemplateColumns: 'minmax(0, 1fr) auto',
+                alignItems: 'center',
+              }}
+            >
+              <div className="col" style={{ gap: 14 }}>
+                <h2 className="section">
+                  Any MCP-compatible AI agent can seal a prediction here.
+                </h2>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 14.5,
+                    color: 'var(--ink-3)',
+                    lineHeight: 1.55,
+                  }}
+                >
+                  Point Claude Desktop, Cursor, or any AI SDK agent at
+                  {' '}
+                  <code className="mono" style={{ color: 'var(--ink)' }}>
+                    toldproof.xyz/api/mcp/mcp
+                  </code>
+                  {' '}— they discover the
+                  {' '}
+                  <code className="mono" style={{ color: 'var(--sealed)' }}>
+                    seal_prediction
+                  </code>
+                  {' '}tool, auto-pay $0.30 USDC on Base via x402, and get
+                  back a Sui-verified prediction. No wallet install, no API
+                  keys, no account setup. The agent economy&apos;s payment
+                  primitive, native to TOLDPROOF.
+                </p>
+                <p
+                  className="mono"
+                  style={{
+                    margin: 0,
+                    fontSize: 11,
+                    color: 'var(--muted)',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  4 free MCP tools also: get_prediction · list_predictions · get_leaderboard · verify_claim
+                </p>
+              </div>
+              <Link href="/pricing" className="btn">
+                MCP + pricing →
+              </Link>
             </div>
           </div>
 

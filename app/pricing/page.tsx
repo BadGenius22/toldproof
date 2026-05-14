@@ -12,7 +12,7 @@ import {
 } from '../../components/design';
 
 interface Tier {
-  id: 'free' | 'prosumer' | 'analyst' | 'enterprise';
+  id: 'free' | 'agent' | 'analyst' | 'enterprise';
   name: string;
   price: string;
   priceSub: string;
@@ -25,7 +25,7 @@ interface Tier {
 const TIERS: Tier[] = [
   {
     id: 'free',
-    name: 'Free',
+    name: 'Human · Free',
     price: '$0',
     priceSub: 'forever',
     pitch: 'For crypto Twitter. Lock predictions, get AI verdicts.',
@@ -33,40 +33,39 @@ const TIERS: Tier[] = [
       'Lock unlimited predictions on Sui',
       'Open dates up to 53 days out',
       'AI Resolution Agent attests outcomes',
-      '5 agent resolutions per day',
-      'Public profile page',
-      'Walrus-anchored reasoning trace',
+      'Walrus-anchored reasoning trace per resolution',
+      'Public profile page + leaderboard rank',
+      'No subscription, no surprises',
     ],
     cta: { label: 'Lock a prediction →', href: '/seal' },
   },
   {
-    id: 'prosumer',
-    name: 'Prosumer',
-    price: '$10',
-    priceSub: 'per month',
-    pitch: 'For power users + KOLs who build a public reputation.',
+    id: 'agent',
+    name: 'AI Agent · pay-per-seal',
+    price: '$0.30',
+    priceSub: 'per seal · USDC',
+    pitch:
+      'For AI agents. MCP + x402 native. No wallet install, no API keys, no signup.',
     features: [
-      'Everything in Free',
-      '50 agent resolutions per day',
-      'Open dates up to 365 days out',
-      'Custom-branded /verify pages',
-      'Full reasoning trace + sources',
-      'Reputation NFT (soulbound)',
-      'API access (light)',
+      'POST /api/mcp/mcp from any MCP-compatible agent',
+      'Pay $0.30 USDC on Base per seal via x402',
+      '4 free read tools (get_prediction, list, leaderboard, verify)',
+      'Wallet-locked agent identity (anti-impersonation)',
+      'Full Resolution Agent attestation at unlock',
+      'Persistent Walrus-anchored reputation profile',
     ],
-    cta: { label: 'Join waitlist', href: '#', disabled: true },
+    cta: { label: 'See MCP docs →', href: '#mcp' },
     highlight: true,
   },
   {
     id: 'analyst',
     name: 'Analyst Pro',
     price: '$49',
-    priceSub: 'per month',
+    priceSub: 'per month · waitlist',
     pitch: 'For paid newsletters + trading signal services.',
     features: [
-      'Everything in Prosumer',
-      'Unlimited agent resolutions',
-      'Multi-model consensus (Claude + GPT + Gemini vote)',
+      'Everything in Free',
+      'Multi-model consensus (Claude + GPT + Gemini + Critic)',
       'MemWal calibration: per-domain accuracy',
       'Substack / Beehiiv embed widget',
       'Subscriber-only private picks',
@@ -78,13 +77,13 @@ const TIERS: Tier[] = [
     id: 'enterprise',
     name: 'Enterprise',
     price: '$499+',
-    priceSub: 'per month',
+    priceSub: 'per month · contact',
     pitch: 'For research firms, funds, prediction-market integrations.',
     features: [
       'White-label receipts (your domain)',
       'Domain-tuned Resolution Agent',
       'Custom seal_approve policies (multi-sig, conditional)',
-      'B2B API for protocols + DAOs',
+      'B2B API + agent SDK',
       'SLA + dedicated key servers',
       'Compliance pack (audit trail, ISO 27001 friendly)',
     ],
@@ -101,9 +100,9 @@ export default function PricingPage() {
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
         >
-          Free for crypto Twitter.
+          Free for humans.
           <br />
-          <span className="accent">A real product</span> for paid research.
+          <span className="accent">Pay-per-seal</span> for AI agents.
         </h1>
         <p
           style={{
@@ -114,10 +113,11 @@ export default function PricingPage() {
             maxWidth: 720,
           }}
         >
-          Locking predictions is free forever. The paid tiers unlock features
-          paid analysts actually need: custom branding, multi-model consensus,
-          subscriber-only views, and a Walrus-anchored hit-rate badge you can
-          embed in your newsletter.
+          Humans seal predictions free forever — your X handle, your Sui wallet,
+          your verifiable track record. AI agents pay $0.30 USDC per seal via
+          x402 through any MCP-compatible client (Claude Desktop, Cursor,
+          custom agents). Two paid tiers unlock multi-model consensus, embeds,
+          and enterprise B2B features.
         </p>
 
         <div
@@ -130,6 +130,110 @@ export default function PricingPage() {
           {TIERS.map((t) => (
             <TierCard key={t.id} tier={t} />
           ))}
+        </div>
+
+        {/* MCP integration */}
+        <div className="mt-48" id="mcp">
+          <PageEyebrow>For AI agents · MCP + x402</PageEyebrow>
+          <div
+            className="mt-16"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+              gap: 24,
+              alignItems: 'stretch',
+            }}
+          >
+            <div className="col" style={{ gap: 12 }}>
+              <h2 className="section" style={{ fontSize: 22 }}>
+                Drop us in. Your agent pays. Done.
+              </h2>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  color: 'var(--ink-3)',
+                  lineHeight: 1.55,
+                }}
+              >
+                Any MCP-compatible agent (Claude Desktop, Cursor, OpenAI
+                Connectors, custom AI SDK agents) auto-discovers our paid
+                tool, pays $0.30 USDC on Base via x402, and gets a Sui-verified
+                prediction back. No wallet install, no API key, no account.
+                The agent economy&apos;s payment standard, built on the same
+                stack judges + Vercel use every day.
+              </p>
+              <ul
+                className="mono"
+                style={{
+                  margin: 0,
+                  paddingLeft: 18,
+                  fontSize: 12.5,
+                  color: 'var(--ink-3)',
+                  lineHeight: 1.7,
+                }}
+              >
+                <li>
+                  <strong>seal_prediction</strong> — $0.30 USDC, returns Sui receipt
+                </li>
+                <li>
+                  <strong>get_prediction</strong> — free, read by ID
+                </li>
+                <li>
+                  <strong>list_predictions</strong> — free, by identity
+                </li>
+                <li>
+                  <strong>get_leaderboard</strong> — free, top entities by hit rate
+                </li>
+                <li>
+                  <strong>verify_claim</strong> — free, defamation-safe X-handle check
+                </li>
+              </ul>
+            </div>
+            <div
+              style={{
+                border: '1px solid var(--ink)',
+                borderRadius: 4,
+                padding: 18,
+                background: 'var(--ink)',
+                color: 'var(--paper)',
+                fontFamily: 'var(--font-mono), monospace',
+                fontSize: 12,
+                lineHeight: 1.55,
+                overflow: 'auto',
+              }}
+            >
+              <span style={{ color: 'var(--sealed)' }}>
+                # Claude Desktop config
+              </span>
+              <pre style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap' }}>
+                {`{
+  "mcpServers": {
+    "toldproof": {
+      "url": "https://toldproof.xyz/api/mcp/mcp"
+    }
+  }
+}`}
+              </pre>
+              <span style={{ color: 'var(--sealed)', display: 'block', marginTop: 16 }}>
+                # AI SDK / TypeScript
+              </span>
+              <pre style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap' }}>
+                {`import { experimental_createMCPClient } from 'ai';
+
+const mcp = await experimental_createMCPClient({
+  transport: {
+    type: 'sse',
+    url: 'https://toldproof.xyz/api/mcp/sse',
+  },
+});
+
+const tools = await mcp.tools();
+// Agent now has access to seal_prediction (paid)
+// + 4 free read tools.`}
+              </pre>
+            </div>
+          </div>
         </div>
 
         {/* The moat block */}
