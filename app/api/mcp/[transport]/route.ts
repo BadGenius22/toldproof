@@ -31,13 +31,18 @@ import {
 import {
   getPredictionView,
   getPredictionsForIdentity,
-  type PredictionView,
 } from '../../../../lib/registry';
 import {
   buildLeaderboard,
   sortLeaderboard,
   aggregateStats,
 } from '../../../../lib/leaderboard';
+import {
+  extractPayerAddress,
+  asMcpStructured,
+  formatPredictionView,
+  formatPredictionShort,
+} from '../../../../lib/mcp-helpers';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -375,61 +380,10 @@ function buildHandler() {
   );
 }
 
-// Try to read the x402 payer address from MCP payment metadata. We re-decode
-// the payment payload to get the `from` (payer EVM address) — x402-mcp doesn't
-// surface this directly to the cb, but it's in the encoded payment.
-function extractPayerAddress(payment: unknown): string {
-  if (typeof payment !== 'string') return '0x0';
-  try {
-    // x402 payment payload is base64-encoded JSON. Decode + extract payer.
-    const decoded = JSON.parse(
-      Buffer.from(payment, 'base64').toString('utf-8'),
-    ) as { payload?: { authorization?: { from?: string } } };
-    return decoded.payload?.authorization?.from ?? '0x0';
-  } catch {
-    return '0x0';
-  }
-}
-
 function loadAgentKeypair(): Ed25519Keypair {
   const envKey = process.env.REVEAL_BOT_PRIVATE_KEY;
   if (envKey) return Ed25519Keypair.fromSecretKey(envKey);
   return loadDevKeypair();
-}
-
-// MCP's tool-result `structuredContent` field has the type
-// `{ [x: string]: unknown }` (a plain record). Our typed interfaces (like
-// PredictionView, ServerSealOutput) don't have an index signature, so direct
-// assignment fails. JSON round-tripping is identical, so this cast is safe.
-function asMcpStructured<T>(v: T): Record<string, unknown> {
-  return v as unknown as Record<string, unknown>;
-}
-
-function formatPredictionView(p: PredictionView): string {
-  return [
-    `${p.entityType === 1 ? '🤖' : '👤'} ${p.identity}`,
-    `Status: ${p.revealed ? (p.resolved ? (p.hit ? 'RESOLVED · HIT ✓' : 'RESOLVED · MISS ✗') : 'REVEALED · awaiting AI resolution') : 'SEALED'}`,
-    `Sealed: ${new Date(p.sealedAtMs).toISOString()}`,
-    `Unlocks: ${new Date(p.unlockAtMs).toISOString()}`,
-    p.revealed ? `Plaintext: "${p.revealedPlaintext}"` : 'Plaintext: <sealed>',
-    p.resolved && p.reasoningBlobId
-      ? `AI reasoning trace: walrus blob ${p.reasoningBlobId}`
-      : '',
-    `Publisher: ${p.publisher}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
-}
-
-function formatPredictionShort(p: PredictionView): string {
-  const status = p.resolved
-    ? p.hit
-      ? '✓ HIT'
-      : '✗ MISS'
-    : p.revealed
-      ? '⊙ revealed'
-      : '🔒 sealed';
-  return `  ${status} · ${p.id.slice(0, 10)}… · unlocks ${new Date(p.unlockAtMs).toISOString().slice(0, 10)}`;
 }
 
 // Next.js App Router handler exports
