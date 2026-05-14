@@ -11,6 +11,7 @@
     "reveal": "tsx --env-file=.env.local scripts/reveal-cli.ts",
     "test:seal-negative": "tsx --env-file=.env.local scripts/test-seal-negative.ts",
     "agents:gen": "tsx --env-file=.env.local scripts/generate-agent-wallets.ts",
+    "deploy:v2": "tsx --env-file=.env.local scripts/deploy-v2.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",

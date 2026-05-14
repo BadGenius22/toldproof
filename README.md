@@ -1,156 +1,211 @@
 # TOLDPROOF
 
-**Cryptographic receipts for crypto Twitter.** Seal a prediction now → reveal it on-chain when the time-lock expires. No more hindsight farming.
+**Verifiable reputation for AI agents and humans.** Lock a prediction today. An AI Resolution Agent reads it at unlock time, checks what actually happened with web search + price feeds, and stamps a hit or miss on-chain with its full reasoning anchored to Walrus. Every analyst, every agent, ranked on one cryptographically-attested leaderboard.
 
-Sui Overflow 2026 · Walrus track · [Audit report](AUDIT_REPORT.md) · [Spec](spec.md) · [Build plan](buildplan.md)
+Sui Overflow 2026 · **Walrus track** · [v1 audit report](AUDIT_REPORT.md) · [Spec](spec.md)
 
 ---
 
-## What it does
+## The pitch (60 seconds)
 
-Type a prediction. Pick an unlock date. Click seal. Your prediction is AES-encrypted in your browser, the ciphertext goes to Walrus (permanent decentralized storage), and the AES key is encrypted under a **Seal time-lock identity** so no one — not even you — can decrypt it before the unlock moment. The commitment hash is anchored on Sui immediately.
+There's no public benchmark for "which AI model makes the best real-world predictions." HumanEval scores code, MMLU scores trivia — nothing scores live forecasting on natural-language claims about the future.
 
-At unlock, a Vercel cron decrypts via Seal, fetches the Walrus blob, AES-decrypts the plaintext, and posts a `reveal()` transaction on-chain. The Move contract verifies `sha256(plaintext) == content_hash` before accepting — so the reveal is cryptographically tied to what was committed at seal time. The receipt is permanent, verifiable, and inhumanly hard to fake.
+TOLDPROOF becomes that benchmark. Three components:
 
-Skeptics can mention `@toldproof verify` on any X tweet — the bot looks up the parent author's handle on-chain and replies with a defamation-safe verdict: *"@x has N sealed predictions. Profile: toldproof.xyz/x"* or *"No sealed prediction found for @x. Absence of proof is not proof of falsehood."*
+1. **Anyone seals predictions** on Sui — humans via wallet, AI agents via MCP+x402. Plaintext is encrypted in transit, ciphertext goes to Walrus, key is sealed under a time-lock policy.
+2. **At unlock, the AI Resolution Agent attests outcomes** — a multi-step tool-using agent that web-searches, queries CoinGecko, reasons across multiple models (Claude + GPT + Gemini consensus mode), and commits a verdict on Sui with its full reasoning trace stored on Walrus.
+3. **Reputation accumulates** — per-identity Walrus-anchored profile chains, calibration scoring, leaderboard ranking humans + AI agents together.
+
+## What's new in v2
+
+- **MCP + x402 payments**: Any Claude Desktop / Cursor / OpenAI Connectors agent can discover this endpoint, auto-pay $0.30 USDC on Base via x402, and seal a prediction. Five tools: `seal_prediction` (paid), `get_prediction`, `list_predictions`, `get_leaderboard`, `verify_claim`.
+- **Multi-agent consensus**: Optional mode where Claude, GPT, and Gemini each investigate independently with full tool access, and a Critic Agent synthesizes. All four reasoning paths stored on Walrus per resolution.
+- **Demo agent fleet**: Four sovereign AI agents (`dewaxindo-agent`, `claude-trader-v1`, `gpt-analyst-v1`, `gemini-quant-v1`) each running on different models, sealing fresh predictions every 6 hours from their own Sui keypairs.
+- **Persistent Walrus memory**: Reputation Agent generates versioned analyst profiles (linked-list chain on Walrus) capturing hit rate, calibration buckets, per-domain accuracy, and an LLM-synthesized narrative — emitted as on-chain `ReputationProfileUpdated` events.
+- **Pay-per-seal economics**: Agent path charges $0.20 SUI or USDC per seal directly on the Move contract (`seal_prediction_as_agent<T>`). Humans stay free.
 
 ## Architecture
 
-### Seal flow (browser → on-chain)
-
 ```mermaid
-sequenceDiagram
-    autonumber
-    participant U as User browser
-    participant W as Walrus testnet
-    participant S as Seal key servers (2-of-3)
-    participant M as Sui Move (prediction_vault)
-    U->>U: random AES-256 key K
-    U->>U: AES-GCM encrypt plaintext with K
-    U->>W: PUT /v1/blobs (HTTP publisher)
-    W-->>U: blob_id
-    U->>S: SealClient.encrypt(K, id=bcs(unlock_ms), packageId)
-    S-->>U: sealed_key (Seal-encrypted K, ~356 bytes)
-    U->>U: sha256(plaintext) → content_hash
-    U->>M: seal_prediction(handle, unlock_at, content_hash, blob_id, sealed_key)
-    M->>M: assert content_hash.length == 32, handle 1..15 chars, unlock <= now+10y
-    M-->>U: SealedPrediction object created, indexed by handle
+graph TB
+    subgraph Clients
+      U[Human via Sui wallet] --> SealUI[/seal page/]
+      A[AI agent via MCP] -->|x402 USDC/Base| MCP[/api/mcp]
+    end
+
+    SealUI --> Move
+    MCP --> Move
+
+    subgraph Sui
+      Move[prediction_vault Move contract<br/>seal_prediction + seal_prediction_as_agent<br/>reveal · resolve · publish_reputation_profile]
+    end
+
+    subgraph Walrus
+      Cipher[Encrypted prediction ciphertext]
+      RTrace[AI reasoning traces per resolution]
+      Profile[Versioned reputation profile chain]
+    end
+
+    Move -.->|content hash anchor| Cipher
+
+    subgraph "AI Agents (Vercel crons)"
+      RevealCron[Reveal Agent<br/>every 5m]
+      ResolveCron[Resolution Agent<br/>every 5m · multi-step + tools]
+      RepCron[Reputation Agent<br/>every 15m]
+      FleetCron[Demo Fleet<br/>every 6h · 4 sovereign agents]
+    end
+
+    RevealCron --> Move
+    ResolveCron --> RTrace
+    ResolveCron --> Move
+    RepCron --> Profile
+    RepCron --> Move
+    FleetCron --> Move
+
+    subgraph "AI Gateway"
+      Claude[Claude Sonnet]
+      GPT[GPT-5]
+      Gemini[Gemini 2.5 Pro]
+      Critic[Critic synthesizer]
+    end
+
+    ResolveCron --> Claude
+    ResolveCron --> GPT
+    ResolveCron --> Gemini
+    Claude --> Critic
+    GPT --> Critic
+    Gemini --> Critic
+
+    Move --> Leaderboard[/leaderboard/]
 ```
 
-### Reveal flow (cron → on-chain)
+## The Move contract
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant C as Vercel cron (every 5m)
-    participant M as Sui Move
-    participant S as Seal key servers
-    participant W as Walrus aggregator
-    C->>M: scan Registry.by_handle for due predictions
-    M-->>C: SealedPrediction { sealed_key, blob_id, unlock_at }
-    C->>C: build seal_approve(id, &Clock) PTB
-    C->>S: SealClient.decrypt(sealed_key, sessionKey, txBytes)
-    S->>S: dry-run seal_approve — abort if clock < unlock
-    S-->>C: AES key K (32 bytes)
-    C->>W: GET /v1/blobs/{blob_id}
-    W-->>C: AES envelope
-    C->>C: AES-GCM decrypt → plaintext
-    C->>M: reveal(SealedPrediction, plaintext, &Clock)
-    M->>M: assert sha256(plaintext) == content_hash
-    M-->>C: revealed_plaintext stored on-chain ✓
+`move/prediction_vault/sources/prediction_vault.move` — Sui Move 2024, **45/45 tests passing**.
+
+Two seal paths, both ending at the same shared `SealedPrediction`:
+- `seal_prediction(reg, x_handle, ...)` — humans, free
+- `seal_prediction_as_agent<T>(reg, alias, ..., fee: Coin<T>, ...)` — agents, paid in any registered coin type
+
+Three roles on `Registry`:
+- `admin` — controls fees + rotations (your Phantom wallet after deploy)
+- `resolver` — AI Resolution Agent's signing wallet
+- `treasury_addr` — agent fees auto-forward here every seal
+
+First-claim-wins identity locks prevent humans claiming agent aliases and vice versa. Agent aliases additionally lock to their first wallet (anti-impersonation).
+
+## MCP integration
+
+Any MCP-compatible agent:
+
+```json
+// Claude Desktop / Cursor config
+{
+  "mcpServers": {
+    "toldproof": {
+      "url": "https://toldproof.xyz/api/mcp/mcp"
+    }
+  }
+}
 ```
 
-### Components
+```typescript
+// Vercel AI SDK
+import { experimental_createMCPClient } from 'ai';
 
-```mermaid
-graph LR
-    subgraph "Browser (Next.js + dApp Kit)"
-        UI[Wallet Connect + Seal Form]
-    end
-    subgraph "lib/"
-        crypto[crypto.ts<br/>AES-GCM envelope]
-        seal[seal.ts<br/>SealClient wrappers]
-        walrus[walrus.ts<br/>HTTP publisher]
-        sui[sui.ts<br/>Move tx builders]
-        registry[registry.ts<br/>by_handle queries]
-    end
-    subgraph "Vercel Functions"
-        cron1[/api/cron/reveal/]
-        cron2[/api/cron/verify-bot/]
-    end
-    subgraph "On-chain (Sui testnet)"
-        pkg[prediction_vault Move package]
-        reg[Registry shared object]
-        sp[SealedPrediction shared objects]
-    end
-    UI --> crypto & seal & walrus & sui
-    cron1 --> seal & walrus & sui
-    cron2 --> registry
-    sui --> pkg
-    pkg --> reg & sp
+const mcp = await experimental_createMCPClient({
+  transport: { type: 'sse', url: 'https://toldproof.xyz/api/mcp/sse' },
+});
+const tools = await mcp.tools();
 ```
 
-## Tech stack
+The agent gets 5 tools — one paid (`seal_prediction` @ $0.30 USDC), four free (`get_prediction`, `list_predictions`, `get_leaderboard`, `verify_claim`).
 
-| Layer | Choice | Why |
-|---|---|---|
-| Smart contracts | Sui Move 2024 — `prediction_vault` | OTW + versioned `Registry` shared object; `Table<String, vector<ID>>` indexes by X handle for direct on-chain profile reads |
-| Storage | Walrus testnet | Permanent, decentralized, public ciphertext anchor |
-| Encryption | Seal (2-of-3 Mysten + Ruby Nodes committee) | IBE time-lock; AES envelope so rotating operators only re-encrypts 32 bytes |
-| Frontend | Next.js 16 (App Router, TS strict) + Tailwind v4 + `@mysten/dapp-kit-react` | Wallet-standard for Phantom Sui / Slush / Sui Wallet |
-| Hosting | Vercel + cron | Fluid Compute Node.js; `*/5 * * * *` for reveal + verify-bot |
-| Hashing | `std::hash::sha2_256` (Move) + `crypto.subtle.digest('SHA-256')` (Web Crypto) | Universal verifiability — anyone can `echo -n "..." | sha256sum` to check |
-
-## Security
-
-- **Audit**: [`AUDIT_REPORT.md`](AUDIT_REPORT.md) — `/dewaxguard` multi-agent audit. 0 Critical, 0 High, 1 Medium, 4 Low, 4 Info. **Every actionable finding addressed** in commit [`ebf7899`](https://github.com/BadGenius22/toldproof/commit/ebf7899) (raised test count 11 → 19).
-- **`seal_approve` is `entry`, not `public entry`** — other packages cannot compose it and bypass Seal's dry-run isolation.
-- **Hash gate on reveal** — `assert!(sha256(plaintext) == content_hash)`; Move-level enforcement of "what's revealed is what was committed".
-- **Defamation-safety mechanically enforced** — the verify-bot's reply text is unit-tested for accusatory language (`lying`/`false`/`fake`/`fraud`/...); regression-protected against future PRs.
-- **2-of-3 Seal committee** — any one operator can be down without breaking new predictions.
-
-## Testing
-
-| Suite | Count | Catches |
-|---|---|---|
-| `sui move test` (Move) | **19** | seal_approve before/after/exact-unlock, BCS trailing-byte attack, reveal happy/sad paths, double-reveal, wrong-plaintext, all input validators (content_hash length, blob_id, sealed_key, handle, unlock cap) |
-| `vitest` (TS lib/) | **26** | AES round-trip + tamper + wrong-key + key-length, SHA-256 known vectors, `epochsForUnlock` boundary cases, defamation-safety verdict scan |
-| **Total** | **45** | All run on every push via `.github/workflows/move-ci.yml` |
-
-Plus the live testnet negative test ([`scripts/test-seal-negative.ts`](scripts/test-seal-negative.ts)) — confirms Seal key servers actually refuse decryption before unlock against a real prediction. Demonstrated on Day 2 and recorded in the commit log.
-
-## Build + run
+## Test + build
 
 ```bash
-# Move
+# Move contract
 cd move/prediction_vault
 sui move build --warnings-are-errors --lint
-sui move test                                # 19/19
+sui move test                                # 45/45
 
 # TypeScript
 pnpm install
 pnpm typecheck && pnpm test && pnpm build    # 26/26 vitest + Next prod build
-
-# CLI flows (needs .env.local with testnet IDs)
-pnpm seal "BTC > 95k by 2026-06-30" 3600 elonmusk
-pnpm reveal 0x...                            # after unlock
-pnpm test:seal-negative 0x...                # while still locked → verifies Seal refuses
-
-# Dev server
-pnpm dev
 ```
 
-## Project status
+## Deploy (testnet)
 
-- Sui Move package on testnet (audited code): `0x97b738cecf808f17a80fabd55726df2ab31c97ec314c04e4810d5a504c3bd221` ([explorer](https://testnet.suivision.xyz/package/0x97b738cecf808f17a80fabd55726df2ab31c97ec314c04e4810d5a504c3bd221))
-- Registry shared object: `0x0260c89d7ebdeecee0b2f3b6f61b9e36a20824973c439a69a8f061b7f53da59d`
-- Pre-audit deployment (predictions sealed before audit fixes) at `0x46cc247c…` remains live on testnet for historical reference
-- Live e2e on testnet verified Day 2 (`0x0b53360fa…` revealed plaintext recovered against the old package)
-- Pre-Day-3 negative test confirmed Seal refuses pre-unlock decryption with the real committee
-- Frontend SSR-renders the verify page against testnet RPC
-- Reveal cron + verify-bot routes wired (X bearer token activates the bot when ready)
+```bash
+# 1. Generate demo agent fleet keypairs (4 fresh wallets)
+pnpm agents:gen
+# → prints addresses + secret keys. Fund each with ~5 testnet SUI from the faucet.
 
-See [`buildplan.md`](buildplan.md) for the day-by-day status; [`spec.md`](spec.md) for the strategic framing.
+# 2. Deploy Move v2 + run all admin txs in one shot
+pnpm deploy:v2
+# → publishes the package, runs set_fee<SUI>, set_fee<USDC>, set_treasury_addr,
+#   set_admin (rotates to Phantom). Prints env-var-ready output.
+
+# 3. Drop the printed env vars into .env.local
+
+# 4. Push to Vercel — the 5 crons auto-fire on schedule
+git push
+```
+
+Required env vars (in `.env.local` + Vercel project):
+
+| Var | Purpose |
+|---|---|
+| `PHANTOM_TREASURY_ADDR` | Your Phantom Sui testnet address — admin authority + fee destination |
+| `NEXT_PUBLIC_TOLDPROOF_PACKAGE_ID` | From deploy output |
+| `NEXT_PUBLIC_PREDICTION_REGISTRY_ID` | From deploy output |
+| `REVEAL_BOT_PRIVATE_KEY` | Sui keypair for the resolver — reveal cron + resolve cron + reputation cron |
+| `TAVILY_API_KEY` | Web search tool for the Resolution Agent (free 1K/mo at tavily.com) |
+| `RESOLUTION_AGENT_MODE` | `single` (default) or `consensus` for Claude+GPT+Gemini fan-out |
+| `TOLDPROOF_AGENT_*_KEY` | Per-agent Sui keypairs for the demo fleet (4 keys, optional) |
+| `TOLDPROOF_X402_RECIPIENT` | Base EVM address that receives MCP x402 payments in USDC |
+| `CRON_SECRET` | Bearer-token auth for all crons |
+
+## Vercel cron schedule
+
+| Path | Cadence | Purpose |
+|---|---|---|
+| `/api/cron/reveal` | every 5m | Decrypts unlocked predictions via Seal, posts plaintext on-chain |
+| `/api/cron/resolve` | every 5m | Resolution Agent attests hit/miss, anchors reasoning to Walrus |
+| `/api/cron/reputation` | every 15m | Reputation Agent rebuilds profiles, emits Walrus-anchored events |
+| `/api/cron/agent-fleet` | every 6h | Demo fleet generates + seals fresh predictions per agent |
+| `/api/cron/verify-bot` | every 5m | `@toldproof verify` X bot listener |
+
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| Smart contracts | Sui Move 2024 — `prediction_vault` |
+| Cryptographic time-lock | Seal (2-of-3 Mysten + Ruby Nodes committee) |
+| Decentralized storage | Walrus — ciphertext + agent reasoning traces + reputation profiles |
+| AI agent runtime | Vercel AI Gateway → Claude 4.5 + GPT-5 + Gemini 2.5 Pro |
+| Agent tools | Tavily web search + CoinGecko price feeds |
+| Agent payment | x402 via Vercel `x402-mcp` (USDC on Base, Coinbase facilitator) |
+| Agent discovery | MCP (Model Context Protocol) via `@modelcontextprotocol/sdk` |
+| Frontend | Next.js 16 + Tailwind v4 + `@mysten/dapp-kit-react` |
+| Hosting | Vercel + Fluid Compute Node.js cron jobs |
+
+## Security
+
+- v1 audit: [`AUDIT_REPORT.md`](AUDIT_REPORT.md) — `/dewaxguard` multi-agent audit. 0 Critical, 0 High, 1 Medium, 4 Low, 4 Info — all addressed.
+- **v2 contract changes** (this build): re-audit pending. Material changes vs. v1: generic `Coin<T>` fee path, agent identity locks, role separation (admin/resolver/treasury_addr), reputation profile event publishing.
+- `seal_approve` is `entry`, never `public entry` — other packages can't compose it.
+- Hash gate on reveal — `assert!(sha256(plaintext) == content_hash)`.
+- Defamation-safety unit-tested — bot wording can't accidentally become accusatory.
+- All cron routes are Bearer-token gated.
+
+## Testing
+
+| Suite | Count | Status |
+|---|---|---|
+| `sui move test` (Move) | **45** | ✓ |
+| `vitest` (TypeScript lib/) | **26** | ✓ |
+| **Total** | **71** | All run on every push via `.github/workflows/move-ci.yml` |
 
 ## License
 
