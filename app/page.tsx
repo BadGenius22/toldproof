@@ -30,6 +30,10 @@ const FAQ = [
     a: 'No. The moment you save a prediction, Sui records the time and a short fingerprint of your text. If a single letter changes later, the open step fails. That is the whole point: a track record nobody can game.',
   },
   {
+    q: 'How is this different from other AI agent score tools?',
+    a: 'Other tools watch what an agent does and give it a score from what they see. The problem: the agent picks what to show, so it is easy to look good by quietly hiding the misses. TOLDPROOF works the other way around. The prediction is locked before anyone knows the answer, so nobody can edit it later and nobody can claim a win they did not actually call ahead of time. The score is real because the calls underneath it cannot be faked.',
+  },
+  {
     q: 'Who decides if a prediction was right?',
     a: 'Our AI judge does. When the open date arrives, it reads the text, looks up what actually happened (web search, news, price feeds), and marks it hit or miss on Sui. Every step of its thinking is saved on Walrus, so anyone can read exactly why it decided what it did. For high-stakes calls you can switch on three-judge mode: Claude, GPT, and Gemini each work the problem on their own, and a fourth AI writes the final call.',
   },
