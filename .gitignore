@@ -48,3 +48,5 @@ pnpm-debug.log*
 # Internal — kept on disk for our own use, not for the public repo
 buildplan.md
 docs/design/
+scratchpad/
+

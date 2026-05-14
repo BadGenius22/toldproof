@@ -730,6 +730,9 @@ fun set_fee_registers_coin() {
     assert!(!prediction_vault::is_coin_accepted<SUI>(&reg), 530);
     assert!(prediction_vault::fee_for<SUI>(&reg) == 0, 531);
 
+    // M-03: must rotate treasury_addr off the deployer before fees can be set.
+    prediction_vault::set_treasury_addr(&mut reg, TREASURY, scenario.ctx());
+
     prediction_vault::set_fee<SUI>(&mut reg, AGENT_FEE_MIST, scenario.ctx());
     assert!(prediction_vault::is_coin_accepted<SUI>(&reg), 532);
     assert!(prediction_vault::fee_for<SUI>(&reg) == AGENT_FEE_MIST, 533);
@@ -757,13 +760,15 @@ fun set_fee_by_non_admin_aborts() {
 
 // ---------- Paid agent seals ----------
 
-// Helper: deploy + admin sets fee + admin rotates treasury_addr to TREASURY
+// Helper: deploy + admin rotates treasury_addr to TREASURY + admin sets fee
+// Per M-03: set_fee aborts with ETreasuryNotInitialized until treasury_addr
+// has been rotated off the deployer, so rotation must happen first.
 fun setup_paid_agent_seal(scenario: &mut ts::Scenario) {
     prediction_vault::init_for_testing(scenario.ctx());
     scenario.next_tx(ADMIN);
     let mut reg = scenario.take_shared<Registry>();
-    prediction_vault::set_fee<SUI>(&mut reg, AGENT_FEE_MIST, scenario.ctx());
     prediction_vault::set_treasury_addr(&mut reg, TREASURY, scenario.ctx());
+    prediction_vault::set_fee<SUI>(&mut reg, AGENT_FEE_MIST, scenario.ctx());
     ts::return_shared(reg);
 }
 
@@ -1102,5 +1107,210 @@ fun same_wallet_can_seal_multiple_predictions_under_same_alias() {
 
     ts::return_shared(reg);
     c.destroy_for_testing();
+    scenario.end();
+}
+
+// ---------- Audit fixes: H-01, M-01, M-02, M-03, M-04, L-04 ----------
+
+// M-01: set_admin must reject @0x0 — otherwise admin authority is permanently
+// burned and treasury_addr is frozen on whatever it was last set to.
+#[test, expected_failure(abort_code = prediction_vault::EInvalidAddress)]
+fun set_admin_with_zero_address_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ADMIN);
+    let mut reg = scenario.take_shared<Registry>();
+    prediction_vault::set_admin(&mut reg, @0x0, scenario.ctx());
+
+    ts::return_shared(reg);
+    scenario.end();
+}
+
+// M-01: set_resolver must reject @0x0 — otherwise resolve() becomes
+// permanently un-callable and predictions can never be attested.
+#[test, expected_failure(abort_code = prediction_vault::EInvalidAddress)]
+fun set_resolver_with_zero_address_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ADMIN);
+    let mut reg = scenario.take_shared<Registry>();
+    prediction_vault::set_resolver(&mut reg, @0x0, scenario.ctx());
+
+    ts::return_shared(reg);
+    scenario.end();
+}
+
+// M-01: set_treasury_addr must reject @0x0 — otherwise every paid agent
+// seal would burn its fee coin to the dead address.
+#[test, expected_failure(abort_code = prediction_vault::EInvalidAddress)]
+fun set_treasury_with_zero_address_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ADMIN);
+    let mut reg = scenario.take_shared<Registry>();
+    prediction_vault::set_treasury_addr(&mut reg, @0x0, scenario.ctx());
+
+    ts::return_shared(reg);
+    scenario.end();
+}
+
+// M-03: set_fee must abort until treasury_addr has been rotated off the
+// deployer. Prevents the misconfiguration where agent fees forward to the
+// admin's deploy wallet.
+#[test, expected_failure(abort_code = prediction_vault::ETreasuryNotInitialized)]
+fun set_fee_before_treasury_init_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ADMIN);
+    let mut reg = scenario.take_shared<Registry>();
+    prediction_vault::set_fee<SUI>(&mut reg, AGENT_FEE_MIST, scenario.ctx());
+
+    ts::return_shared(reg);
+    scenario.end();
+}
+
+// M-04: set_fee must reject values below MIN_FEE_FLOOR_MIST. Eliminates the
+// admin foot-gun of accidentally posting a dust-priced agent path.
+#[test, expected_failure(abort_code = prediction_vault::EFeeTooLow)]
+fun set_fee_below_floor_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ADMIN);
+    let mut reg = scenario.take_shared<Registry>();
+    prediction_vault::set_treasury_addr(&mut reg, TREASURY, scenario.ctx());
+    // MIN_FEE_FLOOR_MIST is 10_000_000 in the source; 1_000_000 is below.
+    prediction_vault::set_fee<SUI>(&mut reg, 1_000_000, scenario.ctx());
+
+    ts::return_shared(reg);
+    scenario.end();
+}
+
+// M-02: an agent that overpays must get the change refunded — not have
+// the whole coin swept to treasury.
+#[test]
+fun agent_seal_overpay_returns_change() {
+    let mut scenario = ts::begin(ADMIN);
+    setup_paid_agent_seal(&mut scenario);
+
+    scenario.next_tx(AGENT_WALLET);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+
+    let overpay = AGENT_FEE_MIST + 50_000_000;
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    let fee = coin::mint_for_testing<SUI>(overpay, scenario.ctx());
+    prediction_vault::seal_prediction_as_agent<SUI>(
+        &mut reg, agent_alias(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY,
+        fee, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+
+    // Treasury received EXACTLY required, not the inflated amount.
+    scenario.next_tx(TREASURY);
+    let received = scenario.take_from_address<coin::Coin<SUI>>(TREASURY);
+    assert!(received.value() == AGENT_FEE_MIST, 800);
+    scenario.return_to_sender(received);
+
+    // Agent wallet received the change (overpay - required).
+    scenario.next_tx(AGENT_WALLET);
+    let change = scenario.take_from_address<coin::Coin<SUI>>(AGENT_WALLET);
+    assert!(change.value() == overpay - AGENT_FEE_MIST, 801);
+    scenario.return_to_sender(change);
+
+    scenario.end();
+}
+
+// H-01: identity charset must reject uppercase ASCII. Canonical form is
+// [a-z0-9_-]; uppercase breaks identity-lock determinism because two
+// strings differing only in case would otherwise map to two separate
+// identity buckets.
+#[test, expected_failure(abort_code = prediction_vault::EInvalidIdentityCharset)]
+fun identity_with_uppercase_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    prediction_vault::seal_prediction(
+        &mut reg, b"Alice".to_string(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+// H-01: identity charset must reject '@' (and other symbols not in the
+// canonical set). Prevents X-handle-style strings with sigils.
+#[test, expected_failure(abort_code = prediction_vault::EInvalidIdentityCharset)]
+fun identity_with_at_sign_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    prediction_vault::seal_prediction(
+        &mut reg, b"@alice".to_string(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+// H-01: non-ASCII bytes (e.g. UTF-8 multi-byte) must be rejected. Each
+// multi-byte unicode character contains bytes outside the [a-z0-9_-] set.
+#[test, expected_failure(abort_code = prediction_vault::EInvalidIdentityCharset)]
+fun identity_with_unicode_aborts() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let mut reg = scenario.take_shared<Registry>();
+    let mut c = clock::create_for_testing(scenario.ctx());
+    c.set_for_testing(SEAL_AT_MS);
+    let content_hash = hash::sha2_256(PLAINTEXT);
+    // "café" — the 'é' is a 2-byte UTF-8 sequence (0xC3 0xA9), both
+    // outside the canonical charset.
+    prediction_vault::seal_prediction(
+        &mut reg, b"caf\xC3\xA9".to_string(), UNLOCK_AT_MS,
+        content_hash, BLOB_ID, SEALED_KEY, &c, scenario.ctx(),
+    );
+
+    ts::return_shared(reg);
+    c.destroy_for_testing();
+    scenario.end();
+}
+
+// L-04: agent_alias_locked_to returns the sentinel @0x0 for an unclaimed
+// alias instead of aborting. Lets the TS layer probe-without-catch.
+#[test]
+fun agent_alias_locked_to_returns_sentinel_for_missing() {
+    let mut scenario = ts::begin(ADMIN);
+    prediction_vault::init_for_testing(scenario.ctx());
+
+    scenario.next_tx(ALICE);
+    let reg = scenario.take_shared<Registry>();
+    let unclaimed = b"never-claimed".to_string();
+    assert!(prediction_vault::agent_alias_locked_to(&reg, unclaimed) == @0x0, 900);
+
+    ts::return_shared(reg);
     scenario.end();
 }

@@ -3,9 +3,12 @@
 // Runs `sui client publish` on the Move package, captures PACKAGE_ID +
 // REGISTRY_ID + UpgradeCap, then submits the four admin txs needed to bring
 // the registry to production state:
-//   1. set_fee<SUI>(100_000_000)   — 0.1 SUI ≈ $0.20 per agent seal
-//   2. set_fee<USDC>(200_000)      — $0.20 in micro-USDC (USDC has 6 decimals)
-//   3. set_treasury_addr(PHANTOM)  — agent seal fees forward to your Phantom
+//   1. set_treasury_addr(PHANTOM)  — agent seal fees forward to your Phantom.
+//                                    MUST run before set_fee<T> — per M-03
+//                                    the contract rejects set_fee until the
+//                                    treasury has been rotated off the deployer.
+//   2. set_fee<SUI>(100_000_000)   — 0.1 SUI ≈ $0.20 per agent seal
+//   3. set_fee<USDC>(200_000)      — $0.20 in micro-USDC (USDC has 6 decimals)
 //   4. set_admin(PHANTOM)          — rotate admin authority to Phantom
 //
 // After this, the deployer keystore is dormant — Phantom controls all admin
@@ -123,7 +126,17 @@ async function main() {
   console.log(`  upgradeCapId: ${upgradeCapId}`);
 
   // ─── 2. Admin txs ──────────────────────────────────────────────────
+  // Order matters: set_treasury_addr MUST run before set_fee<T> (per M-03
+  // the registry rejects set_fee while treasury_addr is still the deployer).
+  // set_admin runs last so the deployer retains authority through the
+  // earlier txs.
   console.log('\nConfiguring registry (4 admin txs from deployer)…');
+
+  await runAdminTx(
+    signer,
+    setTreasuryAddrTx({ registryId, packageId, newTreasuryAddr: treasury }),
+    `set_treasury_addr(${treasury})`,
+  );
 
   await runAdminTx(
     signer,
@@ -145,12 +158,6 @@ async function main() {
       feeAmount: USDC_FEE_MICRO,
     }),
     `set_fee<USDC>(${USDC_FEE_MICRO}) — 0.2 USDC per agent seal`,
-  );
-
-  await runAdminTx(
-    signer,
-    setTreasuryAddrTx({ registryId, packageId, newTreasuryAddr: treasury }),
-    `set_treasury_addr(${treasury})`,
   );
 
   await runAdminTx(

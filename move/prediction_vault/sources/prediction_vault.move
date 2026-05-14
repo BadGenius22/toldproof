@@ -19,7 +19,7 @@ use std::type_name;
 use std::hash;
 use sui::bcs;
 use sui::clock::Clock;
-use sui::coin::Coin;
+use sui::coin::{Self, Coin};
 use sui::event;
 use sui::table::{Self, Table};
 
@@ -50,6 +50,10 @@ const EIdentityClaimedByOtherType: u64 = 18;
 const EAgentAliasLockedToOtherWallet: u64 = 19;
 // v2: reputation profile publishing
 const EInvalidProfileBlobId: u64 = 20;
+const EInvalidIdentityCharset: u64 = 21;
+const EInvalidAddress: u64 = 22;
+const ETreasuryNotInitialized: u64 = 23;
+const EFeeTooLow: u64 = 24;
 
 // ---------- Versioning ----------
 
@@ -72,6 +76,9 @@ const MAX_BLOB_ID_LEN: u64 = 256;            // Walrus blob_id ascii bytes
 const MAX_SEALED_KEY_LEN: u64 = 4096;        // Seal EncryptedObject bytes
 const MAX_PLAINTEXT_LEN: u64 = 65_536;       // reveal-time plaintext cap (64 KB)
 const MAX_LOCK_DURATION_MS: u64 = 10 * 365 * 24 * 60 * 60 * 1000;  // ~10 years
+// Floor for paid agent seals — prevents zero-fee sybil alias squatting.
+// 10M MIST = 0.01 SUI ≈ $0.02 at $2/SUI.
+const MIN_FEE_FLOOR_MIST: u64 = 10_000_000;
 
 // ---------- One-Time Witness ----------
 
@@ -100,6 +107,10 @@ public struct Registry has key {
     /// Where agent-seal fees auto-forward to every paid seal. Initialized to
     /// deployer; rotate to a revenue-receiving wallet via set_treasury_addr().
     treasury_addr: address,
+    /// True once set_treasury_addr has been called at least once. Forces
+    /// the bootstrap order rotate-treasury → enable-fees, so paid seals
+    /// can never silently forward to the deployer's hot wallet.
+    treasury_initialized: bool,
 
     // ----- Economics -----
     /// Per-coin fee for paid agent seals.
@@ -238,6 +249,7 @@ fun init(_otw: PREDICTION_VAULT, ctx: &mut TxContext) {
         admin: sender,
         resolver: sender,
         treasury_addr: sender,
+        treasury_initialized: false,
         fees: table::new(ctx),
         identity_claims: table::new(ctx),
         agent_wallet_locks: table::new(ctx),
@@ -251,6 +263,24 @@ fun check_version(reg: &Registry) {
 
 fun assert_admin(reg: &Registry, ctx: &TxContext) {
     assert!(ctx.sender() == reg.admin, ENotAdmin);
+}
+
+// Canonical identity charset: ASCII a-z, 0-9, '_', '-'. Rejecting
+// uppercase, whitespace, '@' and any byte > 0x7F closes case-variant
+// and Unicode-confusable bypasses around the first-claim-wins lock.
+fun assert_canonical_identity(s: &String) {
+    let bytes = s.as_bytes();
+    let n = bytes.length();
+    let mut i = 0;
+    while (i < n) {
+        let b = *bytes.borrow(i);
+        let ok = (b >= 0x61 && b <= 0x7A)    // a-z
+              || (b >= 0x30 && b <= 0x39)    // 0-9
+              || b == 0x5F                    // _
+              || b == 0x2D;                   // -
+        assert!(ok, EInvalidIdentityCharset);
+        i = i + 1;
+    };
 }
 
 // ---------- Seal a prediction (free path — humans) ----------
@@ -282,6 +312,12 @@ public fun seal_prediction(
 
 // ---------- Seal a prediction (paid path — agents) ----------
 
+// Note on the self-transfer lint: the change refund is intentionally a
+// self-transfer (sender pays Coin<T>, gets the unused portion back). The
+// alternative (returning the change Coin) would change the public ABI and
+// require every caller PTB to handle the return value. The self-transfer is
+// the simpler ergonomic for agent integrators.
+#[allow(lint(self_transfer))]
 /// Agent-only seal. Pays `fee` in any coin type the admin has registered via
 /// set_fee<T>(). Fee auto-forwards to the Registry's treasury_addr — no
 /// on-chain balance accumulation.
@@ -304,9 +340,17 @@ public fun seal_prediction_as_agent<T>(
     let paid = fee.value();
     assert!(paid >= required, ENotEnoughFee);
 
-    // Forward fee directly to treasury — no on-chain balance to manage.
+    // Split exactly `required` to treasury; refund any excess to sender so
+    // a caller passing an oversized Coin<T> doesn't silently overpay.
+    let mut fee = fee;
+    let exact = coin::split(&mut fee, required, ctx);
     let treasury_dest = reg.treasury_addr;
-    transfer::public_transfer(fee, treasury_dest);
+    transfer::public_transfer(exact, treasury_dest);
+    if (fee.value() > 0) {
+        transfer::public_transfer(fee, ctx.sender());
+    } else {
+        coin::destroy_zero(fee);
+    };
 
     let pid = create_prediction(
         reg,
@@ -324,7 +368,7 @@ public fun seal_prediction_as_agent<T>(
         prediction_id: pid,
         payer: ctx.sender(),
         coin_type: type_bytes,
-        fee_paid: paid,
+        fee_paid: required,  // amount kept by treasury, not the original Coin value
         treasury_addr: treasury_dest,
     });
 }
@@ -356,6 +400,7 @@ fun create_prediction(
     assert!(sl > 0 && sl <= MAX_SEALED_KEY_LEN, EInvalidSealedKey);
     let il = identity.length();
     assert!(il > 0 && il <= MAX_IDENTITY_LEN, EInvalidIdentity);
+    assert_canonical_identity(&identity);
 
     // Identity-claim check (first-claim-wins per entity type).
     if (reg.identity_claims.contains(identity)) {
@@ -523,6 +568,8 @@ public fun publish_reputation_profile(
 public fun set_admin(reg: &mut Registry, new_admin: address, ctx: &TxContext) {
     check_version(reg);
     assert_admin(reg, ctx);
+    // Rotating to @0x0 would permanently lock out governance.
+    assert!(new_admin != @0x0, EInvalidAddress);
     let old = reg.admin;
     reg.admin = new_admin;
     event::emit(AdminRotated {
@@ -537,6 +584,8 @@ public fun set_admin(reg: &mut Registry, new_admin: address, ctx: &TxContext) {
 public fun set_resolver(reg: &mut Registry, new_resolver: address, ctx: &TxContext) {
     check_version(reg);
     assert_admin(reg, ctx);
+    // Rotating to @0x0 would freeze the reputation system — nothing could resolve.
+    assert!(new_resolver != @0x0, EInvalidAddress);
     let old = reg.resolver;
     reg.resolver = new_resolver;
     event::emit(ResolverRotated {
@@ -550,8 +599,11 @@ public fun set_resolver(reg: &mut Registry, new_resolver: address, ctx: &TxConte
 public fun set_treasury_addr(reg: &mut Registry, new_addr: address, ctx: &TxContext) {
     check_version(reg);
     assert_admin(reg, ctx);
+    // Rotating to @0x0 would burn every future fee.
+    assert!(new_addr != @0x0, EInvalidAddress);
     let old = reg.treasury_addr;
     reg.treasury_addr = new_addr;
+    reg.treasury_initialized = true;
     event::emit(TreasuryAddrRotated {
         old_treasury: old,
         new_treasury: new_addr,
@@ -562,11 +614,16 @@ public fun set_treasury_addr(reg: &mut Registry, new_addr: address, ctx: &TxCont
 /// Set or update the required fee for coin type `T`. Use this to enable a
 /// new coin (e.g. add USDC support post-deploy) or adjust an existing fee
 /// as the underlying coin's USD price moves.
-/// Pass `fee_amount = 0` to set an effectively-free path for `T` (any coin
-/// amount >= 0 accepted). Use this for testing or promo events only.
+///
+/// Bootstrap order is enforced: treasury_addr must be rotated off the
+/// deployer before any fee can be enabled, and fee_amount must clear
+/// MIN_FEE_FLOOR_MIST so an admin can't accidentally open a zero-fee
+/// alias-squatting path.
 public fun set_fee<T>(reg: &mut Registry, fee_amount: u64, ctx: &TxContext) {
     check_version(reg);
     assert_admin(reg, ctx);
+    assert!(reg.treasury_initialized, ETreasuryNotInitialized);
+    assert!(fee_amount >= MIN_FEE_FLOOR_MIST, EFeeTooLow);
     let type_bytes_ascii = type_name::with_defining_ids<T>().into_string();
     let type_bytes = *type_bytes_ascii.as_bytes();
     if (reg.fees.contains(type_bytes)) {
@@ -608,7 +665,10 @@ public fun identity_claim_type(reg: &Registry, identity: String): u8 {
     *reg.identity_claims.borrow(identity)
 }
 
+// Returns @0x0 sentinel for an unclaimed alias so UI devInspect probes
+// can read the lock without catching an abort.
 public fun agent_alias_locked_to(reg: &Registry, alias: String): address {
+    if (!reg.agent_wallet_locks.contains(alias)) return @0x0;
     *reg.agent_wallet_locks.borrow(alias)
 }
 
