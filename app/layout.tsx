@@ -8,9 +8,9 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'TOLDPROOF — cryptographic receipts for crypto Twitter',
+  title: 'TOLDPROOF — proof you called it before it happened',
   description:
-    'Sealed predictions on Sui + Walrus + Seal. Verifiable proof — or stop pretending you called it.',
+    'Lock a prediction today, open it on the date you pick. Anyone can check when you said it. Built on Sui, Walrus, and Seal.',
 };
 
 export default function RootLayout({

@@ -33,7 +33,7 @@ export function RevealDemo() {
   }, []);
 
   const tweet =
-    `VERIFIED ✓\n"${TARGET}"\nSealed 2026-05-04. Verifies on-chain.\n` +
+    `OPENED ✓\n"${TARGET}"\nLocked 2026-05-04. You can check it on Sui.\n` +
     `toldproof.xyz/verify/0xa1b2c3d4…`;
 
   useEffect(() => {
@@ -87,12 +87,12 @@ export function RevealDemo() {
   return (
     <div className="page">
       <div className="container narrow">
-        <PageEyebrow>Reveal · live demo</PageEyebrow>
+        <PageEyebrow>Opening · live demo</PageEyebrow>
         <h1
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
         >
-          Watch a prediction unlock.
+          Watch a prediction open.
         </h1>
         <p
           style={{
@@ -103,9 +103,9 @@ export function RevealDemo() {
             maxWidth: 600,
           }}
         >
-          A prediction sealed 9 days ago is about to hit its unlock moment. At T-0 the Seal key
-          servers release the IBE decryption material, the reveal cron picks it up, and the bot
-          quote-tweets the original.
+          A prediction locked 9 days ago is about to hit its open date. The moment
+          it does, Seal releases the key, we read the text out, and our bot replies
+          to the first tweet with the actual prediction.
         </p>
 
         <div
@@ -121,12 +121,12 @@ export function RevealDemo() {
           }}
         >
           <div className="row" style={{ justifyContent: 'center', gap: 14 }}>
-            {phase === 'sealed' && <Chip status="sealed">Time-lock active</Chip>}
+            {phase === 'sealed' && <Chip status="sealed">Still locked</Chip>}
             {phase === 'unlocking' && (
-              <Chip status="warn">Unlocking · key servers responding</Chip>
+              <Chip status="warn">Opening · Seal is sending the key</Chip>
             )}
-            {phase === 'decrypting' && <Chip status="warn">Decrypting via Seal</Chip>}
-            {phase === 'revealed' && <Chip status="verified">Revealed ✓</Chip>}
+            {phase === 'decrypting' && <Chip status="warn">Unscrambling the text</Chip>}
+            {phase === 'revealed' && <Chip status="verified">Open ✓</Chip>}
           </div>
           <div
             className="mono"
@@ -156,7 +156,7 @@ export function RevealDemo() {
               marginTop: 4,
             }}
           >
-            unlock at {fmtAbs(unlockAt)}
+            opens at {fmtAbs(unlockAt)}
           </div>
         </div>
 
@@ -175,17 +175,17 @@ export function RevealDemo() {
           >
             <span className="eyebrow">
               {phase === 'revealed'
-                ? 'Plaintext (on-chain)'
+                ? 'The actual text (saved on Sui)'
                 : phase === 'sealed'
-                  ? 'Walrus ciphertext'
-                  : 'Decrypting…'}
+                  ? 'Scrambled text on Walrus'
+                  : 'Unscrambling…'}
             </span>
             <span className="mono" style={{ fontSize: 10, color: 'var(--muted)' }}>
               {phase === 'decrypting'
                 ? `${revealedBytes}/96 bytes`
                 : phase === 'revealed'
                   ? '256 bytes'
-                  : 'encrypted'}
+                  : 'still scrambled'}
             </span>
           </div>
           <HexDump
@@ -207,7 +207,7 @@ export function RevealDemo() {
                 lineHeight: 1.45,
               }}
             >
-              ✓ SHA-256 of plaintext matches the on-chain commitment.
+              ✓ The text matches the fingerprint we saved on Sui at lock time.
               <br />
               &quot;{TARGET}&quot;
             </div>
@@ -216,7 +216,7 @@ export function RevealDemo() {
 
         {phase === 'revealed' && (
           <div className="mt-24">
-            <PageEyebrow>Reveal tweet · auto-posted</PageEyebrow>
+            <PageEyebrow>The reply tweet · posted for you</PageEyebrow>
             <div
               className="mt-12"
               style={{
@@ -288,7 +288,7 @@ export function RevealDemo() {
               className="btn"
               onClick={() => setUnlockAt(Date.now() + 1000)}
             >
-              Skip to unlock →
+              Skip to opening →
             </button>
           )}
           {phase === 'revealed' && (

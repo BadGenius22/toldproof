@@ -24,12 +24,12 @@ interface StatusChipProps {
 
 export function StatusChip({ p, now = Date.now() }: StatusChipProps) {
   const s = predictionStatus(p, now);
-  if (s === 'revealed') return <Chip status="verified">Revealed</Chip>;
+  if (s === 'revealed') return <Chip status="verified">Opened</Chip>;
   if (s === 'unlocked')
-    return <Chip status="warn">Unlocked · awaiting reveal</Chip>;
+    return <Chip status="warn">Ready to open · posting soon</Chip>;
   return (
     <Chip status="sealed">
-      Sealed · {fmtRel(p.unlockAtMs, now).replace('in ', '')} left
+      Locked · {fmtRel(p.unlockAtMs, now).replace('in ', '')} left
     </Chip>
   );
 }

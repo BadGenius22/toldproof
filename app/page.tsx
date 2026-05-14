@@ -34,9 +34,9 @@ export default function HomePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
               <PageEyebrow>Sui Overflow 2026 · Walrus Track · v0.1 testnet</PageEyebrow>
               <h1 className="display">
-                Cryptographic receipts
+                Proof you called it
                 <br />
-                for <span className="accent">crypto Twitter.</span>
+                before it <span className="accent">happened.</span>
               </h1>
               <p
                 style={{
@@ -47,13 +47,13 @@ export default function HomePage() {
                   textWrap: 'pretty',
                 }}
               >
-                Seal a prediction now. Walrus stores the ciphertext. Seal time-locks the key.
-                At unlock, anyone can verify exactly when you said it — or call out the people
-                who didn&apos;t.
+                Lock a prediction today. We hide the text and pick when it opens.
+                When the date arrives, anyone can read it and check exactly when
+                you said it — or call out the people who didn&apos;t.
               </p>
               <div className="row" style={{ gap: 10, marginTop: 8 }}>
                 <Link href="/seal" className="btn lg">
-                  Seal a prediction →
+                  Lock a prediction →
                 </Link>
                 <Link href="/dewaxindo" className="btn lg ghost">
                   See an example
@@ -81,7 +81,7 @@ export default function HomePage() {
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <PixelMark bitmap={SEAL_KEY_MARK} size={14} color="var(--ink-3)" /> SEAL
                 </span>
-                <span>· no oracle, no judge, no edit</span>
+                <span>· no edits, no take-backs, no middleman</span>
               </div>
             </div>
 
@@ -118,25 +118,25 @@ export default function HomePage() {
             <div className="grid-3" style={{ marginTop: 18, gap: 20 }}>
               <HowStep
                 n="01"
-                title="Seal"
-                body="Type the claim. Pick an unlock date. AES-encrypt in your browser. Walrus stores the ciphertext. The key is sealed under a time-lock identity until the unlock moment passes."
+                title="Lock it"
+                body="Type your prediction. Pick a date for it to open. We scramble the text right in your browser. Walrus keeps the scrambled version. Seal holds the key until your date arrives."
               />
               <HowStep
                 n="02"
                 title="Wait"
-                body="Until unlock, no one — including you — can decrypt. The SHA-256 commitment is anchored on a Sui Move object from second one. The promise is unforgeable."
+                body="Until the open date, nobody can read it — not even you. A short fingerprint of your text is saved on Sui from day one, so the words can never be quietly changed."
               />
               <HowStep
                 n="03"
-                title="Reveal"
-                body="At unlock the cron decrypts via Seal and quote-tweets your original seal-tweet with the plaintext. Skeptics can reply @toldproof verify on any claim to summon a verdict."
+                title="Open it"
+                body="When the date hits, we unlock the text and post it as a reply to your first tweet. Anyone who doubts a different 'I called it' tweet can reply @toldproof verify to get a check."
               />
             </div>
           </div>
 
           {/* The three guarantees */}
           <div className="mt-48">
-            <PageEyebrow>The three guarantees</PageEyebrow>
+            <PageEyebrow>What we prove</PageEyebrow>
             <div
               className="grid-3"
               style={{
@@ -149,18 +149,18 @@ export default function HomePage() {
             >
               <Guarantee
                 title="When"
-                detail="Sealed at a timestamp written into a Sui Move object. No off-chain edits. No retroactive backdating."
+                detail="The exact time you locked it is written on Sui. Nobody can edit it later or change the date."
                 glyph="⏱"
               />
               <Guarantee
                 title="What"
-                detail="The SHA-256 of your plaintext is committed before unlock. Reveal must produce a preimage that matches — or it fails on-chain."
+                detail="A fingerprint of your text is saved before the open date. If even one letter changes, the check fails."
                 glyph="≡"
                 border
               />
               <Guarantee
                 title="Who"
-                detail="Sealed by a Sui address linked to an X handle. The handle in the tweet is the handle that signed the seal."
+                detail="Locked by your Sui wallet, linked to your X handle. The handle in the tweet is the handle that signed it."
                 glyph="ʘ"
               />
             </div>
@@ -186,7 +186,7 @@ export default function HomePage() {
                 >
                   @toldproof verify
                 </span>{' '}
-                on any &quot;I called it&quot; tweet. The bot replies with a verdict.
+                under any &quot;I called it&quot; tweet. The bot replies with a yes or a no.
               </h2>
               <Link href="/bot" className="btn">
                 See the bot →
@@ -213,8 +213,8 @@ function BeforeCard() {
       }}
     >
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <span className="eyebrow">Before · the X status quo</span>
-        <Chip status="warn">Hindsight farming</Chip>
+        <span className="eyebrow">Before · how X works today</span>
+        <Chip status="warn">After-the-fact</Chip>
       </div>
       <div className="tweet" style={{ background: 'var(--paper)' }}>
         <div className="avatar" style={{ background: 'var(--ink-3)' }}>?</div>
@@ -235,8 +235,8 @@ function BeforeCard() {
         className="mono"
         style={{ fontSize: 11, color: 'var(--muted)', margin: 0, lineHeight: 1.55 }}
       >
-        No proof. Edits allowed. Could have been posted seconds ago. The loud voice wins by
-        default.
+        No proof. Easy to edit. Could have been posted seconds ago. The loudest
+        voice wins by default.
       </p>
     </div>
   );
@@ -257,7 +257,7 @@ function AfterCard() {
     >
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <span className="eyebrow">After · with toldproof</span>
-        <Chip status="verified">Sealed {fmtRel(SAMPLE.sealedAtMs)}</Chip>
+        <Chip status="verified">Locked {fmtRel(SAMPLE.sealedAtMs)}</Chip>
       </div>
       <div className="tweet">
         <div className="avatar">D</div>
@@ -268,7 +268,7 @@ function AfterCard() {
             <span className="time">· {fmtRel(SAMPLE.sealedAtMs)}</span>
           </div>
           <div className="tweet-body">
-            Sealed prediction. Verifies on {fmtAbs(SAMPLE.unlockAtMs).slice(0, 10)}.
+            Locked prediction. Opens on {fmtAbs(SAMPLE.unlockAtMs).slice(0, 10)}.
             <br />
             <span className="l">
               toldproof.xyz/verify/{shortHash(SAMPLE.id, 6, 4)}

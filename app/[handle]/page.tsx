@@ -95,7 +95,7 @@ export default async function ProfilePage({
 
           <div className="row row-actions" style={{ gap: 10, flexWrap: 'wrap' }}>
             <Link href="/seal" className="btn">
-              Seal a prediction →
+              Lock a prediction →
             </Link>
           </div>
         </div>
@@ -112,13 +112,13 @@ export default async function ProfilePage({
                 overflow: 'hidden',
               }}
             >
-              <Stat label="Sealed total" value={predictions.length} />
-              <Stat label="Revealed" value={revealed.length} hue="verified" border />
-              <Stat label="Still sealed" value={sealed.length} hue="sealed" />
+              <Stat label="Predictions locked" value={predictions.length} />
+              <Stat label="Already opened" value={revealed.length} hue="verified" border />
+              <Stat label="Still locked" value={sealed.length} hue="sealed" />
               <Stat
-                label="Hit rate"
+                label="Got it right"
                 value={hitRate != null ? `${hitRate}%` : '—'}
-                sub={`${revealed.length}/${totalResolved} resolved`}
+                sub={`${revealed.length}/${totalResolved} settled`}
                 border
               />
             </div>
@@ -237,7 +237,7 @@ function EmptyProfileState({ handle }: { handle: string }) {
 
       <div className="col" style={{ gap: 8, maxWidth: 460 }}>
         <h2 className="section" style={{ fontSize: 26 }}>
-          @{handle} has not sealed anything.
+          @{handle} hasn&apos;t locked anything yet.
         </h2>
         <p
           style={{
@@ -248,9 +248,9 @@ function EmptyProfileState({ handle }: { handle: string }) {
             textWrap: 'pretty',
           }}
         >
-          Anyone can claim this handle by sealing a prediction first. Until someone does, every
-          &quot;I called it&quot; tweet under @{handle} has zero on-chain backing — and the bot
-          will say so.
+          Anyone can claim this handle by being the first to lock a prediction
+          under it. Until someone does, any &quot;I called it&quot; tweet from
+          @{handle} has no proof — and the bot will say so.
         </p>
       </div>
 
@@ -276,11 +276,11 @@ function EmptyProfileState({ handle }: { handle: string }) {
           justifyContent: 'center',
         }}
       >
-        <span>0 sealed</span>
+        <span>0 locked</span>
         <span>·</span>
-        <span>0 revealed</span>
+        <span>0 opened</span>
         <span>·</span>
-        <span>no on-chain history</span>
+        <span>no record yet</span>
       </div>
     </div>
   );

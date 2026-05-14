@@ -7,12 +7,12 @@ import { PageEyebrow, TweetCard } from '../../components/design';
 type Scenario = 'verified' | 'no-proof' | 'self-seal';
 
 const SCENARIOS: Array<{ id: Scenario; label: string; hint: string }> = [
-  { id: 'verified', label: 'Verified call', hint: 'Claim matches a sealed prediction.' },
-  { id: 'no-proof', label: 'No proof found', hint: 'No matching seal on record.' },
+  { id: 'verified', label: 'It checks out', hint: 'A real locked prediction matches the tweet.' },
+  { id: 'no-proof', label: 'No proof found', hint: 'Nothing was locked beforehand.' },
   {
     id: 'self-seal',
-    label: 'Defensive seal',
-    hint: 'Skeptic challenges, target seals defensively.',
+    label: 'Locks one on the spot',
+    hint: 'Someone calls them out, so they lock one now.',
   },
 ];
 
@@ -29,7 +29,7 @@ export function BotScenarios() {
         >
           Reply to any &quot;I called it&quot; tweet.
           <br />
-          The bot replies with a verdict.
+          The bot answers with a yes or no.
         </h1>
         <p
           style={{
@@ -40,10 +40,11 @@ export function BotScenarios() {
             maxWidth: 720,
           }}
         >
-          A Vercel cron polls X for &quot;@toldproof verify&quot; mentions every 5 minutes. The
-          bot queries the on-chain Move registry for the parent tweet author&apos;s address and
-          posts a reactive reply. Wording stays neutral — &quot;no toldproof found&quot; never
-          &quot;this user is lying.&quot;
+          Every 5 minutes the bot checks X for tweets that say &quot;@toldproof
+          verify&quot;. It looks up the original poster on Sui to see if they
+          really locked the prediction ahead of time, then posts a short reply.
+          The wording stays careful — &quot;no proof found&quot; never &quot;this
+          user is lying.&quot;
         </p>
 
         <div className="mt-32 bot-split">
@@ -90,7 +91,7 @@ export function BotScenarios() {
               className="mt-24"
               style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 4 }}
             >
-              <span className="eyebrow">Guardrails</span>
+              <span className="eyebrow">Rules the bot follows</span>
               <ul
                 className="mono"
                 style={{
@@ -101,10 +102,10 @@ export function BotScenarios() {
                   lineHeight: 1.7,
                 }}
               >
-                <li>Bot wording is reactive only.</li>
-                <li>Never asserts a claim is false.</li>
-                <li>Rate-limited 5/day per requester.</li>
-                <li>Bot bio disclaims absence-of-proof.</li>
+                <li>It only replies when tagged. It never posts on its own.</li>
+                <li>It never says someone is lying.</li>
+                <li>Each person can ask up to 5 times a day.</li>
+                <li>Its bio says: no proof doesn&apos;t mean false.</li>
               </ul>
             </div>
           </div>

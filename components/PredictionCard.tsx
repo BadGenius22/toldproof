@@ -43,7 +43,7 @@ export function PredictionCard({ p }: { p: PredictionView }) {
         <div className="row" style={{ gap: 10, justifyContent: 'space-between', flexWrap: 'wrap' }}>
           <StatusChip p={p} now={now} />
           <span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
-            Sealed {fmtRel(p.sealedAtMs, now)}
+            Locked {fmtRel(p.sealedAtMs, now)}
           </span>
         </div>
 
@@ -65,7 +65,7 @@ export function PredictionCard({ p }: { p: PredictionView }) {
               {fakeHexBlock(p.id, 22).match(/.{1,2}/g)!.join(' ')}
             </span>
             <span style={{ color: 'var(--ink-3)', marginLeft: 8 }}>
-              · encrypted until {fmtAbs(p.unlockAtMs).slice(0, 16)} UTC
+              · hidden until {fmtAbs(p.unlockAtMs).slice(0, 16)} UTC
             </span>
           </div>
         )}

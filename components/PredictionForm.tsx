@@ -38,11 +38,11 @@ type Step =
 
 // Maps the real pipeline phase to the visual step indicator.
 const STEP_LABELS: { id: Exclude<Step, 'idle' | 'done' | 'error'>; label: string; detail: string }[] = [
-  { id: 'encrypting', label: 'AES-256-GCM encrypt', detail: 'Encrypting plaintext locally in your browser.' },
-  { id: 'uploading', label: 'Walrus blob store', detail: 'Uploading ciphertext to the Walrus aggregator.' },
-  { id: 'sealing', label: 'Seal time-lock', detail: 'Sealing the AES key under bcs(unlock_ms).' },
-  { id: 'signing', label: 'Sign Sui transaction', detail: 'Waiting for the wallet popup signature.' },
-  { id: 'confirming', label: 'Confirm on Sui', detail: 'Waiting for inclusion in a Sui checkpoint.' },
+  { id: 'encrypting', label: 'Scramble the text', detail: 'Scrambling the words inside your browser. Nothing leaves your machine yet.' },
+  { id: 'uploading', label: 'Send to Walrus', detail: 'Uploading the scrambled text to Walrus storage.' },
+  { id: 'sealing', label: 'Lock the key', detail: 'Handing the key to Seal so nobody can read it until the open time.' },
+  { id: 'signing', label: 'Sign with your wallet', detail: 'Approve the wallet pop-up to record this on Sui.' },
+  { id: 'confirming', label: 'Save on Sui', detail: 'Waiting for the Sui network to confirm.' },
 ];
 
 function stepIndexOf(step: Step): number {
@@ -114,7 +114,7 @@ export function PredictionForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!account) {
-      setError('Connect a wallet first');
+      setError('Please connect a wallet first.');
       setStep('error');
       return;
     }
@@ -124,11 +124,11 @@ export function PredictionForm() {
     try {
       const unlockMs = new Date(unlockIso).getTime();
       if (Number.isNaN(unlockMs) || unlockMs <= Date.now() + 30_000) {
-        throw new Error('Unlock must be at least 30 seconds in the future');
+        throw new Error('The open time must be at least 30 seconds from now.');
       }
       const unlockAtMs = BigInt(unlockMs);
       const cleanHandle = xHandle.trim().toLowerCase().replace(/^@/, '');
-      if (!cleanHandle) throw new Error('X handle is required');
+      if (!cleanHandle) throw new Error('Please enter your X handle.');
 
       // 1. AES envelope
       setStep('encrypting');
@@ -167,7 +167,7 @@ export function PredictionForm() {
       const signer = new CurrentAccountSigner(dAppKit);
       const signed = await signer.signAndExecuteTransaction({ transaction: tx });
       if (signed.$kind !== 'Transaction') {
-        throw new Error('Transaction failed to execute on-chain');
+        throw new Error('Sui could not save the prediction. Please try again.');
       }
       const digest = signed.Transaction.digest;
 
@@ -218,7 +218,7 @@ export function PredictionForm() {
   return (
     <div className="page">
       <div className="container">
-        <PageEyebrow>Seal a prediction</PageEyebrow>
+        <PageEyebrow>Lock a prediction</PageEyebrow>
         <h1
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
@@ -234,8 +234,9 @@ export function PredictionForm() {
             maxWidth: 560,
           }}
         >
-          Encrypted in your browser. Stored on Walrus. Key sealed under a time-lock identity.
-          Until the unlock moment, no one — including you — can read it.
+          Scrambled in your browser. Saved on Walrus. The key is locked
+          away until the open date you choose. Until then, nobody — not even you —
+          can read it.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-32 seal-layout">
@@ -248,7 +249,7 @@ export function PredictionForm() {
             }}
           >
             <div className="field">
-              <label htmlFor="pred">Prediction</label>
+              <label htmlFor="pred">Your prediction</label>
               <textarea
                 id="pred"
                 className="textarea"
@@ -260,7 +261,7 @@ export function PredictionForm() {
                 placeholder="BTC > 95k by 2026-06-30"
               />
               <div className="row" style={{ justifyContent: 'space-between' }}>
-                <span className="hint">280 chars max — matches X.</span>
+                <span className="hint">280 letters max — same as X.</span>
                 <span className="hint">{charsLeft} left</span>
               </div>
             </div>
@@ -277,10 +278,10 @@ export function PredictionForm() {
                   required
                   placeholder="elonmusk"
                 />
-                <span className="hint">OAuth verification on Day 4.</span>
+                <span className="hint">We&apos;ll link your X account in a future update.</span>
               </div>
               <div className="field">
-                <label htmlFor="unlock">Unlock at</label>
+                <label htmlFor="unlock">Open it on</label>
                 <input
                   id="unlock"
                   className="input"
@@ -290,7 +291,7 @@ export function PredictionForm() {
                   disabled={disabled || !!result}
                   required
                 />
-                <span className="hint">Min 30 seconds in the future.</span>
+                <span className="hint">Pick a time at least 30 seconds from now.</span>
               </div>
             </div>
 
@@ -341,10 +342,10 @@ export function PredictionForm() {
               />
               <div className="col" style={{ gap: 2 }}>
                 <span className="mono" style={{ fontSize: 12 }}>
-                  Auto-post to X on seal
+                  Post a tweet when I lock it
                 </span>
                 <span className="hint" style={{ textTransform: 'none', letterSpacing: 0 }}>
-                  Posts the seal-tweet from your linked X account when OAuth is wired.
+                  We&apos;ll post from your linked X account once your account is connected.
                 </span>
               </div>
             </label>
@@ -356,7 +357,7 @@ export function PredictionForm() {
                 disabled={disabled || !account}
                 style={{ alignSelf: 'flex-start', marginTop: 4 }}
               >
-                {!account ? 'Connect wallet to seal' : '▮ Seal prediction'}
+                {!account ? 'Connect wallet to lock' : '▮ Lock my prediction'}
               </button>
             )}
           </div>
@@ -375,7 +376,7 @@ export function PredictionForm() {
             className="mt-32"
             style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
           >
-            <PageEyebrow>{result ? 'Sealed' : 'Sealing…'}</PageEyebrow>
+            <PageEyebrow>{result ? 'Locked' : 'Locking…'}</PageEyebrow>
             <SealPipeline stepIdx={stepIdx} done={!!result} />
             {!result && running && <HexAnimation text={text} stepIdx={stepIdx} />}
           </div>
@@ -397,7 +398,7 @@ export function PredictionForm() {
               gap: 6,
             }}
           >
-            <strong>Seal failed</strong>
+            <strong>Locking failed</strong>
             <span>{error}</span>
             <button
               type="button"
@@ -416,7 +417,7 @@ export function PredictionForm() {
               <div className="receipt-header">
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <PixelMark bitmap={BRAND_MARK} size={14} color="var(--paper)" />
-                  SEAL · receipt
+                  Your receipt
                 </span>
                 <Chip status="sealed">Locked</Chip>
               </div>
@@ -427,10 +428,10 @@ export function PredictionForm() {
                     v={shortHash(result.predictionId, 16, 10)}
                   />
                   <ReceiptRow k="X handle" v={`@${result.xHandle}`} />
-                  <ReceiptRow k="Sealed at" v={fmtAbs(result.sealedAtMs)} />
-                  <ReceiptRow k="Unlock at" v={fmtAbs(result.unlockAtMs)} />
-                  <ReceiptRow k="SHA-256" v={result.contentHashHex} />
-                  <ReceiptRow k="Walrus blob" v={result.blobId} />
+                  <ReceiptRow k="Locked at" v={fmtAbs(result.sealedAtMs)} />
+                  <ReceiptRow k="Opens on" v={fmtAbs(result.unlockAtMs)} />
+                  <ReceiptRow k="Text fingerprint" v={result.contentHashHex} />
+                  <ReceiptRow k="Walrus storage ID" v={result.blobId} />
                 </dl>
               </div>
               <Perforation />
@@ -439,11 +440,11 @@ export function PredictionForm() {
                 style={{ justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}
               >
                 <span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
-                  Anyone with this ID can verify but no one can read until unlock.
+                  Anyone with this ID can check it. Nobody can read it until the open date.
                 </span>
                 <div className="row" style={{ gap: 8 }}>
                   <button type="button" className="btn ghost" onClick={reset}>
-                    Seal another
+                    Lock another
                   </button>
                   <a className="btn" href={`/verify/${result.predictionId}`}>
                     View receipt →
@@ -508,9 +509,9 @@ function HexAnimation({ text, stepIdx }: { text: string; stepIdx: number }) {
           letterSpacing: '0.08em',
         }}
       >
-        <span>{stepIdx <= 0 ? 'Plaintext buffer' : 'Ciphertext on Walrus'}</span>
+        <span>{stepIdx <= 0 ? 'Your words' : 'Scrambled on Walrus'}</span>
         <span style={{ marginLeft: 'auto' }}>
-          {stepIdx >= 1 ? 'uncrackable until unlock' : 'in-browser only'}
+          {stepIdx >= 1 ? 'unreadable until the open date' : 'still on your device'}
         </span>
       </div>
       <HexDump hex={display} rows={4} highlightFirst={stepIdx <= 0 ? totalBytes : 0} />
@@ -543,7 +544,7 @@ function TweetPreview({
   }, []);
 
   const tweetText =
-    `Sealed prediction at ${sealedTime} UTC. Verifies on ${unlockStr}.\n\n` +
+    `Locked a prediction at ${sealedTime} UTC. Opens on ${unlockStr}.\n\n` +
     `Proof: toldproof.xyz/verify/0x7f3a8c2e…`;
 
   const displayHandle = handle || 'yourname';
@@ -570,7 +571,7 @@ function TweetPreview({
             color: autoTweet ? 'var(--verified)' : 'var(--muted)',
           }}
         >
-          {autoTweet ? '● will auto-post' : '○ not posting'}
+          {autoTweet ? '● will post' : '○ won’t post'}
         </span>
       </div>
       <div
@@ -621,7 +622,7 @@ function TweetPreview({
               <PixelMark bitmap={BRAND_MARK} size={14} color="var(--ink)" />
             </div>
             <div style={{ fontSize: 14, lineHeight: 1.4, color: 'var(--ink)', fontWeight: 600 }}>
-              Sealed prediction · verifies {unlockStr}
+              Locked prediction · opens {unlockStr}
             </div>
             <div
               className="mono"
@@ -644,7 +645,7 @@ function TweetPreview({
                 textTransform: 'uppercase',
               }}
             >
-              encrypted · sui · walrus · seal
+              locked · sui · walrus · seal
             </div>
           </div>
         </div>
@@ -653,8 +654,8 @@ function TweetPreview({
         className="mono"
         style={{ fontSize: 10.5, color: 'var(--muted)', lineHeight: 1.55 }}
       >
-        ↑ Exact tweet that gets posted to @{displayHandle} the moment your seal lands on-chain.
-        Plaintext stays sealed until {unlockStr}.
+        ↑ This is the exact tweet that goes out from @{displayHandle} the moment
+        we save your prediction. The actual text stays hidden until {unlockStr}.
       </span>
     </div>
   );

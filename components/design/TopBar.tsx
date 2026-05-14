@@ -24,12 +24,12 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: '/', label: 'Home', match: (p) => p === '/' },
-  { href: '/seal', label: 'Seal' },
+  { href: '/seal', label: 'Lock' },
   // Profile, bot, reveal, reputation, brand all live at named routes
   { href: '/dewaxindo', label: 'Profile', match: (p) => p === '/dewaxindo' },
-  { href: '/bot', label: 'Verify bot' },
-  { href: '/reveal', label: 'Reveal' },
-  { href: '/reputation', label: 'Reputation' },
+  { href: '/bot', label: 'Check bot' },
+  { href: '/reveal', label: 'Open it' },
+  { href: '/reputation', label: 'Score' },
   { href: '/brand', label: 'Brand' },
 ];
 

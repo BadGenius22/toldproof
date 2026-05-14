@@ -22,7 +22,7 @@ export default function BrandPage() {
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
         >
-          One mark. Five lockups.
+          One mark. Five ways to use it.
         </h1>
         <p
           style={{
@@ -33,13 +33,13 @@ export default function BrandPage() {
             maxWidth: 680,
           }}
         >
-          The pixel wax-seal is the signature. It works as a standalone mark, locked up
-          horizontally with the wordmark, vertically stacked, or stamped into a sealed-scroll
-          frame for share previews.
+          The pixel wax-seal is the signature. Use it on its own, next to the
+          wordmark, stacked above the wordmark, or stamped into the receipt frame
+          for share previews.
         </p>
 
         <div className="mt-48 grid-2" style={{ gap: 20 }}>
-          <LockupCard label="Mark only · primary">
+          <LockupCard label="Mark only · default">
             <PixelMark bitmap={pickedMark} size={120} color="var(--ink)" />
           </LockupCard>
 
@@ -47,7 +47,7 @@ export default function BrandPage() {
             <PixelMark bitmap={pickedMark} size={120} color="var(--sealed)" />
           </LockupCard>
 
-          <LockupCard label="Horizontal lockup">
+          <LockupCard label="Mark + wordmark · side by side">
             <div className="row" style={{ gap: 16 }}>
               <PixelMark bitmap={pickedMark} size={64} color="var(--ink)" />
               <span
@@ -64,7 +64,7 @@ export default function BrandPage() {
             </div>
           </LockupCard>
 
-          <LockupCard label="Vertical lockup">
+          <LockupCard label="Mark + wordmark · stacked">
             <div className="col" style={{ gap: 10, alignItems: 'center' }}>
               <PixelMark bitmap={pickedMark} size={72} color="var(--ink)" />
               <span
@@ -87,12 +87,12 @@ export default function BrandPage() {
                   textTransform: 'uppercase',
                 }}
               >
-                Cryptographic receipts
+                Proof you called it
               </span>
             </div>
           </LockupCard>
 
-          <LockupCard label="Wax-seal lockup · OG share">
+          <LockupCard label="Wax-seal stamp · for share images">
             <div
               style={{
                 transform: 'rotate(-4deg)',
@@ -124,7 +124,7 @@ export default function BrandPage() {
             </div>
           </LockupCard>
 
-          <LockupCard label="Inverted · dark backdrop">
+          <LockupCard label="On a dark background">
             <div
               style={{
                 padding: '32px 28px',
@@ -154,7 +154,7 @@ export default function BrandPage() {
         </div>
 
         <div className="mt-48">
-          <PageEyebrow>Ecosystem glyphs</PageEyebrow>
+          <PageEyebrow>Partner icons</PageEyebrow>
           <div className="mt-16 grid-3" style={{ gap: 16 }}>
             <GlyphCard label="Sui" mark={SUI_MARK} />
             <GlyphCard label="Walrus" mark={WALRUS_MARK} />
@@ -163,7 +163,7 @@ export default function BrandPage() {
         </div>
 
         <div className="mt-48">
-          <PageEyebrow>Open Graph share preview · 1200×630</PageEyebrow>
+          <PageEyebrow>Share image preview · 1200×630</PageEyebrow>
           <div
             className="mt-16"
             style={{
@@ -201,7 +201,7 @@ export default function BrandPage() {
                   color: 'var(--ink)',
                 }}
               >
-                Sealed prediction.<br />Verifies in 41 days.
+                Locked prediction.<br />Opens in 41 days.
               </div>
               <div
                 className="mono"
@@ -247,7 +247,7 @@ export default function BrandPage() {
                     width: '100%',
                   }}
                 >
-                  toldproof · sealed
+                  toldproof · locked
                 </span>
               </div>
             </div>
@@ -274,12 +274,12 @@ export default function BrandPage() {
         </div>
 
         <div className="mt-48">
-          <PageEyebrow>Color tokens</PageEyebrow>
+          <PageEyebrow>Colors</PageEyebrow>
           <div className="mt-16 grid-4" style={{ gap: 12 }}>
             <Swatch name="Ink" varName="--ink" hex="#14130f" />
             <Swatch name="Paper" varName="--paper" hex="#f6f4ef" />
-            <Swatch name="Sealed (amber)" varName="--sealed" />
-            <Swatch name="Verified (green)" varName="--verified" />
+            <Swatch name="Locked (amber)" varName="--sealed" />
+            <Swatch name="Opened (green)" varName="--verified" />
           </div>
         </div>
       </div>

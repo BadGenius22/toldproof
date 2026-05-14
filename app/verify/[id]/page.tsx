@@ -114,7 +114,7 @@ export default async function VerifyPage({
         </div>
 
         <h1 className="display" style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}>
-          {status === 'revealed' ? 'Revealed.' : status === 'unlocked' ? 'Unlocked.' : 'Sealed.'}
+          {status === 'revealed' ? 'Open.' : status === 'unlocked' ? 'Ready to open.' : 'Locked.'}
         </h1>
 
         {/* Revealed plaintext block */}
@@ -141,9 +141,9 @@ export default async function VerifyPage({
                   color: 'oklch(0.35 0.12 150)',
                 }}
               >
-                On-chain plaintext · revealed {fmtRel(revealedAtMs)}
+                The prediction · opened {fmtRel(revealedAtMs)}
               </span>
-              <Chip status="verified">SHA-256 match ✓</Chip>
+              <Chip status="verified">Fingerprint matches ✓</Chip>
             </div>
             <p
               className="mono"
@@ -176,13 +176,13 @@ export default async function VerifyPage({
                 className="row"
                 style={{ justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}
               >
-                <span className="eyebrow">Walrus ciphertext · {blobId.slice(0, 22)}…</span>
+                <span className="eyebrow">Scrambled text on Walrus · {blobId.slice(0, 22)}…</span>
                 <Chip status={status === 'unlocked' ? 'warn' : 'sealed'}>
                   {status === 'unlocked' ? (
-                    <>Unlocked · awaiting reveal cron</>
+                    <>Date reached · waiting to be posted</>
                   ) : (
                     <>
-                      Unlocks in <VerifyLiveCountdown unlockAtMs={unlockAtMs} />
+                      Opens in <VerifyLiveCountdown unlockAtMs={unlockAtMs} />
                     </>
                   )}
                 </Chip>
@@ -207,18 +207,18 @@ export default async function VerifyPage({
             <div className="receipt-body">
               <dl style={{ margin: 0 }}>
                 <ReceiptRow k="Prediction ID" v={id} />
-                <ReceiptRow k="Publisher" v={p.publisher} />
+                <ReceiptRow k="Locked by (wallet)" v={p.publisher} />
                 <ReceiptRow k="X handle" v={<span>@{p.x_handle}</span>} />
                 <ReceiptRow
-                  k="Sealed at"
+                  k="Locked at"
                   v={`${fmtAbs(sealedAtMs)} (${sealedAgo})`}
                 />
-                <ReceiptRow k="Unlock at" v={fmtAbs(unlockAtMs)} />
+                <ReceiptRow k="Opens on" v={fmtAbs(unlockAtMs)} />
                 {revealed ? (
-                  <ReceiptRow k="Revealed at" v={fmtAbs(revealedAtMs)} />
+                  <ReceiptRow k="Opened at" v={fmtAbs(revealedAtMs)} />
                 ) : (
                   <ReceiptRow
-                    k="Countdown"
+                    k="Time until open"
                     v={
                       <span
                         style={{
@@ -231,9 +231,9 @@ export default async function VerifyPage({
                   />
                 )}
                 <ReceiptRow k="Status" v={<StatusChip p={view} />} />
-                <ReceiptRow k="SHA-256 hash" v={contentHashHex} />
-                <ReceiptRow k="Walrus blob" v={blobId} />
-                <ReceiptRow k="Sealed key (preview)" v={sealedKeyPreview} />
+                <ReceiptRow k="Text fingerprint" v={contentHashHex} />
+                <ReceiptRow k="Walrus storage ID" v={blobId} />
+                <ReceiptRow k="Locked key (preview)" v={sealedKeyPreview} />
                 <ReceiptRow
                   k="Network"
                   v={`sui:${NETWORK} · walrus:testnet · seal:testnet`}
@@ -250,16 +250,16 @@ export default async function VerifyPage({
               <div className="row" style={{ alignItems: 'flex-start', gap: 18, flexWrap: 'wrap' }}>
                 <SealMark idShort={idShort} />
                 <div className="col" style={{ gap: 6, flex: 1, minWidth: 240 }}>
-                  <span className="eyebrow">Cryptographic seal</span>
+                  <span className="eyebrow">How this proof works</span>
                   <p
                     className="mono"
                     style={{ margin: 0, fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}
                   >
-                    This receipt is generated from a Sui Move object at{' '}
-                    <span style={{ color: 'var(--ink)' }}>{idShort}</span>. The ciphertext lives at
-                    a Walrus blob; the AES key is sealed under the time-lock identity{' '}
-                    <span style={{ color: 'var(--sealed)' }}>bcs({unlockAtMs})</span>. Neither can
-                    be modified after sealing.
+                    This receipt comes from a record on Sui at{' '}
+                    <span style={{ color: 'var(--ink)' }}>{idShort}</span>. The scrambled text
+                    sits on Walrus, and the key stays locked until{' '}
+                    <span style={{ color: 'var(--sealed)' }}>{fmtAbs(unlockAtMs)}</span>.
+                    Nothing can be edited after this is locked.
                   </p>
                 </div>
               </div>
@@ -278,14 +278,14 @@ export default async function VerifyPage({
                   rel="noreferrer"
                   href={explorerUrl}
                 >
-                  Sui Explorer ↗
+                  See on Sui ↗
                 </a>
                 <a className="btn ghost" target="_blank" rel="noreferrer" href={walrusUrl}>
-                  Walrus blob ↗
+                  See on Walrus ↗
                 </a>
               </div>
               <Link href="/seal" className="btn">
-                Seal yours →
+                Lock yours →
               </Link>
             </div>
           </div>
@@ -325,7 +325,7 @@ function SealMark({ idShort }: { idShort: string }) {
           width: '100%',
         }}
       >
-        sealed
+        locked
         <br />
         <span style={{ color: 'var(--muted)' }}>{idShort}</span>
       </div>

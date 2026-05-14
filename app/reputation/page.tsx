@@ -24,12 +24,12 @@ export default function ReputationPage() {
   return (
     <div className="page">
       <div className="container">
-        <PageEyebrow>Reputation NFT · post-hackathon stretch</PageEyebrow>
+        <PageEyebrow>Score badge · coming after the hackathon</PageEyebrow>
         <h1
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
         >
-          Mint your hit rate.
+          Show your track record.
         </h1>
         <p
           style={{
@@ -40,10 +40,10 @@ export default function ReputationPage() {
             maxWidth: 680,
           }}
         >
-          When you&apos;ve sealed enough predictions across a long enough window, you can mint a
-          non-transferable NFT on Sui that anchors your hit rate, total seals, and longest
-          time-lock. It updates automatically as new predictions resolve. Other people see it on
-          your profile.
+          Once you&apos;ve locked enough predictions over enough time, you can claim
+          a badge on Sui that shows your hit rate, how many you&apos;ve locked, and
+          your longest call. It updates by itself as more predictions open. Anyone
+          looking at your profile sees it.
         </p>
 
         <div
@@ -67,16 +67,16 @@ export default function ReputationPage() {
                 overflow: 'hidden',
               }}
             >
-              <StatRow k="Rank" v={STATS.rank} highlight />
+              <StatRow k="Tier" v={STATS.rank} highlight />
               <StatRow
-                k="Hit rate"
+                k="Got it right"
                 v={`${hitRate}%`}
-                sub={`${STATS.hits} of ${STATS.revealed} resolved`}
+                sub={`${STATS.hits} out of ${STATS.revealed} settled`}
               />
-              <StatRow k="Sealed total" v={String(STATS.sealed)} />
-              <StatRow k="Revealed" v={String(STATS.revealed)} />
-              <StatRow k="Longest lock" v={`${STATS.longestLockDays} days`} />
-              <StatRow k="First sealed" v={fmtAbs(STATS.firstSealedAt).slice(0, 10)} />
+              <StatRow k="Locked total" v={String(STATS.sealed)} />
+              <StatRow k="Opened" v={String(STATS.revealed)} />
+              <StatRow k="Longest call" v={`${STATS.longestLockDays} days`} />
+              <StatRow k="First locked" v={fmtAbs(STATS.firstSealedAt).slice(0, 10)} />
             </div>
 
             <div
@@ -99,16 +99,16 @@ export default function ReputationPage() {
                   lineHeight: 1.7,
                 }}
               >
-                <li>Mints when sealed ≥ 5 AND time window ≥ 30 days.</li>
-                <li>Non-transferable — soulbound to the seal address.</li>
-                <li>Tier auto-upgrades as more predictions resolve.</li>
-                <li>Reads on-chain Registry counters; no off-chain trust.</li>
+                <li>You can claim it after locking 5+ predictions over 30+ days.</li>
+                <li>It can&apos;t be sent to anyone else. It stays with your wallet.</li>
+                <li>Your tier goes up by itself as more predictions open.</li>
+                <li>The numbers come straight from Sui. No middleman needed.</li>
               </ul>
             </div>
 
             <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
               <button type="button" className="btn" disabled style={{ opacity: 0.6 }}>
-                Mint reputation NFT
+                Claim my score badge
               </button>
               <span
                 className="mono"
@@ -119,14 +119,14 @@ export default function ReputationPage() {
                   whiteSpace: 'nowrap',
                 }}
               >
-                Locked · stretch goal · ETA Q3 2026
+                Not yet available · expected later in 2026
               </span>
             </div>
           </div>
         </div>
 
         <div className="mt-48">
-          <PageEyebrow>Tier ladder</PageEyebrow>
+          <PageEyebrow>The tiers</PageEyebrow>
           <div
             className="mt-16 grid-4"
             style={{
@@ -136,15 +136,15 @@ export default function ReputationPage() {
               overflow: 'hidden',
             }}
           >
-            <Tier name="Receipts" req="≥ 5 sealed, 30d window" state="unlocked" />
+            <Tier name="Receipts" req="5+ locked over 30 days" state="unlocked" />
             <Tier
               name="Verified caller"
-              req="≥ 50% hit, 10 resolved"
+              req="50%+ right, 10 settled"
               state="current"
               border
             />
-            <Tier name="Oracle" req="≥ 75% hit, 25 resolved" state="locked" />
-            <Tier name="Prophet" req="≥ 90% hit, 50 resolved" state="locked" border />
+            <Tier name="Oracle" req="75%+ right, 25 settled" state="locked" />
+            <Tier name="Prophet" req="90%+ right, 50 settled" state="locked" border />
           </div>
         </div>
       </div>
@@ -168,7 +168,7 @@ function NFTBadge({ stats, hitRate }: { stats: typeof STATS; hitRate: number }) 
       }}
     >
       <span className="eyebrow" style={{ alignSelf: 'flex-start' }}>
-        Reputation · SBT
+        Score badge · tied to your wallet
       </span>
       <div
         style={{
@@ -209,7 +209,7 @@ function NFTBadge({ stats, hitRate }: { stats: typeof STATS; hitRate: number }) 
           {hitRate}%
         </div>
         <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
-          {stats.hits}/{stats.revealed} resolved · {stats.sealed} sealed
+          {stats.hits}/{stats.revealed} settled · {stats.sealed} locked
         </div>
       </div>
       <div
@@ -321,7 +321,7 @@ function Tier({
             opacity: isCurrent ? 0.7 : 0.6,
           }}
         >
-          {state === 'unlocked' ? '✓ Unlocked' : state === 'current' ? '▸ Current' : '○ Locked'}
+          {state === 'unlocked' ? '✓ Cleared' : state === 'current' ? '▸ Your tier' : '○ Not yet'}
         </span>
       </div>
       <span style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}>{name}</span>

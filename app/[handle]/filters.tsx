@@ -32,9 +32,9 @@ export function ProfileFilters({
 
   const tabs: Array<{ id: Filter; label: string; n: number }> = [
     { id: 'all', label: 'All', n: counts.all },
-    { id: 'sealed', label: 'Sealed', n: counts.sealed },
-    { id: 'awaiting', label: 'Awaiting', n: counts.awaiting },
-    { id: 'revealed', label: 'Revealed', n: counts.revealed },
+    { id: 'sealed', label: 'Still locked', n: counts.sealed },
+    { id: 'awaiting', label: 'Ready to open', n: counts.awaiting },
+    { id: 'revealed', label: 'Opened', n: counts.revealed },
   ];
 
   return (
@@ -88,7 +88,7 @@ export function ProfileFilters({
               fontSize: 12,
             }}
           >
-            No predictions in this filter.
+            Nothing here yet.
           </div>
         )}
       </div>

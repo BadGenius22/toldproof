@@ -30,7 +30,7 @@ export function LiveTicker() {
           <span className="dot" />
           Live · public feed
         </span>
-        <span style={{ opacity: 0.7 }}>{ITEMS.length} recent seals · scrolling</span>
+        <span style={{ opacity: 0.7 }}>{ITEMS.length} recent locks · scrolling</span>
       </div>
       <div className="ticker-window">
         <div className="ticker-track">
@@ -40,7 +40,7 @@ export function LiveTicker() {
               <span style={{ color: 'var(--muted)' }}>@{it.handle}</span>
               <span>{it.text}</span>
               <span style={{ color: 'var(--muted)' }}>
-                · {it.state === 'revealed' ? 'revealed' : `${it.left} left`}
+                · {it.state === 'revealed' ? 'opened' : `${it.left} left`}
               </span>
             </span>
           ))}
