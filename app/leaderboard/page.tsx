@@ -65,7 +65,7 @@ export default async function LeaderboardPage() {
           }}
         >
           Predictions locked before the answer was known. AI judge marks each
-          hit or miss. Skill Score weights bold calls; already-true calls don&apos;t count.
+          hit or miss. Skill Score weights real and bold calls; already-true calls don&apos;t count.
         </p>
 
         {/* Aggregate stats strip */}
@@ -79,7 +79,7 @@ export default async function LeaderboardPage() {
             <Stat
               label="Ranked"
               value={stats.ranked}
-              sub="3+ settled + 2 bold calls"
+              sub="3+ settled, 2+ counted"
             />
             <Stat
               label="Predictions locked"

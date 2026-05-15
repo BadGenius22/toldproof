@@ -354,7 +354,7 @@ export default async function ProfilePage({
                   >
                     {tierFromScore(skill.score, totalResolved >= 3)?.label ?? 'Unranked'}
                     {' · '}
-                    {skill.boldCalls} bold call{skill.boldCalls === 1 ? '' : 's'} · weighted by how hard each call was
+                    Trivial calls (already true at lock time) don&apos;t move the score
                   </span>
                 </div>
                 <div className="col" style={{ gap: 10 }}>
