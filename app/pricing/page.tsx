@@ -612,13 +612,12 @@ function PrimaryCard({ tier }: { tier: PrimaryTier }) {
       </ul>
 
       <div style={{ marginTop: 8 }}>
-        <Link
+        <CtaLink
           href={tier.cta.href}
           className={tier.highlight ? 'btn' : 'btn ghost'}
-          style={{ width: '100%', justifyContent: 'center' }}
         >
           {tier.cta.label}
-        </Link>
+        </CtaLink>
       </div>
     </div>
   );
@@ -708,16 +707,54 @@ function AddOnCard({ addon }: { addon: AddOn }) {
             {addon.cta.label}
           </button>
         ) : (
-          <Link
-            href={addon.cta.href}
-            className="btn ghost"
-            style={{ width: '100%', justifyContent: 'center' }}
-          >
+          <CtaLink href={addon.cta.href} className="btn ghost">
             {addon.cta.label}
-          </Link>
+          </CtaLink>
         )}
       </div>
     </div>
+  );
+}
+
+// Render external/mailto CTAs as plain anchors so the browser handles them
+// natively. Next.js <Link> assumes internal routing for hrefs starting with
+// `/` or `#`, and historically interferes with mailto:/tel:/external URLs
+// (no-op click in some browsers, broken popup blocker fallback in others).
+function CtaLink({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className: string;
+  children: ReactNode;
+}) {
+  const isExternal =
+    href.startsWith('mailto:') ||
+    href.startsWith('tel:') ||
+    href.startsWith('http://') ||
+    href.startsWith('https://');
+  if (isExternal) {
+    return (
+      <a
+        href={href}
+        className={className}
+        style={{ width: '100%', justifyContent: 'center' }}
+        target={href.startsWith('mailto:') || href.startsWith('tel:') ? undefined : '_blank'}
+        rel={href.startsWith('mailto:') || href.startsWith('tel:') ? undefined : 'noreferrer'}
+      >
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link
+      href={href}
+      className={className}
+      style={{ width: '100%', justifyContent: 'center' }}
+    >
+      {children}
+    </Link>
   );
 }
 
