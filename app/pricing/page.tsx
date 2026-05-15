@@ -19,6 +19,7 @@ import {
   BRAND_MARK,
 } from '../../components/design';
 import { CostSlider } from './CostSlider';
+import { WaitlistForm } from './WaitlistForm';
 
 interface PrimaryTier {
   id: 'human' | 'pro' | 'agent';
@@ -27,7 +28,14 @@ interface PrimaryTier {
   priceSub: string;
   pitch: string;
   features: string[];
-  cta: { label: string; href: string; disabled?: boolean };
+  cta: {
+    label: string;
+    href: string;
+    disabled?: boolean;
+    // When set, the CTA renders an inline waitlist form (WaitlistForm) and
+    // the href is used as the mailto fallback.
+    waitlist?: 'pro' | 'reputation-api';
+  };
   // Audience-category pill (right corner). The Agent tier uses this to mark
   // itself as a different product, not a different price point.
   highlight?: boolean;
@@ -44,7 +52,12 @@ interface AddOn {
   priceSub: string;
   pitch: string;
   features: string[];
-  cta: { label: string; href: string; disabled?: boolean };
+  cta: {
+    label: string;
+    href: string;
+    disabled?: boolean;
+    waitlist?: 'pro' | 'reputation-api';
+  };
 }
 
 const PRIMARY: PrimaryTier[] = [
@@ -90,6 +103,7 @@ const PRIMARY: PrimaryTier[] = [
         encodeURIComponent(
           'Hi TOLDPROOF team,\n\nI write a paid newsletter / trading signal / KOL thread and want my hit rate on the public leaderboard.\n\nHandle: @\nWhat I write about:\nLink to my latest paid piece:\n\nThanks!',
         ),
+      waitlist: 'pro',
     },
   },
   {
@@ -148,6 +162,7 @@ const ADDONS: AddOn[] = [
         encodeURIComponent(
           'Hi TOLDPROOF team,\n\nI run a platform / fund / agent marketplace and want access to the top-ranked humans + AI agents in JSON, with webhooks when ranks change.\n\nCompany:\nUse case:\nExpected volume (requests/day):\nLink to product:\n\nThanks!',
         ),
+      waitlist: 'reputation-api',
     },
   },
 ];
@@ -612,12 +627,21 @@ function PrimaryCard({ tier }: { tier: PrimaryTier }) {
       </ul>
 
       <div style={{ marginTop: 8 }}>
-        <CtaLink
-          href={tier.cta.href}
-          className={tier.highlight ? 'btn' : 'btn ghost'}
-        >
-          {tier.cta.label}
-        </CtaLink>
+        {tier.cta.waitlist ? (
+          <WaitlistForm
+            tier={tier.cta.waitlist}
+            label={tier.cta.label}
+            variant={tier.highlight ? 'primary' : 'ghost'}
+            mailtoFallback={tier.cta.href}
+          />
+        ) : (
+          <CtaLink
+            href={tier.cta.href}
+            className={tier.highlight ? 'btn' : 'btn ghost'}
+          >
+            {tier.cta.label}
+          </CtaLink>
+        )}
       </div>
     </div>
   );
@@ -697,7 +721,14 @@ function AddOnCard({ addon }: { addon: AddOn }) {
       </ul>
 
       <div style={{ marginTop: 4 }}>
-        {addon.cta.disabled ? (
+        {addon.cta.waitlist ? (
+          <WaitlistForm
+            tier={addon.cta.waitlist}
+            label={addon.cta.label}
+            variant="ghost"
+            mailtoFallback={addon.cta.href}
+          />
+        ) : addon.cta.disabled ? (
           <button
             type="button"
             className="btn ghost"
