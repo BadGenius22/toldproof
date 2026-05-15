@@ -22,6 +22,7 @@ import {
 } from '../../components/DifficultyHistogram';
 import { PredictionCard } from '../../components/PredictionCard';
 import {
+  CopyableHash,
   EntityBadge,
   PageEyebrow,
   PixelMark,
@@ -32,6 +33,12 @@ import {
   identityDisplay,
   shortHash,
 } from '../../components/design';
+
+const SUI_NETWORK = (process.env.NEXT_PUBLIC_SUI_NETWORK ?? 'testnet') as
+  | 'testnet'
+  | 'mainnet'
+  | 'devnet'
+  | 'localnet';
 import { ProfileFilters } from './filters';
 
 // Look up the OAuth binding for this handle (humans only; agents are never
@@ -194,13 +201,45 @@ export default async function ProfilePage({
                       ✓ X verified
                     </span>
                   )}
+                  {skill && totalResolved >= 3 && (
+                    <span
+                      className="mono"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'baseline',
+                        gap: 6,
+                        padding: '4px 12px',
+                        border: '1px solid var(--ink)',
+                        borderRadius: 999,
+                        background: 'var(--paper-2)',
+                        fontSize: 11,
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase',
+                      }}
+                      title="Skill Score · 0–100 · difficulty-weighted"
+                    >
+                      <strong style={{ fontSize: 13, color: 'var(--ink)' }}>
+                        {skill.score}
+                      </strong>
+                      <span style={{ color: 'var(--muted)' }}>
+                        Skill ·{' '}
+                        {tierFromScore(skill.score, true)?.label ?? 'Unranked'}
+                      </span>
+                    </span>
+                  )}
                 </div>
                 {publisher && (
                   <span
                     className="mono"
                     style={{ fontSize: 12, color: 'var(--muted)' }}
                   >
-                    Sui · {shortHash(publisher, 8, 4)}
+                    Sui ·{' '}
+                    <CopyableHash
+                      value={publisher}
+                      display={shortHash(publisher, 8, 4)}
+                      href={`https://${SUI_NETWORK}.suivision.xyz/account/${publisher}`}
+                      label="wallet address"
+                    />
                     {xBinding && (
                       <>
                         {' · '}
@@ -410,13 +449,22 @@ function EmptyProfileState({ handle }: { handle: string }) {
         </p>
       </div>
 
-      <div className="row" style={{ gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <Link href="/lock" className="btn">
-          ▮ Be the first @{handle} →
-        </Link>
-        <Link href="/bot" className="btn ghost">
-          See what the bot says
-        </Link>
+      <div className="col" style={{ gap: 16, alignItems: 'center' }}>
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <Link href="/lock" className="btn">
+            If you&apos;re @{handle}, lock your first prediction →
+          </Link>
+        </div>
+        <a
+          href={`https://x.com/intent/post?text=${encodeURIComponent(
+            `Hey @${handle}, your TOLDPROOF receipts go here:\n\nhttps://toldproof.xyz/${handle}`,
+          )}`}
+          target="_blank"
+          rel="noreferrer"
+          className="btn ghost"
+        >
+          𝕏 Share this page to nudge @{handle}
+        </a>
       </div>
 
       <div

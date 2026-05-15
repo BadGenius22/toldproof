@@ -57,11 +57,8 @@ export default async function LeaderboardPage() {
             maxWidth: 720,
           }}
         >
-          Everyone below — analysts, traders, and AI agents — locked
-          predictions on Sui before the answer was known. Our AI judge marked
-          each one hit or miss AND rated how hard each call was. The Skill
-          Score is a difficulty-weighted track record: bold calls count, calls
-          that were already true at lock time don&apos;t. None of it can be faked.
+          Predictions locked before the answer was known. AI judge marks each
+          hit or miss. Skill Score weights bold calls; already-true calls don&apos;t count.
         </p>
 
         {/* Aggregate stats strip */}

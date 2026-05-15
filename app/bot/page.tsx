@@ -44,6 +44,21 @@ export default function BotPage() {
           <SelfServeVerify />
         </div>
 
+        {/* BT-07 coverage explainer — one line under the verifier. */}
+        <p
+          className="mono"
+          style={{
+            marginTop: 12,
+            fontSize: 11.5,
+            color: 'var(--muted)',
+            lineHeight: 1.55,
+            letterSpacing: '0.04em',
+          }}
+        >
+          Triggers when someone replies <code>@toldproof verify</code> to any
+          tweet. The bot checks the parent tweet&apos;s author.
+        </p>
+
         {/* Permanent rules strip — promoted out of the scenarios sidebar so
             it's visible without scrolling past the hero (P0-6). */}
         <div

@@ -5,9 +5,29 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
-import { fmtAbs } from './design';
+import { fmtAbs, TweetCard } from './design';
+
+// Real demo URLs the verifier can lock onto. Pick three that exercise the
+// three verdict paths: a verified call, an unproved claim, paste-your-own.
+// Replace the placeholders with live demo tweets the day of the demo.
+// TODO(ux-followup): swap in real tweets once the demo profile has settled
+// predictions on testnet.
+const PRESETS: Array<{ label: string; url: string }> = [
+  {
+    label: 'Try a verified call',
+    url: 'https://x.com/dewaxindo/status/1',
+  },
+  {
+    label: 'Try an unproved claim',
+    url: 'https://x.com/dewaxindo/status/2',
+  },
+  {
+    label: 'Paste your own',
+    url: '',
+  },
+];
 
 interface VerifyResponse {
   xHandle: string;
@@ -30,6 +50,7 @@ export function SelfServeVerify() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<VerifyResponse | null>(null);
   const [copied, setCopied] = useState(false);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -118,7 +139,11 @@ export function SelfServeVerify() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
+      >
         <input
           type="url"
           className="input"
@@ -128,14 +153,54 @@ export function SelfServeVerify() {
           disabled={phase === 'loading'}
           style={{ width: '100%' }}
         />
-        <button
-          type="submit"
-          className="btn"
-          disabled={phase === 'loading' || !tweetUrl.trim()}
-          style={{ alignSelf: 'flex-start' }}
+        <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+          {PRESETS.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              className="filter-tab"
+              disabled={phase === 'loading'}
+              onClick={() => {
+                setTweetUrl(p.url);
+                // Auto-submit so judges see the demo path in one click.
+                // Empty URL ("Paste your own") just focuses the field.
+                if (p.url) {
+                  queueMicrotask(() => formRef.current?.requestSubmit());
+                }
+              }}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div
+          className="row"
+          style={{ gap: 12, alignItems: 'center', flexWrap: 'wrap' }}
         >
-          Verify →
-        </button>
+          <button
+            type="submit"
+            className="btn"
+            disabled={phase === 'loading' || !tweetUrl.trim()}
+          >
+            Verify →
+          </button>
+          <span
+            className="mono"
+            style={{
+              padding: '3px 10px',
+              borderRadius: 999,
+              border: '1px solid var(--border)',
+              background: 'var(--paper-2)',
+              fontSize: 10.5,
+              color: 'var(--ink-3)',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}
+            title="Verify quota — keeps the bot from being weaponized"
+          >
+            Free · 5/day per requester
+          </span>
+        </div>
         {phase === 'loading' && <VerifyMiniPipeline />}
       </form>
 
@@ -156,54 +221,26 @@ export function SelfServeVerify() {
 
       {phase === 'done' && result && (
         <div className="col" style={{ gap: 14 }}>
-          <div
-            style={{
-              border: `1px solid ${
-                result.verdict.kind === 'matched'
-                  ? 'var(--verified, #1aa260)'
-                  : 'var(--ink)'
-              }`,
-              borderRadius: 4,
-              padding: '14px 16px',
-              background:
-                result.verdict.kind === 'matched'
-                  ? 'var(--verified-soft, #e8f7ee)'
-                  : 'var(--paper-2)',
-            }}
-          >
-            <div
-              className="row"
-              style={{
-                gap: 8,
-                marginBottom: 6,
-                fontSize: 11,
-                color:
-                  result.verdict.kind === 'matched'
-                    ? 'var(--verified, #1aa260)'
-                    : 'var(--muted)',
-                fontFamily: 'var(--font-mono), monospace',
-                textTransform: 'uppercase',
-                letterSpacing: '0.08em',
-              }}
-            >
-              <span>
+          {/* BT-04: render as TweetCard so the verifier preview matches the
+              autonomous bot's eventual on-X reply byte-for-byte. */}
+          <TweetCard
+            bot
+            name="toldproof"
+            handle="toldproof"
+            time="just now"
+            body={
+              <>
+                <span className="l">@{result.xHandle}</span>{' '}
                 {result.verdict.kind === 'matched'
-                  ? '✓ Match'
-                  : 'No proof found'}
-              </span>
-              <span>· @{result.xHandle}</span>
-            </div>
-            <p
-              style={{
-                margin: 0,
-                fontSize: 14,
-                lineHeight: 1.5,
-                color: 'var(--ink)',
-              }}
-            >
-              {result.verdict.text}
-            </p>
-          </div>
+                  ? 'verified ✓'
+                  : 'no toldproof found for this claim.'}
+              </>
+            }
+            verdict={{
+              tone: result.verdict.kind === 'matched' ? 'verified' : 'warn',
+              text: result.verdict.text,
+            }}
+          />
 
           {result.predictions.length > 0 && (
             <div className="col" style={{ gap: 6 }}>

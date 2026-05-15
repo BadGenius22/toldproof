@@ -159,28 +159,11 @@ export default function PricingPage() {
             maxWidth: 720,
           }}
         >
-          Humans get 10 free predictions a month — enough for most traders and
-          analysts. Need more? Pay $0.10 per extra prediction, or grab Pro for
-          100/month plus a Substack embed widget. AI agents pay $0.10 from
-          prediction one through their MCP client. Same price, same on-chain
-          fee, no surprises.
+          10 free predictions a month for humans, then $0.10 each. AI agents
+          pay $0.10 from the first prediction. Same price for everyone.
         </p>
 
-        {/* Parallel B2B path — distributed enterprise CTA per SaaS pricing-page
-            best practice (Stripe / Plaid / Datadog all repeat enterprise CTAs
-            rather than concentrate them at the bottom). */}
-        <div style={{ marginTop: 14 }}>
-          <Callout
-            eyebrow="For platforms and funds"
-            action={
-              <Link href="#reputation-api" className="mono" style={{ fontSize: 11 }}>
-                See the Reputation API →
-              </Link>
-            }
-          >
-            Buy the leaderboard data via the Reputation API.
-          </Callout>
-        </div>
+{/* B2B callout moved to the page footer (PC-06). */}
 
         {/* Primary two-card row */}
         <div
@@ -411,49 +394,11 @@ const tools = await mcp.tools();
           </div>
         </div>
 
-        {/* Resolution-cost transparency */}
+        {/* Resolution-cost transparency — PC-07: full-bleed dark receipt with
+            horizontal bar chart of the cost breakdown. */}
         <div className="mt-48">
           <PageEyebrow>What it costs us to settle a prediction</PageEyebrow>
-          <div
-            className="mt-16"
-            style={{
-              padding: '20px 24px',
-              border: '1px dashed var(--border)',
-              borderRadius: 4,
-              background: 'var(--paper-2)',
-              fontFamily: 'var(--font-mono), monospace',
-              fontSize: 12.5,
-              color: 'var(--ink-3)',
-              lineHeight: 1.7,
-            }}
-          >
-            <div className="row" style={{ justifyContent: 'space-between' }}>
-              <span>Sui network fee</span>
-              <span>~$0.001</span>
-            </div>
-            <div className="row" style={{ justifyContent: 'space-between' }}>
-              <span>Walrus storage (the AI judge&apos;s reasoning)</span>
-              <span>~$0.004</span>
-            </div>
-            <div className="row" style={{ justifyContent: 'space-between' }}>
-              <span>The AI judge itself (Claude Sonnet)</span>
-              <span>~$0.014</span>
-            </div>
-            <div
-              className="row"
-              style={{
-                justifyContent: 'space-between',
-                borderTop: '1px solid var(--border)',
-                paddingTop: 8,
-                marginTop: 8,
-                color: 'var(--ink)',
-                fontWeight: 600,
-              }}
-            >
-              <span>Total per settled call</span>
-              <span>~$0.019</span>
-            </div>
-          </div>
+          <CostReceipt />
           <p
             style={{
               marginTop: 12,
@@ -478,10 +423,133 @@ const tools = await mcp.tools();
           <Link href="/bot" className="btn ghost">
             See the verify bot
           </Link>
-          <Link href="#reputation-api" className="btn ghost">
-            For B2B integrators →
-          </Link>
         </div>
+
+        {/* PC-06: B2B callout pinned to the page footer band. */}
+        <div className="mt-48">
+          <Callout
+            eyebrow="For platforms and funds"
+            action={
+              <Link href="#reputation-api" className="mono" style={{ fontSize: 11 }}>
+                See the Reputation API →
+              </Link>
+            }
+          >
+            Buy the leaderboard data via the Reputation API — top-100 humans +
+            AI agents ranked, in JSON, with webhooks.
+          </Callout>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CostReceipt() {
+  const items = [
+    { label: 'Sui network fee', cost: 0.001 },
+    { label: "Walrus storage (the AI judge's reasoning)", cost: 0.004 },
+    { label: 'The AI judge itself (Claude Sonnet)', cost: 0.014 },
+  ];
+  const total = items.reduce((a, b) => a + b.cost, 0);
+  const fmt = (n: number) => `$${n.toFixed(3)}`;
+  return (
+    <div
+      className="mt-16"
+      style={{
+        padding: '22px 26px',
+        border: '1px solid var(--ink)',
+        borderRadius: 4,
+        background: 'var(--ink)',
+        color: 'var(--paper)',
+        boxShadow: '4px 4px 0 var(--sealed)',
+      }}
+    >
+      <div
+        className="mono"
+        style={{
+          fontSize: 11,
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+          color: 'var(--muted-2)',
+          marginBottom: 14,
+        }}
+      >
+        Receipt · per settled call
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {items.map((it) => {
+          const pct = (it.cost / total) * 100;
+          return (
+            <div key={it.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div
+                className="row"
+                style={{
+                  justifyContent: 'space-between',
+                  fontFamily: 'var(--font-mono), monospace',
+                  fontSize: 12,
+                  color: 'var(--paper)',
+                }}
+              >
+                <span>{it.label}</span>
+                <span>{fmt(it.cost)}</span>
+              </div>
+              <div
+                style={{
+                  height: 6,
+                  width: '100%',
+                  background: 'var(--paper-3)',
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  opacity: 0.25,
+                  position: 'relative',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: `${pct}%`,
+                    background: 'var(--sealed)',
+                    opacity: 4,
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div
+        className="row"
+        style={{
+          justifyContent: 'space-between',
+          alignItems: 'baseline',
+          marginTop: 18,
+          paddingTop: 14,
+          borderTop: '1px dashed var(--muted-2)',
+        }}
+      >
+        <span
+          className="mono"
+          style={{
+            fontSize: 11,
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
+            color: 'var(--muted-2)',
+          }}
+        >
+          Total
+        </span>
+        <span
+          className="mono"
+          style={{
+            fontSize: 40,
+            fontWeight: 500,
+            letterSpacing: '-0.02em',
+            color: 'var(--paper)',
+          }}
+        >
+          {fmt(total)}
+        </span>
       </div>
     </div>
   );

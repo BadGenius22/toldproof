@@ -17,6 +17,7 @@ import {
   shortHash,
 } from '../components/design';
 import { getRegistrySnapshot, getSuiClientForReads } from '../lib/registry';
+import { getTopProfile } from '../lib/leaderboard';
 
 // Revalidate the live-pulse line every 60s. Hero text + sample data are
 // static; only the snapshot counts move.
@@ -76,7 +77,11 @@ const SAMPLE = {
 export default async function HomePage() {
   // Best-effort. RPC outage = silent omission of the pulse line. Never
   // throws; the .catch() ensures the rest of the page still renders.
-  const snap = await getRegistrySnapshot(getSuiClientForReads()).catch(() => null);
+  const client = getSuiClientForReads();
+  const [snap, sampleHandle] = await Promise.all([
+    getRegistrySnapshot(client).catch(() => null),
+    getTopProfile(client, 'dewaxindo'),
+  ]);
   return (
     <div className="page">
       <div className="container">
@@ -292,8 +297,8 @@ export default async function HomePage() {
               <Link href="/pricing" className="btn">
                 See the Pro tier →
               </Link>
-              <Link href="/dewaxindo" className="btn ghost">
-                See an example profile
+              <Link href={`/${sampleHandle}`} className="btn ghost">
+                See @{sampleHandle}&apos;s profile
               </Link>
             </div>
           </div>

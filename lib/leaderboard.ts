@@ -291,6 +291,21 @@ export function tierFromScore(score: number, isRanked: boolean): TierBand | null
   return TIERS.find((t) => score >= t.min && score < t.max) ?? null;
 }
 
+// HM-05: surface the highest-ranked profile as the landing-page sample link.
+// Falls back to a known seeded handle so the link is never broken pre-launch.
+export async function getTopProfile(
+  client: SuiClient,
+  fallback = 'dewaxindo',
+): Promise<string> {
+  try {
+    const entries = sortLeaderboard(await buildLeaderboard(client));
+    const ranked = entries.find((e) => e.isRanked);
+    return ranked?.identity ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 // Pick the "best call" for a profile pin: highest-difficulty hit, breaking
 // ties by most recent resolution. Returns null when nothing qualifies (no
 // hits or no verdicts on file). Difficulty rank: hard > medium > easy > trivial.

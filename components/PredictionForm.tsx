@@ -20,6 +20,7 @@ import {
   PageEyebrow,
   Perforation,
   PixelMark,
+  PIXEL_LOCK,
   ReceiptRow,
   BRAND_MARK,
   fakeHexBlock,
@@ -175,6 +176,35 @@ export function PredictionForm() {
   const disabled = running;
   const charsLeft = 280 - text.length;
   const stepIdx = stepIndexOf(step);
+
+  async function postTweet(predictionId: string, unlockAtMs: number) {
+    setTweetState({ kind: 'posting' });
+    try {
+      const res = await fetch('/api/x/post-tweet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ predictionId, unlockAtMs }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.tweet?.url) {
+        setTweetState({ kind: 'posted', url: data.tweet.url });
+      } else if (data?.error === 'scope_missing') {
+        setTweetState({ kind: 'scope_missing' });
+      } else if (data?.error === 'credits_depleted') {
+        setTweetState({ kind: 'credits_depleted' });
+      } else {
+        setTweetState({
+          kind: 'failed',
+          detail: data?.detail ?? 'Could not post tweet',
+        });
+      }
+    } catch (err) {
+      setTweetState({
+        kind: 'failed',
+        detail: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -332,37 +362,7 @@ export function PredictionForm() {
       // here doesn't block the receipt. We update tweetState so the success
       // screen can render the resulting tweet URL or the re-auth nudge.
       if (autoTweet) {
-        setTweetState({ kind: 'posting' });
-        void (async () => {
-          try {
-            const res = await fetch('/api/x/post-tweet', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                predictionId: created.objectId,
-                unlockAtMs: Number(unlockAtMs),
-              }),
-            });
-            const data = await res.json().catch(() => null);
-            if (res.ok && data?.tweet?.url) {
-              setTweetState({ kind: 'posted', url: data.tweet.url });
-            } else if (data?.error === 'scope_missing') {
-              setTweetState({ kind: 'scope_missing' });
-            } else if (data?.error === 'credits_depleted') {
-              setTweetState({ kind: 'credits_depleted' });
-            } else {
-              setTweetState({
-                kind: 'failed',
-                detail: data?.detail ?? 'Could not post tweet',
-              });
-            }
-          } catch (err) {
-            setTweetState({
-              kind: 'failed',
-              detail: err instanceof Error ? err.message : String(err),
-            });
-          }
-        })();
+        void postTweet(created.objectId, Number(unlockAtMs));
       }
 
       // LK-08: receipt stays visible indefinitely. The user controls when to
@@ -384,7 +384,33 @@ export function PredictionForm() {
   return (
     <div className="page">
       <div className="container">
-        <PageEyebrow>Lock a prediction</PageEyebrow>
+        <div
+          className="row"
+          style={{ gap: 12, alignItems: 'center', flexWrap: 'wrap' }}
+        >
+          <PageEyebrow>Lock a prediction</PageEyebrow>
+          {quota && (
+            <span
+              className="mono"
+              style={{
+                padding: '3px 10px',
+                borderRadius: 999,
+                border: '1px solid var(--border)',
+                background: 'var(--paper-2)',
+                fontSize: 10.5,
+                color:
+                  quota.mode === 'overage' ? 'var(--warn)' : 'var(--ink-3)',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+              }}
+              title="Free monthly quota"
+            >
+              {quota.freeUsed}/{quota.freeLimit} free
+              {quota.mode === 'overage' &&
+                ` · overage $${quota.overagePriceUsd.toFixed(2)}`}
+            </span>
+          )}
+        </div>
         <h1
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
@@ -604,21 +630,33 @@ export function PredictionForm() {
             {!result && (
               <button
                 type="submit"
-                className="btn lg"
+                className="btn lg lock-submit-btn"
                 disabled={disabled}
-                style={{ alignSelf: 'flex-start', marginTop: 4 }}
+                style={{
+                  alignSelf: 'flex-start',
+                  marginTop: 4,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 10,
+                }}
               >
-                ▮ Lock my prediction
+                <PixelMark bitmap={PIXEL_LOCK} size={14} color="currentColor" />
+                Lock my prediction
               </button>
             )}
           </div>
 
-          <TweetPreview
-            text={text}
-            handle={xHandle}
-            unlockIso={unlockIso}
-            autoTweet={autoTweet}
-          />
+          <details className="tweet-preview-acc">
+            <summary>Preview the tweet ↓</summary>
+            <div className="tweet-preview-acc-body">
+              <TweetPreview
+                text={text}
+                handle={xHandle}
+                unlockIso={unlockIso}
+                autoTweet={autoTweet}
+              />
+            </div>
+          </details>
         </form>
         )}
 
@@ -703,60 +741,6 @@ export function PredictionForm() {
                 </dl>
               </div>
               <Perforation />
-              {/* Auto-tweet status — only rendered when the user opted in. */}
-              {tweetState.kind !== 'idle' && (
-                <div
-                  className="receipt-body"
-                  style={{
-                    fontSize: 12,
-                    color:
-                      tweetState.kind === 'posted'
-                        ? 'var(--verified)'
-                        : tweetState.kind === 'failed' ||
-                          tweetState.kind === 'scope_missing'
-                        ? 'var(--danger, #c25400)'
-                        : 'var(--ink-3)',
-                    fontFamily: 'var(--font-mono), monospace',
-                  }}
-                >
-                  {tweetState.kind === 'posting' && (
-                    <span>● Posting your tweet…</span>
-                  )}
-                  {tweetState.kind === 'posted' && (
-                    <span>
-                      ✓ Tweeted ·{' '}
-                      <a
-                        href={tweetState.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{ textDecoration: 'underline' }}
-                      >
-                        view on X →
-                      </a>
-                    </span>
-                  )}
-                  {tweetState.kind === 'scope_missing' && (
-                    <span>
-                      ⚠ Auto-tweet needs posting permission. Sign out + sign in
-                      with X again to grant it. (The seal itself is fine on Sui.)
-                    </span>
-                  )}
-                  {tweetState.kind === 'credits_depleted' && (
-                    <span>
-                      ⚠ Auto-tweet on standby — our X dev account is out of
-                      monthly write credits. Your prediction is locked on Sui
-                      either way; you can copy the verify URL and tweet it
-                      yourself.
-                    </span>
-                  )}
-                  {tweetState.kind === 'failed' && (
-                    <span>
-                      ⚠ Auto-tweet failed: {tweetState.detail}. (The seal
-                      itself is fine on Sui.)
-                    </span>
-                  )}
-                </div>
-              )}
               <div
                 className="receipt-body row"
                 style={{ justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}
@@ -774,9 +758,123 @@ export function PredictionForm() {
                 </div>
               </div>
             </div>
+            {tweetState.kind !== 'idle' && (
+              <TweetStatusCard
+                state={tweetState}
+                onRetry={() => postTweet(result.predictionId, result.unlockAtMs)}
+              />
+            )}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+interface TweetState {
+  kind:
+    | 'idle'
+    | 'posting'
+    | 'posted'
+    | 'scope_missing'
+    | 'credits_depleted'
+    | 'failed';
+}
+
+function TweetStatusCard({
+  state,
+  onRetry,
+}: {
+  state:
+    | { kind: 'idle' }
+    | { kind: 'posting' }
+    | { kind: 'posted'; url: string }
+    | { kind: 'scope_missing' }
+    | { kind: 'credits_depleted' }
+    | { kind: 'failed'; detail: string };
+  onRetry: () => void;
+}) {
+  // LK-02: separate subcard below the receipt, yellow palette (not red), with
+  // its own retry CTA on the failed paths. Failures should never look like a
+  // seal failure — the seal already succeeded.
+  const isFailure =
+    state.kind === 'failed' ||
+    state.kind === 'scope_missing' ||
+    state.kind === 'credits_depleted';
+  const borderColor = isFailure
+    ? 'var(--sealed)'
+    : state.kind === 'posted'
+      ? 'var(--verified)'
+      : 'var(--border)';
+  const bg = isFailure
+    ? 'var(--sealed-soft)'
+    : state.kind === 'posted'
+      ? 'var(--verified-soft)'
+      : 'var(--paper-2)';
+
+  return (
+    <div
+      className="mt-12"
+      style={{
+        border: `1px solid ${borderColor}`,
+        background: bg,
+        borderRadius: 4,
+        padding: '14px 18px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+        fontFamily: 'var(--font-mono), monospace',
+        fontSize: 12.5,
+      }}
+    >
+      <span
+        className="eyebrow"
+        style={{ color: isFailure ? 'oklch(0.4 0.12 70)' : 'var(--muted)' }}
+      >
+        Auto-tweet
+      </span>
+      <div style={{ color: 'var(--ink-2)', lineHeight: 1.55 }}>
+        {state.kind === 'posting' && <span>● Posting your tweet…</span>}
+        {state.kind === 'posted' && (
+          <span style={{ color: 'oklch(0.3 0.12 150)' }}>
+            ✓ Tweeted ·{' '}
+            <a
+              href={state.url}
+              target="_blank"
+              rel="noreferrer"
+              style={{ textDecoration: 'underline' }}
+            >
+              view on X →
+            </a>
+          </span>
+        )}
+        {state.kind === 'scope_missing' && (
+          <span>
+            Auto-tweet needs posting permission. Sign out + sign back in with X
+            to grant it. The seal itself is fine on Sui.
+          </span>
+        )}
+        {state.kind === 'credits_depleted' && (
+          <span>
+            Auto-tweet is on standby — our X dev account is out of monthly
+            write credits. Your prediction is locked on Sui either way; you can
+            copy the verify URL and tweet it yourself.
+          </span>
+        )}
+        {state.kind === 'failed' && (
+          <span>Auto-tweet failed: {state.detail}. The seal itself is fine on Sui.</span>
+        )}
+      </div>
+      {state.kind === 'failed' && (
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={onRetry}
+          style={{ alignSelf: 'flex-start', fontSize: 11 }}
+        >
+          Retry tweet
+        </button>
+      )}
     </div>
   );
 }
@@ -928,9 +1026,17 @@ function TweetPreview({
     setSealedTime(fmtAbs(Date.now()).slice(0, 16));
   }, []);
 
-  const tweetText =
+  // LK-11: toggle between the lock-tweet (now) and the projected reveal-tweet
+  // (after unlock). Helps the user visualise both ends of the receipt arc.
+  const [showReveal, setShowReveal] = useState(false);
+  const lockText =
     `Locked a prediction at ${sealedTime} UTC. Opens on ${unlockStr}.\n\n` +
     `Proof: toldproof.xyz/verify/0x7f3a8c2e…`;
+  const revealText =
+    `Opened my locked prediction from ${sealedTime} UTC.\n\n` +
+    `Nobody could read it until now — and AI judge has the verdict here:\n\n` +
+    `toldproof.xyz/verify/0x7f3a8c2e…`;
+  const tweetText = showReveal ? revealText : lockText;
 
   const displayHandle = handle || 'yourname';
   const cipherPreview = fakeHexBlock(text || 'x', 22)
@@ -947,17 +1053,37 @@ function TweetPreview({
         minWidth: 0,
       }}
     >
-      <div className="row" style={{ justifyContent: 'space-between' }}>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <span className="eyebrow">Tweet preview</span>
-        <span
-          className="mono"
-          style={{
-            fontSize: 10,
-            color: autoTweet ? 'var(--verified)' : 'var(--muted)',
-          }}
-        >
-          {autoTweet ? '● will post' : '○ won’t post'}
-        </span>
+        <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+          <div className="row" style={{ gap: 0 }}>
+            <button
+              type="button"
+              onClick={() => setShowReveal(false)}
+              className={`filter-tab${!showReveal ? ' active' : ''}`}
+              style={{ fontSize: 10 }}
+            >
+              See it now
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowReveal(true)}
+              className={`filter-tab${showReveal ? ' active' : ''}`}
+              style={{ fontSize: 10 }}
+            >
+              See the reveal
+            </button>
+          </div>
+          <span
+            className="mono"
+            style={{
+              fontSize: 10,
+              color: autoTweet ? 'var(--verified)' : 'var(--muted)',
+            }}
+          >
+            {autoTweet ? '● will post' : '○ won’t post'}
+          </span>
+        </div>
       </div>
       <div
         className="tweet"

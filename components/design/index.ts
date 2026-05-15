@@ -13,6 +13,7 @@ export { Stat, StatStrip } from './Stat';
 export { TagChip } from './TagChip';
 export { FilterTabs } from './FilterTabs';
 export { Callout } from './Callout';
+export { CopyableHash } from './CopyableHash';
 export { ShareButton } from './ShareButton';
 export * from './bitmaps';
 export * from './format';

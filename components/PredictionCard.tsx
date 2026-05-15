@@ -3,6 +3,23 @@
 
 import Link from 'next/link';
 import type { PredictionView } from '../lib/registry';
+
+// PR-05 fallback: real topic-at-lock-time needs a Move struct change (out of
+// scope for hackathon). Until then, parse hashtags from the revealed text so
+// the chip UI still surfaces topics on settled predictions.
+function extractHashtags(text: string): string[] {
+  const out: string[] = [];
+  if (!text) return out;
+  const seen = new Set<string>();
+  for (const m of text.matchAll(/#([A-Za-z][A-Za-z0-9_]{1,23})/g)) {
+    const tag = m[1]!.toLowerCase();
+    if (!seen.has(tag)) {
+      seen.add(tag);
+      out.push(tag);
+    }
+  }
+  return out;
+}
 import {
   StatusChip,
   TagChip,
@@ -91,9 +108,18 @@ export function PredictionCard({ p, pinned = false }: PredictionCardProps) {
         </div>
 
         {status === 'revealed' ? (
-          <p className="mono" style={{ margin: 0, fontSize: 15, lineHeight: 1.4, color: 'var(--ink)' }}>
-            &quot;{p.revealedPlaintext}&quot;
-          </p>
+          <div className="col" style={{ gap: 6 }}>
+            <p className="mono" style={{ margin: 0, fontSize: 15, lineHeight: 1.4, color: 'var(--ink)' }}>
+              &quot;{p.revealedPlaintext}&quot;
+            </p>
+            {extractHashtags(p.revealedPlaintext).length > 0 && (
+              <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
+                {extractHashtags(p.revealedPlaintext).slice(0, 4).map((tag) => (
+                  <TagChip key={tag} variant="neutral">#{tag}</TagChip>
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
           <div
             className="mono"

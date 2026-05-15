@@ -15,6 +15,8 @@ import {
   StatusChip,
   BIG_SEAL,
   BRAND_MARK,
+  SUI_MARK,
+  WALRUS_MARK,
   fakeHexBlock,
   fmtAbs,
   fmtRel,
@@ -336,7 +338,8 @@ export default async function VerifyPage({
 
         {/* The receipt */}
         <div className="mt-24">
-          <div className="receipt receipt-settle">
+          <div className="receipt receipt-settle" style={{ position: 'relative' }}>
+            <SealMark idShort={idShort} variant="corner" />
             <div className="receipt-header">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <PixelMark bitmap={BRAND_MARK} size={14} color="var(--paper)" />
@@ -443,24 +446,19 @@ export default async function VerifyPage({
 
             <div
               className="receipt-body"
-              style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
             >
-              <div className="row" style={{ alignItems: 'flex-start', gap: 18, flexWrap: 'wrap' }}>
-                <SealMark idShort={idShort} />
-                <div className="col" style={{ gap: 6, flex: 1, minWidth: 240 }}>
-                  <span className="eyebrow">How this proof works</span>
-                  <p
-                    className="mono"
-                    style={{ margin: 0, fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}
-                  >
-                    This receipt comes from a record on Sui at{' '}
-                    <span style={{ color: 'var(--ink)' }}>{idShort}</span>. The scrambled text
-                    sits on Walrus, and the key stays locked until{' '}
-                    <span style={{ color: 'var(--sealed)' }}>{fmtAbs(unlockAtMs)}</span>.
-                    Nothing can be edited after this is locked.
-                  </p>
-                </div>
-              </div>
+              <span className="eyebrow">How this proof works</span>
+              <p
+                className="mono"
+                style={{ margin: 0, fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}
+              >
+                This receipt comes from a record on Sui at{' '}
+                <span style={{ color: 'var(--ink)' }}>{idShort}</span>. The scrambled text
+                sits on Walrus, and the key stays locked until{' '}
+                <span style={{ color: 'var(--sealed)' }}>{fmtAbs(unlockAtMs)}</span>.
+                Nothing can be edited after this is locked.
+              </p>
             </div>
 
             <Perforation />
@@ -475,10 +473,19 @@ export default async function VerifyPage({
                   target="_blank"
                   rel="noreferrer"
                   href={explorerUrl}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
                 >
+                  <PixelMark bitmap={SUI_MARK} size={12} color="currentColor" />
                   See on Sui ↗
                 </a>
-                <a className="btn ghost" target="_blank" rel="noreferrer" href={walrusUrl}>
+                <a
+                  className="btn ghost"
+                  target="_blank"
+                  rel="noreferrer"
+                  href={walrusUrl}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+                >
+                  <PixelMark bitmap={WALRUS_MARK} size={12} color="currentColor" />
                   See on Walrus ↗
                 </a>
               </div>
@@ -591,33 +598,58 @@ function DifficultyPill({
   );
 }
 
-function SealMark({ idShort }: { idShort: string }) {
+function SealMark({
+  idShort,
+  variant = 'inline',
+}: {
+  idShort: string;
+  variant?: 'inline' | 'corner';
+}) {
+  // VF-06: 'corner' variant pins absolute to the top-right of the receipt,
+  // overlaps by ~30%, rotates -7deg, and uses a scuffed clip-path mask so
+  // it reads as a stamp pressed onto the paper.
+  const isCorner = variant === 'corner';
   return (
     <div
+      className={isCorner ? 'seal-mark seal-mark-corner' : 'seal-mark'}
       style={{
         border: '2px solid var(--ink)',
-        padding: 14,
+        padding: isCorner ? 10 : 14,
         background: 'var(--paper)',
         borderRadius: 4,
         display: 'grid',
-        gap: 8,
+        gap: 6,
         placeItems: 'center',
-        minWidth: 132,
+        minWidth: isCorner ? 96 : 132,
         boxShadow: '3px 3px 0 var(--ink)',
-        transform: 'rotate(-3deg)',
+        transform: isCorner ? 'rotate(-7deg)' : 'rotate(-3deg)',
+        ...(isCorner
+          ? {
+              position: 'absolute' as const,
+              top: -28,
+              right: 24,
+              zIndex: 3,
+              clipPath:
+                'polygon(2% 4%, 8% 0%, 30% 3%, 55% 0%, 80% 4%, 98% 0%, 100% 30%, 96% 55%, 100% 80%, 95% 100%, 70% 96%, 40% 100%, 12% 96%, 0% 90%, 4% 60%, 0% 30%)',
+            }
+          : {}),
       }}
     >
-      <PixelMark bitmap={BIG_SEAL} size={86} color="var(--ink)" />
+      <PixelMark
+        bitmap={BIG_SEAL}
+        size={isCorner ? 60 : 86}
+        color="var(--ink)"
+      />
       <div
         className="mono"
         style={{
-          fontSize: 9,
+          fontSize: isCorner ? 8 : 9,
           color: 'var(--ink)',
           textTransform: 'uppercase',
           letterSpacing: '0.14em',
           textAlign: 'center',
           borderTop: '1px dashed var(--ink)',
-          paddingTop: 6,
+          paddingTop: 4,
           width: '100%',
         }}
       >

@@ -998,6 +998,87 @@ h2.section {
   animation: toast-in 0.18s ease-out;
 }
 
+/* ─── sticky lock button on mobile (CC-04) ───────────────── */
+
+@media (max-width: 720px) {
+  .lock-submit-btn {
+    position: sticky;
+    bottom: 12px;
+    z-index: 5;
+    box-shadow: 0 4px 14px rgba(20, 19, 15, 0.18);
+  }
+}
+
+/* ─── tweet preview accordion (lock page, LK-09) ─────────── */
+
+.tweet-preview-acc > summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  background: var(--paper-2);
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  list-style: none;
+}
+@media (min-width: 901px) {
+  .tweet-preview-acc > summary {
+    display: none;
+  }
+  .tweet-preview-acc > .tweet-preview-acc-body {
+    display: block !important;
+  }
+}
+
+/* ─── seal mark (verify receipt) ─────────────────────────── */
+
+@media (max-width: 720px) {
+  .seal-mark-corner {
+    top: -20px !important;
+    right: 12px !important;
+    min-width: 76px !important;
+    padding: 8px !important;
+  }
+}
+
+/* ─── digit-rolling countdown (verify) ───────────────────── */
+
+.digit-rolling {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+}
+.digit-cell {
+  display: inline-block;
+  min-width: 1.7em;
+  padding: 2px 6px;
+  text-align: center;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 3px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  animation: digit-tick 0.18s ease-out;
+}
+.digit-sep {
+  color: var(--muted);
+  font-weight: 500;
+}
+@keyframes digit-tick {
+  from {
+    transform: translateY(-2px);
+    opacity: 0.85;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 /* ─── faq anchor ─────────────────────────────────────────── */
 
 .faq-item:hover .faq-anchor,

@@ -60,7 +60,7 @@ export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) 
           tabs={tabs.map((t) => ({ id: t.id, label: t.label, count: t.n }))}
           value={filter}
           onChange={setFilter}
-          rightHint="Ranked = 3+ settled calls · Sorted highest hit rate first"
+          rightHint="Ranked = 3+ settled calls · Sorted by Skill Score · difficulty-weighted"
         />
       </div>
 
