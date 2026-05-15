@@ -66,4 +66,26 @@ jobs:
         run: pnpm run test
 
       - name: next build
+        # NEXT_PUBLIC_* env vars are inlined into the client bundle, so these
+        # values are already public on every page load in production — safe to
+        # hardcode in CI. Real production values come from Vercel project env.
+        #
+        # The leaderboard page (ISR, revalidate=60) prerenders at build time
+        # and calls Sui RPC; without these vars, `lib/env.ts` throws on the
+        # strict `must()` check before the page's try/catch can handle it.
+        # Placeholder object IDs (0x...01, etc.) cause RPC calls to fail
+        # cleanly during prerender; the page catches the error and renders
+        # the empty state. ISR refreshes with real data at runtime.
+        env:
+          NEXT_PUBLIC_APP_URL: https://toldproof.xyz
+          NEXT_PUBLIC_SUI_NETWORK: testnet
+          NEXT_PUBLIC_SUI_RPC: https://fullnode.testnet.sui.io:443
+          NEXT_PUBLIC_WALRUS_PUBLISHER_URL: https://publisher.walrus-testnet.walrus.space
+          NEXT_PUBLIC_WALRUS_AGGREGATOR_URL: https://aggregator.walrus-testnet.walrus.space
+          NEXT_PUBLIC_TOLDPROOF_PACKAGE_ID: '0x97b738cecf808f17a80fabd55726df2ab31c97ec314c04e4810d5a504c3bd221'
+          NEXT_PUBLIC_PREDICTION_REGISTRY_ID: '0x0000000000000000000000000000000000000000000000000000000000000001'
+          NEXT_PUBLIC_SEAL_KEY_SERVER_1: '0x0000000000000000000000000000000000000000000000000000000000000001'
+          NEXT_PUBLIC_SEAL_KEY_SERVER_2: '0x0000000000000000000000000000000000000000000000000000000000000002'
+          NEXT_PUBLIC_SEAL_KEY_SERVER_3: ''
+          NEXT_PUBLIC_SEAL_THRESHOLD: '2'
         run: pnpm run build
