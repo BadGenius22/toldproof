@@ -4,20 +4,24 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { TweetCard } from '../../components/design';
 
-type Scenario = 'verified' | 'no-proof' | 'self-seal';
+type Scenario = 'self-seal' | 'verified' | 'no-proof';
 
+// Order picked per UX_FIXES BT-08: self-seal first — it's the conversion
+// story (someone locks a prediction because they got called out), so it
+// leads. Then "it checks out", then "no proof found".
 const SCENARIOS: Array<{ id: Scenario; label: string; hint: string }> = [
-  { id: 'verified', label: 'It checks out', hint: 'A real locked prediction matches the tweet.' },
-  { id: 'no-proof', label: 'No proof found', hint: 'Nothing was locked beforehand.' },
   {
     id: 'self-seal',
     label: 'Locks one on the spot',
     hint: 'Someone calls them out, so they lock one now.',
   },
+  { id: 'verified', label: 'It checks out', hint: 'A real locked prediction matches the tweet.' },
+  { id: 'no-proof', label: 'No proof found', hint: 'Nothing was locked beforehand.' },
 ];
 
 export function BotScenarios() {
-  const [scenario, setScenario] = useState<Scenario>('verified');
+  const [scenario, setScenario] = useState<Scenario>('self-seal');
+  const active = SCENARIOS.find((s) => s.id === scenario) ?? SCENARIOS[0]!;
 
   // No page+container wrapper — the parent /bot page owns the outer
   // structure. This component is just the interactive mockup block.
@@ -25,93 +29,44 @@ export function BotScenarios() {
     <div>
       <h2
         className="section"
-        style={{ fontSize: 22, margin: '0 0 14px' }}
+        style={{ fontSize: 20, margin: '0 0 8px' }}
       >
-        How the autonomous bot will look on X
+        See the bot in action
       </h2>
       <p
         style={{
-          margin: '0 0 24px',
-          fontSize: 14,
+          margin: '0 0 16px',
+          fontSize: 13,
           color: 'var(--ink-3)',
           lineHeight: 1.55,
           maxWidth: 720,
         }}
       >
-        Pick a scenario on the left to see the corresponding mock thread.
-        Same verdict logic as the live verifier above — the bot just adds
-        autonomous mention-listening, which needs X API Basic tier to ship.
+        Same verdict logic as the verifier above — the bot just listens for
+        mentions. Pick a scenario.
       </p>
 
-      <div className="bot-split">
-          <div className="col" style={{ gap: 12 }}>
-            <span className="eyebrow">Scenarios</span>
-            <div className="col" style={{ gap: 8 }}>
-              {SCENARIOS.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setScenario(s.id)}
-                  style={{
-                    all: 'unset',
-                    cursor: 'pointer',
-                    padding: '12px 14px',
-                    border: '1px solid',
-                    borderColor: scenario === s.id ? 'var(--ink)' : 'var(--border)',
-                    borderRadius: 4,
-                    background: scenario === s.id ? 'var(--ink)' : 'var(--paper)',
-                    color: scenario === s.id ? 'var(--paper)' : 'var(--ink)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 4,
-                  }}
-                >
-                  <span
-                    className="mono"
-                    style={{
-                      fontSize: 12,
-                      letterSpacing: '0.06em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {s.label}
-                  </span>
-                  <span className="mono" style={{ fontSize: 10.5, opacity: 0.7 }}>
-                    {s.hint}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <div
-              className="mt-24"
-              style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 4 }}
+      <div className="filter-bar" style={{ marginBottom: 14 }}>
+        <div className="tabs">
+          {SCENARIOS.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setScenario(s.id)}
+              className={`filter-tab${scenario === s.id ? ' active' : ''}`}
             >
-              <span className="eyebrow">Rules the bot follows</span>
-              <ul
-                className="mono"
-                style={{
-                  marginTop: 10,
-                  paddingLeft: 16,
-                  fontSize: 11.5,
-                  color: 'var(--ink-3)',
-                  lineHeight: 1.7,
-                }}
-              >
-                <li>It only replies when tagged. It never posts on its own.</li>
-                <li>It never says someone is lying.</li>
-                <li>Each person can ask up to 5 times a day.</li>
-                <li>Its bio says: no proof doesn&apos;t mean false.</li>
-              </ul>
-            </div>
-          </div>
-
-          <div>
-            {scenario === 'verified' && <ThreadVerified />}
-            {scenario === 'no-proof' && <ThreadNoProof />}
-            {scenario === 'self-seal' && <ThreadSelfSeal />}
-          </div>
+              <span>{s.label}</span>
+            </button>
+          ))}
         </div>
+        <span className="mono filter-hint">{active.hint}</span>
+      </div>
+
+      <div>
+        {scenario === 'self-seal' && <ThreadSelfSeal />}
+        {scenario === 'verified' && <ThreadVerified />}
+        {scenario === 'no-proof' && <ThreadNoProof />}
+      </div>
     </div>
   );
 }

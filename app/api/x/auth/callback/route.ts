@@ -87,6 +87,12 @@ export async function GET(req: Request) {
   const xHandle = xUser.username; // X enforces uniqueness; keep original case for display
   const xUserId = xUser.id;
   const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
+  // Swap _normal for _400x400 so the profile renders a high-res avatar.
+  const avatarUrl =
+    typeof xUser.profile_image_url === 'string' && xUser.profile_image_url.length > 0
+      ? xUser.profile_image_url.replace('_normal.', '_400x400.')
+      : null;
+  const displayName = typeof xUser.name === 'string' && xUser.name.length > 0 ? xUser.name : null;
 
   // 4. Squat guard. If another wallet already bound this handle, redirect to
   // the release flow rather than overwriting.
@@ -111,11 +117,13 @@ export async function GET(req: Request) {
     INSERT INTO x_account_links (
       x_user_id, x_handle, wallet_address,
       access_token_enc, refresh_token_enc, token_expires_at,
+      avatar_url, display_name,
       created_at, updated_at
     )
     VALUES (
       ${xUserId}, ${xHandle}, ${walletAddress},
       ${accessEnc}, ${refreshEnc}, ${expiresAt},
+      ${avatarUrl}, ${displayName},
       now(), now()
     )
     ON CONFLICT (x_user_id) DO UPDATE SET
@@ -124,6 +132,8 @@ export async function GET(req: Request) {
       access_token_enc = EXCLUDED.access_token_enc,
       refresh_token_enc = EXCLUDED.refresh_token_enc,
       token_expires_at = EXCLUDED.token_expires_at,
+      avatar_url = COALESCE(EXCLUDED.avatar_url, x_account_links.avatar_url),
+      display_name = COALESCE(EXCLUDED.display_name, x_account_links.display_name),
       updated_at = now()
   `;
 

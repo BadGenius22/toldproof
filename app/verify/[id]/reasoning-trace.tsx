@@ -55,7 +55,9 @@ interface Props {
 }
 
 export function ReasoningTrace({ trace, rawWalrusUrl }: Props) {
-  const [open, setOpen] = useState(false);
+  // Default open per UX_FIXES P0-5 — the trace IS the receipt's defensible
+  // IP, so it should not start hidden behind a 11px toggle.
+  const [open, setOpen] = useState(true);
 
   const verdict = trace.verdict;
   const isConsensus = trace.mode === 'consensus';
@@ -70,17 +72,42 @@ export function ReasoningTrace({ trace, rawWalrusUrl }: Props) {
     0,
   );
 
+  // One-line teaser shown when collapsed — "Step 1 — looked up BTC price ·
+  // 4 more steps". Picks the first worker's first step so panel mode still
+  // surfaces something concrete.
+  const firstStep = workers[0]?.steps?.[0];
+  const teaserSummary = firstStep ? summariseStep(firstStep) : '';
+  const remaining = Math.max(0, totalSteps - 1);
+  const teaser = firstStep
+    ? `Step 1${teaserSummary ? ' — ' + teaserSummary : ''}${
+        remaining > 0 ? ` · ${remaining} more step${remaining === 1 ? '' : 's'}` : ''
+      }`
+    : '';
+
   return (
     <div className="col" style={{ gap: 10 }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="btn ghost"
+        className="btn"
         aria-expanded={open}
-        style={{ alignSelf: 'flex-start' }}
+        style={{ alignSelf: 'flex-start', fontSize: 14 }}
       >
         {open ? '↑ Hide how the AI decided' : '↓ See how the AI decided'}
       </button>
+
+      {!open && teaser && (
+        <p
+          style={{
+            margin: 0,
+            fontSize: 13,
+            color: 'var(--ink-3)',
+            lineHeight: 1.5,
+          }}
+        >
+          {teaser}
+        </p>
+      )}
 
       {open && (
         <div

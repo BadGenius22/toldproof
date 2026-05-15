@@ -57,6 +57,30 @@ X X X X X
 X X X X X
 `;
 
+export const CLOCK_MARK = `
+. X X X .
+X . X . X
+X . X X X
+X . . . X
+. X X X .
+`;
+
+export const HASH_MARK = `
+. X . X .
+X X X X X
+. X . X .
+X X X X X
+. X . X .
+`;
+
+export const ID_MARK = `
+X X X X X
+X . . . X
+X X X X X
+X . . . X
+X X X X X
+`;
+
 export const WALRUS_MARK = `
 . . X X X X X . .
 . X . X . X . X .

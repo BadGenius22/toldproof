@@ -10,7 +10,12 @@ import {
 } from '../../lib/registry';
 import { getSql } from '../../lib/db';
 import { getVerdictsForIdentity } from '../../lib/verdict-store';
-import { computeSkillStats, type VerdictLookup } from '../../lib/leaderboard';
+import {
+  bestCall,
+  computeSkillStats,
+  tierFromScore,
+  type VerdictLookup,
+} from '../../lib/leaderboard';
 import {
   DifficultyHistogram,
   deriveProfileTag,
@@ -20,6 +25,9 @@ import {
   EntityBadge,
   PageEyebrow,
   PixelMark,
+  ProfileAvatar,
+  Stat,
+  StatStrip,
   BIG_SEAL,
   identityDisplay,
   shortHash,
@@ -33,21 +41,35 @@ import { ProfileFilters } from './filters';
 async function getXBinding(handle: string): Promise<{
   walletAddress: string;
   verifiedAt: string;
+  avatarUrl: string | null;
+  displayName: string | null;
 } | null> {
   try {
     const sql = getSql();
+    // Migration 004 added avatar_url + display_name. Both columns are nullable
+    // so unmigrated rows still return null for those fields without erroring.
     const rows = (await sql`
-      SELECT wallet_address, created_at
+      SELECT wallet_address, created_at, avatar_url, display_name
       FROM x_account_links
       WHERE LOWER(x_handle) = LOWER(${handle})
       LIMIT 1
-    `) as Array<{ wallet_address: string; created_at: string }>;
+    `) as Array<{
+      wallet_address: string;
+      created_at: string;
+      avatar_url: string | null;
+      display_name: string | null;
+    }>;
     if (rows.length === 0) return null;
     return {
       walletAddress: rows[0].wallet_address,
       verifiedAt: rows[0].created_at,
+      avatarUrl: rows[0].avatar_url,
+      displayName: rows[0].display_name,
     };
   } catch {
+    // If the migration hasn't been applied yet, the query above will throw
+    // for the missing columns — fall back to a no-binding response so the
+    // page still renders without avatar/displayName.
     return null;
   }
 }
@@ -94,6 +116,7 @@ export default async function ProfilePage({
   // shows "unknown" entries and skill score = 0 — surfaces the missing data
   // honestly rather than guessing.
   let skill: ReturnType<typeof computeSkillStats> | null = null;
+  let bestCallId: string | null = null;
   try {
     const verdictRows = await getVerdictsForIdentity(handle);
     const verdictMap = new Map<string, VerdictLookup>();
@@ -101,6 +124,12 @@ export default async function ProfilePage({
       verdictMap.set(r.prediction_id, { difficulty: r.difficulty });
     }
     skill = computeSkillStats(resolvedPreds, verdictMap);
+    // Pin the best call (highest-difficulty hit) to the top of the profile
+    // list. Only meaningful after 3+ settled calls so the pin doesn't lie.
+    if (resolvedPreds.length >= 3) {
+      const best = bestCall(resolvedPreds, verdictMap);
+      bestCallId = best?.id ?? null;
+    }
   } catch (e) {
     console.warn(`[profile] verdict load failed for ${handle}:`, e);
   }
@@ -125,23 +154,14 @@ export default async function ProfilePage({
         <div className="mt-12 profile-header">
           <div className="col" style={{ gap: 14 }}>
             <div className="row" style={{ gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div
-                style={{
-                  width: 78,
-                  height: 78,
-                  background: 'var(--ink)',
-                  color: 'var(--paper)',
-                  fontFamily: 'var(--font-mono), monospace',
-                  fontSize: 36,
-                  fontWeight: 600,
-                  display: 'grid',
-                  placeItems: 'center',
-                  borderRadius: 4,
-                  flexShrink: 0,
-                }}
-              >
-                {handle.slice(0, 1).toUpperCase()}
-              </div>
+              <ProfileAvatar
+                handle={handle}
+                avatarUrl={xBinding?.avatarUrl ?? null}
+                entityType={entityType as 0 | 1}
+                publisher={publisher}
+                size={96}
+                verified={!!xBinding && entityType === 0}
+              />
               <div className="col" style={{ gap: 6 }}>
                 <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
                   <h1
@@ -207,29 +227,22 @@ export default async function ProfilePage({
         {predictions.length > 0 ? (
           <>
             {/* Stats strip */}
-            <div
-              className="mt-32 grid-4"
-              style={{
-                gap: 0,
-                border: '1px solid var(--ink)',
-                borderRadius: 4,
-                overflow: 'hidden',
-              }}
-            >
-              <Stat label="Predictions locked" value={predictions.length} />
-              <Stat label="Already opened" value={revealed.length} hue="verified" border />
-              <Stat label="Still locked" value={sealed.length} hue="sealed" />
-              <Stat
-                label="Got it right"
-                value={hitRate != null ? `${hitRate}%` : '—'}
-                sub={
-                  totalResolved > 0
-                    ? `${hits}/${totalResolved} settled by AI agent`
-                    : 'awaiting AI agent resolution'
-                }
-                hue="verified"
-                border
-              />
+            <div className="mt-32">
+              <StatStrip>
+                <Stat label="Predictions locked" value={predictions.length} />
+                <Stat label="Already opened" value={revealed.length} hue="verified" />
+                <Stat label="Still locked" value={sealed.length} hue="sealed" />
+                <Stat
+                  label="Got it right"
+                  value={hitRate != null ? `${hitRate}%` : '—'}
+                  sub={
+                    totalResolved > 0
+                      ? `${hits}/${totalResolved} settled by AI agent`
+                      : 'awaiting AI agent resolution'
+                  }
+                  hue="verified"
+                />
+              </StatStrip>
             </div>
 
             {/* Skill Score + difficulty mix — the anti-spam disclosure layer */}
@@ -300,6 +313,8 @@ export default async function ProfilePage({
                     className="mono"
                     style={{ fontSize: 11, color: 'var(--muted)' }}
                   >
+                    {tierFromScore(skill.score, totalResolved >= 3)?.label ?? 'Unranked'}
+                    {' · '}
                     {skill.boldCalls} bold call{skill.boldCalls === 1 ? '' : 's'} · weighted by how hard each call was
                   </span>
                 </div>
@@ -325,68 +340,13 @@ export default async function ProfilePage({
                 revealed: revealed.length,
               }}
               predictions={predictions}
+              bestCallId={bestCallId}
             />
           </>
         ) : (
           <EmptyProfileState handle={handle} />
         )}
       </div>
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  sub,
-  hue,
-  border,
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-  hue?: 'verified' | 'sealed';
-  border?: boolean;
-}) {
-  const color =
-    hue === 'verified'
-      ? 'var(--verified)'
-      : hue === 'sealed'
-        ? 'var(--sealed)'
-        : 'var(--ink)';
-  return (
-    <div
-      style={{
-        padding: '20px 22px',
-        background: 'var(--paper)',
-        borderLeft: border ? '1px solid var(--ink)' : 'none',
-        borderRight: border ? '1px solid var(--ink)' : 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-      }}
-    >
-      <span className="eyebrow">{label}</span>
-      <span
-        style={{
-          fontFamily: 'var(--font-mono), monospace',
-          fontSize: 34,
-          fontWeight: 500,
-          letterSpacing: '-0.02em',
-          color,
-          lineHeight: 1,
-        }}
-      >
-        {value}
-      </span>
-      {sub && (
-        <span
-          className="mono"
-          style={{ fontSize: 10.5, color: 'var(--muted)' }}
-        >
-          {sub}
-        </span>
-      )}
     </div>
   );
 }

@@ -998,6 +998,299 @@ h2.section {
   animation: toast-in 0.18s ease-out;
 }
 
+/* ─── faq anchor ─────────────────────────────────────────── */
+
+.faq-item:hover .faq-anchor,
+.faq-item:focus-within .faq-anchor {
+  opacity: 1 !important;
+}
+
+/* ─── leaderboard podium ─────────────────────────────────── */
+
+.podium {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.podium-card {
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  background: var(--paper);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: transform 0.12s ease;
+}
+.podium-card:hover {
+  transform: translateY(-2px);
+}
+.podium-rank-1 {
+  border-width: 2px;
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  background: var(--paper);
+}
+.podium-rank-2 {
+  background: var(--paper-2);
+}
+.podium-rank-3 {
+  background: var(--paper-2);
+}
+.podium-medal {
+  font-size: 28px;
+  line-height: 1;
+}
+.podium-rank-1 .podium-medal {
+  font-size: 40px;
+}
+.podium-handle {
+  font-family: var(--font-mono), monospace;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.podium-rank-1 .podium-handle {
+  font-size: 28px;
+}
+.podium-score {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.podium-score-value {
+  font-family: var(--font-mono), monospace;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1;
+}
+.podium-rank-1 .podium-score-value {
+  font-size: 44px;
+  color: var(--verified);
+}
+.podium-score-label {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.podium-sparkline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.podium-spark-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.podium-spark-label {
+  font-size: 10px;
+  color: var(--muted);
+  margin-left: 4px;
+  letter-spacing: 0.04em;
+}
+@media (max-width: 720px) {
+  .podium {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── live pulse (landing hero) ──────────────────────────── */
+
+.live-pulse {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  margin-top: 6px;
+}
+.live-pulse .dot {
+  width: 8px;
+  height: 8px;
+  background: var(--verified);
+  border-radius: 50%;
+  animation: pulse-led 1.8s ease-in-out infinite;
+}
+
+/* ─── readiness gate (lock page) ─────────────────────────── */
+
+.readiness-card {
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  background: var(--paper);
+  padding: 24px 26px;
+  display: grid;
+  gap: 18px;
+  margin-bottom: 32px;
+}
+.readiness-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.readiness-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--verified);
+  background: var(--verified-soft);
+  font-size: 11px;
+  color: oklch(0.35 0.12 150);
+  letter-spacing: 0.06em;
+  margin-bottom: 24px;
+  width: fit-content;
+}
+.readiness-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.readiness-step {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  align-items: center;
+}
+.readiness-step.done {
+  border-color: var(--verified);
+  background: var(--verified-soft);
+}
+.readiness-num {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+.readiness-step.done .readiness-num {
+  color: var(--verified);
+  font-weight: 600;
+}
+.readiness-label {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* ─── stat strip / cell ──────────────────────────────────── */
+
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.stat-strip-bordered {
+  border: 1px solid var(--ink);
+}
+.stat-strip-bordered .stat-cell + .stat-cell {
+  border-left: 1px solid var(--ink);
+}
+.stat-cell {
+  padding: 20px 22px;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stat-value {
+  font-family: var(--font-mono), monospace;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.stat-sub {
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+/* ─── tag chip ───────────────────────────────────────────── */
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ─── filter tabs ────────────────────────────────────────── */
+
+.filter-tab {
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 3px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.filter-tab.active {
+  background: var(--ink);
+  color: var(--paper);
+}
+.filter-tab-count {
+  opacity: 0.55;
+  font-size: 10.5px;
+}
+.filter-hint {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ─── callout ────────────────────────────────────────────── */
+
+.callout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1px dashed;
+  border-radius: 4px;
+  background: var(--paper-2);
+  align-items: center;
+}
+.callout-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.callout-content {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.callout-action {
+  display: flex;
+  align-items: center;
+}
+
 /* ─── responsive ─────────────────────────────────────────── */
 
 @media (max-width: 960px) {
@@ -1118,6 +1411,19 @@ h2.section {
 
   h1.display {
     font-size: 36px !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .stat-strip-bordered .stat-cell + .stat-cell {
+    border-left: none;
+    border-top: 1px solid var(--ink);
+  }
+}
+
+@media (max-width: 640px) {
+  .callout {
+    grid-template-columns: 1fr;
   }
 }
 

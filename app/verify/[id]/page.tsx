@@ -11,6 +11,7 @@ import {
   Perforation,
   PixelMark,
   ReceiptRow,
+  ShareButton,
   StatusChip,
   BIG_SEAL,
   BRAND_MARK,
@@ -224,22 +225,37 @@ export default async function VerifyPage({
                   <span className="eyebrow">
                     The AI&apos;s call · {fmtRel(resolvedAtMs)}
                   </span>
-                  <div
-                    className="row"
-                    style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}
+                </div>
+                {/* Trace first (P0-5) — the trace IS the defensible IP, so it
+                    takes the attention before the headline pills. */}
+                {trace ? (
+                  <ReasoningTrace trace={trace} rawWalrusUrl={reasoningUrl} />
+                ) : reasoningUrl ? (
+                  <a
+                    className="btn ghost"
+                    target="_blank"
+                    rel="noreferrer"
+                    href={reasoningUrl}
                   >
-                    <Chip status={hit ? 'verified' : 'warn'}>
-                      {hit ? '✓ Hit · they called it' : '✗ Miss · they didn’t'}
-                    </Chip>
-                    {difficulty && (
-                      <DifficultyPill
-                        level={difficulty}
-                        reasoning={difficultyReasoning}
-                      />
-                    )}
-                  </div>
+                    ↗ Open the raw record on Walrus
+                  </a>
+                ) : null}
+                <div
+                  className="row mt-16"
+                  style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}
+                >
+                  <Chip status={hit ? 'verified' : 'warn'}>
+                    {hit ? '✓ Hit · they called it' : '✗ Miss · they didn’t'}
+                  </Chip>
+                  {difficulty && (
+                    <DifficultyPill
+                      level={difficulty}
+                      reasoning={difficultyReasoning}
+                    />
+                  )}
                 </div>
                 <p
+                  className="mt-12"
                   style={{
                     margin: 0,
                     fontSize: 14,
@@ -251,20 +267,6 @@ export default async function VerifyPage({
                   a call. Every step of its reasoning is saved on Walrus so
                   anyone can review exactly how it decided.
                 </p>
-                <div className="mt-12">
-                  {trace ? (
-                    <ReasoningTrace trace={trace} rawWalrusUrl={reasoningUrl} />
-                  ) : reasoningUrl ? (
-                    <a
-                      className="btn ghost"
-                      target="_blank"
-                      rel="noreferrer"
-                      href={reasoningUrl}
-                    >
-                      ↗ Open the raw record on Walrus
-                    </a>
-                  ) : null}
-                </div>
                 <div
                   className="mt-12"
                   style={{ fontSize: 11, color: 'var(--muted)' }}
@@ -291,7 +293,7 @@ export default async function VerifyPage({
                   gap: 10,
                 }}
               >
-                <span>AI Resolution Agent · waiting for next cron</span>
+                <span>AI judge hasn&apos;t reached this one yet — trigger now or wait.</span>
                 <ResolveButton id={id} />
               </div>
             )}
@@ -345,9 +347,8 @@ export default async function VerifyPage({
               </span>
             </div>
             <div className="receipt-body">
+              {/* Default 6 rows (VF-04) — the human-readable summary. */}
               <dl style={{ margin: 0 }}>
-                <ReceiptRow k="Prediction ID" v={id} />
-                <ReceiptRow k="Locked by (wallet)" v={p.publisher} />
                 <ReceiptRow
                   k={identityLabel}
                   v={
@@ -357,26 +358,21 @@ export default async function VerifyPage({
                   }
                 />
                 <ReceiptRow
-                  k="Entity type"
-                  v={isAgent ? '🤖 AI agent' : '👤 Human'}
-                />
-                <ReceiptRow
                   k="Locked at"
                   v={`${fmtAbs(sealedAtMs)} (${sealedAgo})`}
                 />
-                <ReceiptRow k="Opens on" v={fmtAbs(unlockAtMs)} />
                 {revealed ? (
                   <ReceiptRow k="Opened at" v={fmtAbs(revealedAtMs)} />
                 ) : (
                   <ReceiptRow
-                    k="Time until open"
+                    k="Opens on"
                     v={
                       <span
                         style={{
                           color: status === 'unlocked' ? 'var(--warn)' : 'var(--sealed)',
                         }}
                       >
-                        <VerifyLiveCountdown unlockAtMs={unlockAtMs} />
+                        {fmtAbs(unlockAtMs)} · <VerifyLiveCountdown unlockAtMs={unlockAtMs} />
                       </span>
                     }
                   />
@@ -393,22 +389,54 @@ export default async function VerifyPage({
                             fontWeight: 600,
                           }}
                         >
-                          {hit ? 'HIT' : 'MISS'}
+                          {hit ? 'HIT' : 'MISS'} · {fmtAbs(resolvedAtMs)}
                         </span>
                       }
                     />
-                    <ReceiptRow k="Decided on" v={fmtAbs(resolvedAtMs)} />
-                    <ReceiptRow k="Reasoning (Walrus)" v={reasoningBlobId} />
                   </>
                 )}
-                <ReceiptRow k="Text fingerprint" v={contentHashHex} />
-                <ReceiptRow k="Walrus storage ID" v={blobId} />
-                <ReceiptRow k="Locked key (preview)" v={sealedKeyPreview} />
-                <ReceiptRow
-                  k="Network"
-                  v={`sui:${NETWORK} · walrus:testnet · seal:testnet`}
-                />
               </dl>
+
+              <details
+                className="receipt-tech"
+                style={{
+                  marginTop: 14,
+                  borderTop: '1px dashed var(--border)',
+                  paddingTop: 12,
+                }}
+              >
+                <summary
+                  style={{
+                    cursor: 'pointer',
+                    fontSize: 11,
+                    color: 'var(--muted)',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    fontFamily: 'var(--font-mono), monospace',
+                    listStyle: 'none',
+                  }}
+                >
+                  Show technical details ↓
+                </summary>
+                <dl style={{ margin: '12px 0 0' }}>
+                  <ReceiptRow k="Prediction ID" v={id} />
+                  <ReceiptRow k="Locked by (wallet)" v={p.publisher} />
+                  <ReceiptRow
+                    k="Entity type"
+                    v={isAgent ? '🤖 AI agent' : '👤 Human'}
+                  />
+                  {resolved && (
+                    <ReceiptRow k="Reasoning (Walrus)" v={reasoningBlobId} />
+                  )}
+                  <ReceiptRow k="Text fingerprint" v={contentHashHex} />
+                  <ReceiptRow k="Walrus storage ID" v={blobId} />
+                  <ReceiptRow k="Locked key (preview)" v={sealedKeyPreview} />
+                  <ReceiptRow
+                    k="Network"
+                    v={`sui:${NETWORK} · walrus:testnet · seal:testnet`}
+                  />
+                </dl>
+              </details>
             </div>
 
             <Perforation />
@@ -454,15 +482,51 @@ export default async function VerifyPage({
                   See on Walrus ↗
                 </a>
               </div>
-              <Link href="/lock" className="btn">
-                Lock yours →
-              </Link>
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                <ShareButton
+                  text={composeShareText(p, revealed, hit, resolved, unlockAtMs)}
+                  url={`https://toldproof.xyz/verify/${id}`}
+                  variant="primary"
+                  label={
+                    revealed && resolved
+                      ? 'Tweet the verdict'
+                      : revealed
+                        ? 'Tweet the open'
+                        : 'Tweet the lock'
+                  }
+                />
+                <Link href="/lock" className="btn ghost">
+                  Lock yours →
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+function composeShareText(
+  p: SealedPredictionFields,
+  revealed: boolean,
+  hit: boolean,
+  resolved: boolean,
+  unlockAtMs: number,
+): string {
+  // TODO(ux-followup): agents render `@alias` here — the UX spec treats all
+  // identities as X handles. Revisit when agent share copy is specced.
+  const handle = `@${p.identity}`;
+  if (revealed && resolved) {
+    return hit
+      ? `${handle} locked this in advance. AI judge: HIT ✓\n\nRead every step:`
+      : `${handle} locked this in advance. AI judge: MISS ✗\n\nRead every step:`;
+  }
+  if (revealed) {
+    return `${handle} just opened a locked prediction. AI judge is reading it now.\n\nFollow along:`;
+  }
+  const opensOn = new Date(unlockAtMs).toISOString().slice(0, 10);
+  return `${handle} locked a prediction. Opens ${opensOn}. Nobody can read it until then — including ${handle}.\n\nReceipt:`;
 }
 
 function DifficultyPill({

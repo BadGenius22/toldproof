@@ -134,8 +134,9 @@ export function SelfServeVerify() {
           disabled={phase === 'loading' || !tweetUrl.trim()}
           style={{ alignSelf: 'flex-start' }}
         >
-          {phase === 'loading' ? 'Checking the receipts…' : 'Verify →'}
+          Verify →
         </button>
+        {phase === 'loading' && <VerifyMiniPipeline />}
       </form>
 
       {phase === 'error' && error && (
@@ -289,6 +290,55 @@ export function SelfServeVerify() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function VerifyMiniPipeline() {
+  // BT-03: 3-chip mini-pipeline shown during loading. Pure visual — we don't
+  // actually emit per-step progress events, so all three chips animate at
+  // staggered intervals to communicate "work is happening" without claiming
+  // step-level granularity we don't have.
+  const steps = ['fetching tweet', 'matching handle', 'reading receipts'];
+  return (
+    <div
+      className="row"
+      style={{
+        gap: 8,
+        flexWrap: 'wrap',
+        marginTop: 4,
+        fontFamily: 'var(--font-mono), monospace',
+        fontSize: 11,
+        color: 'var(--ink-3)',
+      }}
+      aria-live="polite"
+    >
+      {steps.map((s, i) => (
+        <span
+          key={s}
+          style={{
+            padding: '4px 10px',
+            border: '1px solid var(--border)',
+            borderRadius: 999,
+            background: 'var(--paper-2)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            animation: `pulse-led 1.4s ease-in-out ${i * 0.4}s infinite`,
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: 'var(--sealed)',
+              display: 'inline-block',
+            }}
+          />
+          {s}
+        </span>
+      ))}
     </div>
   );
 }

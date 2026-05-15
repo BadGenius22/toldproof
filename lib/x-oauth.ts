@@ -15,7 +15,8 @@ import { createHash, randomBytes } from 'node:crypto';
 // sent to twitter.com makes the OAuth screen look like "log in again".
 const AUTHORIZE_URL = 'https://x.com/i/oauth2/authorize';
 const TOKEN_URL = 'https://api.x.com/2/oauth2/token';
-const USERS_ME_URL = 'https://api.x.com/2/users/me';
+const USERS_ME_URL =
+  'https://api.x.com/2/users/me?user.fields=profile_image_url,name';
 
 // Scopes:
 //   users.read     — read the user's profile (/2/users/me) after OAuth
@@ -158,6 +159,9 @@ export interface XUserInfo {
   id: string;       // stable numeric user ID
   username: string; // handle, no @
   name: string;     // display name
+  /** X's _normal-sized avatar URL. Callers swap '_normal' → '_400x400' for
+   *  higher resolution rendering. Undefined for users who never set one. */
+  profile_image_url?: string;
 }
 
 export async function fetchUserInfo(accessToken: string): Promise<XUserInfo> {

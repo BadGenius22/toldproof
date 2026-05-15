@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { PredictionView } from '../lib/registry';
 import {
   StatusChip,
+  TagChip,
   fakeHexBlock,
   fmtAbs,
   fmtRel,
@@ -12,7 +13,12 @@ import {
   shortHash,
 } from './design';
 
-export function PredictionCard({ p }: { p: PredictionView }) {
+interface PredictionCardProps {
+  p: PredictionView;
+  pinned?: boolean;
+}
+
+export function PredictionCard({ p, pinned = false }: PredictionCardProps) {
   const now = Date.now();
   const status = predictionStatus(p, now);
   const accent =
@@ -22,7 +28,37 @@ export function PredictionCard({ p }: { p: PredictionView }) {
         ? 'var(--warn)'
         : 'var(--sealed)';
 
+  // Share text is verdict-aware: only render the affordance when the AI
+  // judge has already settled the call, so the headline matches the truth.
+  const shareUrl = p.resolved
+    ? `https://x.com/intent/post?text=${encodeURIComponent(
+        `${p.hit ? '✓ Hit' : '✗ Miss'}: "${p.revealedPlaintext}"\n\nLocked on toldproof.xyz/verify/${p.id}`,
+      )}`
+    : null;
+
   return (
+    <div style={{ position: 'relative' }}>
+      {pinned && (
+        <span
+          className="mono"
+          style={{
+            position: 'absolute',
+            top: -10,
+            left: 16,
+            zIndex: 2,
+            padding: '3px 10px',
+            borderRadius: 999,
+            border: '1px solid var(--verified)',
+            background: 'var(--verified-soft)',
+            color: 'oklch(0.3 0.12 150)',
+            fontSize: 10.5,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+          }}
+        >
+          ★ Best call so far
+        </span>
+      )}
     <Link
       href={`/verify/${p.id}`}
       style={{
@@ -32,7 +68,7 @@ export function PredictionCard({ p }: { p: PredictionView }) {
         gridTemplateColumns: '8px 1fr auto',
         gap: 0,
         background: 'var(--paper)',
-        border: '1px solid var(--border)',
+        border: pinned ? '1px solid var(--verified)' : '1px solid var(--border)',
         borderRadius: 4,
         overflow: 'hidden',
         transition: 'border-color 0.12s',
@@ -44,24 +80,9 @@ export function PredictionCard({ p }: { p: PredictionView }) {
           <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
             <StatusChip p={p} now={now} />
             {p.resolved && (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  padding: '3px 8px',
-                  borderRadius: 3,
-                  border: `1px solid ${p.hit ? 'var(--verified)' : 'var(--warn)'}`,
-                  background: p.hit ? 'var(--verified-soft)' : 'var(--warn-soft)',
-                  color: p.hit ? 'oklch(0.35 0.12 150)' : 'oklch(0.4 0.14 30)',
-                  fontFamily: 'var(--font-mono), monospace',
-                  fontSize: 10,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                }}
-              >
+              <TagChip variant={p.hit ? 'verified' : 'warn'}>
                 {p.hit ? '✓ Hit' : '✗ Miss'} · AI
-              </span>
+              </TagChip>
             )}
           </div>
           <span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
@@ -122,5 +143,30 @@ export function PredictionCard({ p }: { p: PredictionView }) {
         →
       </div>
     </Link>
+    {shareUrl && (
+      <a
+        href={shareUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="mono"
+        style={{
+          position: 'absolute',
+          bottom: 8,
+          right: 48,
+          padding: '3px 9px',
+          borderRadius: 3,
+          background: 'var(--paper-2)',
+          border: '1px solid var(--border)',
+          fontSize: 10.5,
+          color: 'var(--ink-3)',
+          textDecoration: 'none',
+          letterSpacing: '0.04em',
+          zIndex: 2,
+        }}
+      >
+        𝕏 Share
+      </a>
+    )}
+    </div>
   );
 }

@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { LeaderboardEntry } from '../../lib/leaderboard';
-import { EntityBadge, fmtRel, identityDisplay, shortHash } from '../../components/design';
+import { tierFromScore } from '../../lib/leaderboard';
+import { EntityBadge, FilterTabs, TagChip, fmtRel, identityDisplay, shortHash } from '../../components/design';
 import { DifficultyHistogram, deriveProfileTag } from '../../components/DifficultyHistogram';
 
 type Filter = 'all' | 'humans' | 'agents';
@@ -21,60 +22,68 @@ export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) 
   const ranked = filtered.filter((e) => e.isRanked);
   const upcoming = filtered.filter((e) => !e.isRanked);
 
-  const tabs: Array<{ id: Filter; label: string; n: number }> = [
+  const tabs: Array<{ id: Filter; label: React.ReactNode; n: number }> = [
     { id: 'all', label: 'All', n: entries.length },
-    { id: 'humans', label: '👤 Humans', n: entries.filter((e) => e.entityType === 0).length },
-    { id: 'agents', label: '🤖 AI agents', n: entries.filter((e) => e.entityType === 1).length },
+    {
+      id: 'humans',
+      label: (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <EntityBadge entityType={0} variant="sm" /> Humans
+        </span>
+      ),
+      n: entries.filter((e) => e.entityType === 0).length,
+    },
+    {
+      id: 'agents',
+      label: (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <EntityBadge entityType={1} variant="sm" /> AI agents
+        </span>
+      ),
+      n: entries.filter((e) => e.entityType === 1).length,
+    },
   ];
+
+  // LB-04: precompute percentile rank within the ranked-only list. Highest
+  // Skill Score = top 1% (rank 1 of 100). Ties get the same percentile.
+  const rankedSorted = [...ranked].sort((a, b) => b.skill.score - a.skill.score);
+  const percentileById = new Map<string, number>();
+  rankedSorted.forEach((e, i) => {
+    const pct = Math.max(1, Math.round(((i + 1) / rankedSorted.length) * 100));
+    percentileById.set(e.identity, pct);
+  });
 
   return (
     <>
-      <div className="mt-32 filter-bar">
-        <div className="tabs">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setFilter(t.id)}
-              style={{
-                background: filter === t.id ? 'var(--ink)' : 'transparent',
-                color: filter === t.id ? 'var(--paper)' : 'var(--ink-3)',
-                border: 'none',
-                padding: '6px 14px',
-                borderRadius: 3,
-                fontFamily: 'var(--font-mono), monospace',
-                fontSize: 11,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-              }}
-            >
-              {t.label} ({t.n})
-            </button>
-          ))}
-        </div>
-        <span className="mono" style={{ fontSize: 11, color: 'var(--muted)' }}>
-          Ranked = 3+ settled calls · Sorted highest hit rate first
-        </span>
+      <div className="mt-32">
+        <FilterTabs
+          tabs={tabs.map((t) => ({ id: t.id, label: t.label, count: t.n }))}
+          value={filter}
+          onChange={setFilter}
+          rightHint="Ranked = 3+ settled calls · Sorted highest hit rate first"
+        />
       </div>
 
       {ranked.length > 0 && (
         <div className="mt-16">
           <span className="eyebrow">Ranked</span>
-          <div
-            className="mt-12"
-            style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
-          >
-            {ranked.map((entry, idx) => (
-              <LeaderboardRow
-                key={entry.identity}
-                entry={entry}
-                rank={idx + 1}
-                now={now}
-              />
-            ))}
-          </div>
+          <Podium top3={ranked.slice(0, 3)} />
+          {ranked.length > 3 && (
+            <div
+              className="mt-16"
+              style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+            >
+              {ranked.slice(3).map((entry, idx) => (
+                <LeaderboardRow
+                  key={entry.identity}
+                  entry={entry}
+                  rank={idx + 4}
+                  now={now}
+                  percentile={percentileById.get(entry.identity)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -125,14 +134,70 @@ export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) 
   );
 }
 
+function Podium({ top3 }: { top3: LeaderboardEntry[] }) {
+  if (top3.length === 0) return null;
+  return (
+    <div className="podium mt-12">
+      {top3.map((entry, i) => (
+        <PodiumCard key={entry.identity} entry={entry} rank={i + 1} />
+      ))}
+    </div>
+  );
+}
+
+const PODIUM_MEDALS = ['🥇', '🥈', '🥉'] as const;
+
+function PodiumCard({ entry, rank }: { entry: LeaderboardEntry; rank: number }) {
+  const score = entry.skill.score;
+  const tier = tierFromScore(score, entry.isRanked);
+  const sparkline = entry.recentResults.length > 0 ? entry.recentResults : [];
+
+  return (
+    <Link
+      href={`/${entry.identity}`}
+      className={`podium-card podium-rank-${rank}`}
+      style={{ all: 'unset', cursor: 'pointer', display: 'block' }}
+    >
+      <div className="podium-medal" aria-hidden="true">
+        {PODIUM_MEDALS[rank - 1] ?? `#${rank}`}
+      </div>
+      <div className="podium-handle">{identityDisplay(entry.identity, entry.entityType)}</div>
+      <div className="podium-score">
+        <span className="podium-score-value">{score}</span>
+        <span className="podium-score-label mono">{tier?.label ?? 'Unranked'}</span>
+      </div>
+      <DifficultyHistogram mix={entry.skill.mix} compact />
+      {sparkline.length > 0 && (
+        <div className="podium-sparkline">
+          {sparkline.map((r, i) => (
+            <span
+              key={i}
+              className="podium-spark-dot"
+              style={{
+                background: r === 'H' ? 'var(--verified)' : 'var(--warn)',
+              }}
+              title={r === 'H' ? 'Hit' : 'Miss'}
+            />
+          ))}
+          <span className="mono podium-spark-label">
+            last {sparkline.length} call{sparkline.length === 1 ? '' : 's'}
+          </span>
+        </div>
+      )}
+    </Link>
+  );
+}
+
 function LeaderboardRow({
   entry,
   rank,
   now,
+  percentile,
 }: {
   entry: LeaderboardEntry;
   rank?: number;
   now: number;
+  percentile?: number;
 }) {
   const hitPct = Math.round(entry.stats.hitRate * 100);
   const skill = entry.skill.score;
@@ -194,28 +259,9 @@ function LeaderboardRow({
           </span>
           <EntityBadge entityType={entry.entityType} variant="sm" />
           {tag && (
-            <span
-              className="mono"
-              style={{
-                fontSize: 10,
-                padding: '2px 7px',
-                borderRadius: 999,
-                background:
-                  tag.kind === 'bold'
-                    ? 'var(--verified-soft, #eaffea)'
-                    : 'var(--warn-soft, #fff7e6)',
-                color:
-                  tag.kind === 'bold'
-                    ? 'oklch(0.3 0.12 150)'
-                    : 'var(--ink)',
-                border: `1px solid ${
-                  tag.kind === 'bold' ? 'var(--verified)' : 'var(--warn)'
-                }`,
-                whiteSpace: 'nowrap',
-              }}
-            >
+            <TagChip variant={tag.kind === 'bold' ? 'bold' : 'warn'}>
               {tag.label}
-            </span>
+            </TagChip>
           )}
         </div>
         <span
@@ -256,12 +302,31 @@ function LeaderboardRow({
           }}
         >
           {entry.isRanked ? skill : '—'}
+          {entry.isRanked && percentile !== undefined && (
+            <span
+              className="mono"
+              style={{
+                fontSize: 11,
+                color: 'var(--muted)',
+                fontWeight: 400,
+                marginLeft: 6,
+              }}
+            >
+              · top {percentile}%
+            </span>
+          )}
         </span>
         <span
           className="mono"
           style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}
         >
           Skill Score
+        </span>
+        <span
+          className="mono"
+          style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}
+        >
+          {tierFromScore(skill, entry.isRanked)?.label ?? 'Unranked'}
         </span>
       </div>
 

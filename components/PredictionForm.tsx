@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   CurrentAccountSigner,
   useCurrentAccount,
@@ -18,7 +17,6 @@ import { useXSession, startXOAuth } from '../lib/useXSession';
 import { useQuota } from '../lib/useQuota';
 import {
   Chip,
-  HexDump,
   PageEyebrow,
   Perforation,
   PixelMark,
@@ -85,7 +83,6 @@ const NETWORK = (process.env.NEXT_PUBLIC_SUI_NETWORK ?? 'testnet') as
 export function PredictionForm() {
   const account = useCurrentAccount();
   const dAppKit = useDAppKit();
-  const router = useRouter();
   const { session, knownBinding } = useXSession();
   const { quota, refetch: refetchQuota } = useQuota();
   const [suiClient] = useState(
@@ -368,11 +365,8 @@ export function PredictionForm() {
         })();
       }
 
-      // Auto-navigate to the verify page after the receipt is visible. Give
-      // a bit more time when auto-tweet is on so the tweet status has a
-      // chance to render before the user is whisked away.
-      const navDelayMs = autoTweet ? 4500 : 2200;
-      setTimeout(() => router.push(`/verify/${created.objectId}`), navDelayMs);
+      // LK-08: receipt stays visible indefinitely. The user controls when to
+      // navigate via the explicit "View receipt →" CTA on the receipt itself.
     } catch (e: unknown) {
       console.error(e);
       setError(e instanceof Error ? e.message : String(e));
@@ -411,33 +405,18 @@ export function PredictionForm() {
           can read it.
         </p>
 
-        {/* AI agent path callout — humans use the form below, agents use MCP. */}
-        <Link
-          href="/pricing#mcp"
-          style={{
-            all: 'unset',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 14,
-            marginTop: 18,
-            padding: '12px 16px',
-            border: '1px dashed var(--ink)',
-            borderRadius: 4,
-            background: 'var(--paper-2)',
-            maxWidth: 560,
-          }}
-        >
-          <span className="mono" style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.5 }}>
-            <strong style={{ color: 'var(--ink)' }}>Are you an AI agent?</strong>{' '}
-            Skip the form. Plug into{' '}
-            <code style={{ color: 'var(--sealed)' }}>/api/mcp/mcp</code> and
-            pay $0.10 in USDC per prediction.
-          </span>
-          <span className="mono" style={{ fontSize: 11, color: 'var(--ink)' }}>See docs →</span>
-        </Link>
+        <div className="mt-24">
+          <ReadinessGate
+            account={account}
+            session={session}
+            knownBinding={knownBinding}
+            onStartOAuth={() => {
+              if (account) void startXOAuth(account.address);
+            }}
+          />
+        </div>
 
+        {account && session && (
         <form onSubmit={handleSubmit} className="mt-32 seal-layout">
           <div
             style={{
@@ -623,47 +602,14 @@ export function PredictionForm() {
             </label>
 
             {!result && (
-              <>
-                {/* Three states, three buttons. The "no session" buttons swap
-                    type=submit for type=button and actively kick off OAuth
-                    on click — rather than telling the user to find some
-                    other CTA. The lock button only renders when we have a
-                    real session to seal under. */}
-                {!account ? (
-                  <button
-                    type="button"
-                    disabled
-                    className="btn lg"
-                    style={{ alignSelf: 'flex-start', marginTop: 4 }}
-                  >
-                    Connect wallet to lock
-                  </button>
-                ) : !session ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void startXOAuth(account.address);
-                    }}
-                    className="btn lg"
-                    style={{ alignSelf: 'flex-start', marginTop: 4 }}
-                  >
-                    𝕏{' '}
-                    {knownBinding
-                      ? `Sign in as @${knownBinding.xHandle} to continue`
-                      : 'Sign in with X to continue'}{' '}
-                    →
-                  </button>
-                ) : (
-                  <button
-                    type="submit"
-                    className="btn lg"
-                    disabled={disabled}
-                    style={{ alignSelf: 'flex-start', marginTop: 4 }}
-                  >
-                    ▮ Lock my prediction
-                  </button>
-                )}
-              </>
+              <button
+                type="submit"
+                className="btn lg"
+                disabled={disabled}
+                style={{ alignSelf: 'flex-start', marginTop: 4 }}
+              >
+                ▮ Lock my prediction
+              </button>
             )}
           </div>
 
@@ -674,16 +620,33 @@ export function PredictionForm() {
             autoTweet={autoTweet}
           />
         </form>
+        )}
 
-        {/* Pipeline */}
+        {/* LK-05: agent footer — one-liner under the form, not above. */}
+        <p
+          className="mono"
+          style={{
+            marginTop: 16,
+            fontSize: 11.5,
+            color: 'var(--muted)',
+            letterSpacing: '0.04em',
+          }}
+        >
+          Are you an AI agent? Skip the form — plug into{' '}
+          <Link href="/pricing#mcp" style={{ color: 'var(--ink-2)' }}>
+            <code style={{ color: 'var(--sealed)' }}>/api/mcp/mcp</code>
+          </Link>{' '}
+          and pay $0.10 USDC per prediction.
+        </p>
+
+        {/* Pipeline — single thin progress bar (LK-04). Hex animation cut. */}
         {(running || result) && (
           <div
             className="mt-32"
-            style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
           >
             <PageEyebrow>{result ? 'Locked' : 'Locking…'}</PageEyebrow>
-            <SealPipeline stepIdx={stepIdx} done={!!result} />
-            {!result && running && <HexAnimation text={text} stepIdx={stepIdx} />}
+            <ThinPipeline stepIdx={stepIdx} done={!!result} />
           </div>
         )}
 
@@ -818,68 +781,131 @@ export function PredictionForm() {
   );
 }
 
-function SealPipeline({ stepIdx, done }: { stepIdx: number; done: boolean }) {
+function ReadinessGate({
+  account,
+  session,
+  knownBinding,
+  onStartOAuth,
+}: {
+  account: ReturnType<typeof useCurrentAccount>;
+  session: ReturnType<typeof useXSession>['session'];
+  knownBinding: ReturnType<typeof useXSession>['knownBinding'];
+  onStartOAuth: () => void;
+}) {
+  const walletReady = !!account;
+  const xReady = !!session;
+  const allReady = walletReady && xReady;
+
+  if (allReady) {
+    return (
+      <div className="readiness-pill mono">
+        ✓ Wallet connected · signed in as <strong>@{session.xHandle}</strong>
+      </div>
+    );
+  }
+
   return (
-    <div className="steps">
-      {STEP_LABELS.map((s, i) => {
-        const state = done || i < stepIdx ? 'done' : i === stepIdx ? 'active' : '';
-        return (
-          <div key={s.id} className={`step-item ${state}`}>
-            <span className="num">{String(i + 1).padStart(2, '0')}</span>
-            <span>{s.label}</span>
-            {state === 'active' && (
-              <span style={{ marginLeft: 'auto' }} className="spinner" />
-            )}
-          </div>
-        );
-      })}
+    <div className="readiness-card">
+      <div className="readiness-head">
+        <span className="eyebrow">Two-step setup</span>
+        <h2 className="section" style={{ fontSize: 22, margin: 0 }}>
+          Get ready in 30 seconds
+        </h2>
+      </div>
+      <ol className="readiness-steps">
+        <ReadinessStep
+          n={1}
+          label="Connect a Sui wallet"
+          done={walletReady}
+          action={
+            !walletReady ? (
+              <span className="hint">Use the wallet button at the top right.</span>
+            ) : undefined
+          }
+        />
+        <ReadinessStep
+          n={2}
+          label="Sign in with X"
+          done={xReady}
+          sub={
+            knownBinding
+              ? `This wallet was last signed in as @${knownBinding.xHandle}.`
+              : undefined
+          }
+          action={
+            !xReady && walletReady ? (
+              <button type="button" onClick={onStartOAuth} className="btn">
+                𝕏 {knownBinding ? `Sign in as @${knownBinding.xHandle}` : 'Sign in with X'}
+              </button>
+            ) : undefined
+          }
+        />
+      </ol>
     </div>
   );
 }
 
-function HexAnimation({ text, stepIdx }: { text: string; stepIdx: number }) {
-  const totalBytes = 64;
-  const plainHex = useMemo(() => {
-    const enc = new TextEncoder().encode(text);
-    let h = '';
-    for (let i = 0; i < totalBytes; i += 1) {
-      const b = enc[i] ?? (0x20 + (i % 90));
-      h += b.toString(16).padStart(2, '0');
-    }
-    return h;
-  }, [text]);
-  const cipherHex = useMemo(() => fakeHexBlock('cipher:' + text, totalBytes), [text]);
-
-  // stepIdx 0 = encrypting → still plaintext. After 0 → cipher.
-  const display = stepIdx >= 1 ? cipherHex : plainHex;
-  const detail =
-    STEP_LABELS[Math.max(0, Math.min(stepIdx, STEP_LABELS.length - 1))]?.detail ?? '';
-
+function ReadinessStep({
+  n,
+  label,
+  done,
+  sub,
+  action,
+}: {
+  n: number;
+  label: string;
+  done: boolean;
+  sub?: string;
+  action?: React.ReactNode;
+}) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
+    <li className={`readiness-step${done ? ' done' : ''}`}>
+      <span className="readiness-num">{done ? '✓' : String(n).padStart(2, '0')}</span>
+      <div className="col" style={{ gap: 4 }}>
+        <span className="readiness-label">{label}</span>
+        {sub && <span className="hint">{sub}</span>}
+      </div>
+      {action && <div className="readiness-action">{action}</div>}
+    </li>
+  );
+}
+
+function ThinPipeline({ stepIdx, done }: { stepIdx: number; done: boolean }) {
+  // 4px tall amber fill — single label tracks the active step. Replaces the
+  // prior 5-tile grid + hex animation per UX_FIXES LK-04.
+  const total = STEP_LABELS.length;
+  const completed = done ? total : Math.max(0, stepIdx);
+  const pct = Math.min(100, Math.round((completed / total) * 100));
+  const activeLabel = done
+    ? 'Locked'
+    : STEP_LABELS[Math.max(0, Math.min(stepIdx, total - 1))]?.label ?? 'Locking…';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div
-        className="row"
         style={{
-          gap: 12,
-          fontFamily: 'var(--font-mono), monospace',
-          fontSize: 11,
-          color: 'var(--muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
+          height: 4,
+          width: '100%',
+          background: 'var(--paper-2)',
+          borderRadius: 2,
+          overflow: 'hidden',
         }}
       >
-        <span>{stepIdx <= 0 ? 'Your words' : 'Scrambled on Walrus'}</span>
-        <span style={{ marginLeft: 'auto' }}>
-          {stepIdx >= 1 ? 'unreadable until the open date' : 'still on your device'}
-        </span>
+        <div
+          style={{
+            height: '100%',
+            width: `${pct}%`,
+            background: 'var(--sealed)',
+            transition: 'width 0.25s ease-out',
+          }}
+        />
       </div>
-      <HexDump hex={display} rows={4} highlightFirst={stepIdx <= 0 ? totalBytes : 0} />
-      <div
-        className="hint mono"
-        style={{ fontSize: 11, color: 'var(--muted)' }}
+      <span
+        className="mono"
+        style={{ fontSize: 12, color: 'var(--ink-3)', letterSpacing: '0.04em' }}
       >
-        {detail}
-      </div>
+        {activeLabel}
+        {!done && ' · ' + (completed + 1) + '/' + total}
+      </span>
     </div>
   );
 }

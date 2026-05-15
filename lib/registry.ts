@@ -191,6 +191,47 @@ export async function listAllIdentities(client: SuiClient): Promise<string[]> {
   return out;
 }
 
+// Lightweight snapshot for the landing-page live-pulse line (P0-4).
+// totalLocked = every prediction ever sealed across all identities.
+// totalResolved = predictions the AI judge has already attested.
+// nextUnlockMs = smallest unlockAtMs strictly greater than now, or null if
+// every prediction is already past its unlock time.
+export interface RegistrySnapshot {
+  totalLocked: number;
+  totalResolved: number;
+  nextUnlockMs: number | null;
+}
+
+export async function getRegistrySnapshot(client: SuiClient): Promise<RegistrySnapshot> {
+  const identities = await listAllIdentities(client);
+  const now = Date.now();
+  let totalLocked = 0;
+  let totalResolved = 0;
+  let nextUnlockMs: number | null = null;
+
+  for (const identity of identities) {
+    let preds: PredictionView[];
+    try {
+      preds = await getPredictionsForIdentity(client, identity);
+    } catch {
+      // One bad identity shouldn't tank the whole snapshot — skip and
+      // surface a partial count rather than throwing.
+      continue;
+    }
+    totalLocked += preds.length;
+    for (const p of preds) {
+      if (p.resolved) totalResolved += 1;
+      if (!p.revealed && p.unlockAtMs > now) {
+        if (nextUnlockMs === null || p.unlockAtMs < nextUnlockMs) {
+          nextUnlockMs = p.unlockAtMs;
+        }
+      }
+    }
+  }
+
+  return { totalLocked, totalResolved, nextUnlockMs };
+}
+
 export async function getPredictionView(
   client: SuiClient,
   predictionId: string,

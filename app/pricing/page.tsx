@@ -10,8 +10,11 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import {
+  Callout,
+  EntityBadge,
   PageEyebrow,
   PixelMark,
+  STARBURST_MARK,
   BIG_SEAL,
   BRAND_MARK,
 } from '../../components/design';
@@ -46,7 +49,7 @@ interface AddOn {
 const PRIMARY: PrimaryTier[] = [
   {
     id: 'human',
-    audience: '🤝 Humans · Free',
+    audience: 'Humans · Free',
     price: '$0',
     priceSub: '10 predictions / month',
     pitch:
@@ -60,10 +63,13 @@ const PRIMARY: PrimaryTier[] = [
       'Need more? Pay $0.10 per extra prediction',
     ],
     cta: { label: 'Lock a prediction →', href: '/lock' },
+    // Recommended flag moved off Pro (P0-10) — Pro's CTA is disabled, so it
+    // can't be the page's primary anchor. Free is the path to take today.
+    recommended: true,
   },
   {
     id: 'pro',
-    audience: '⭐ Humans · Pro',
+    audience: 'Humans · Pro',
     price: '$9',
     priceSub: 'per month · waitlist',
     pitch:
@@ -77,11 +83,10 @@ const PRIMARY: PrimaryTier[] = [
       'Analyst badge on your profile',
     ],
     cta: { label: 'Join waitlist', href: '#', disabled: true },
-    recommended: true,
   },
   {
     id: 'agent',
-    audience: '🤖 AI Agents',
+    audience: 'AI Agents',
     price: '$0.10',
     priceSub: 'per locked prediction · USDC',
     pitch:
@@ -164,27 +169,18 @@ export default function PricingPage() {
         {/* Parallel B2B path — distributed enterprise CTA per SaaS pricing-page
             best practice (Stripe / Plaid / Datadog all repeat enterprise CTAs
             rather than concentrate them at the bottom). */}
-        <Link
-          href="#reputation-api"
-          style={{
-            all: 'unset',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 10,
-            marginTop: 14,
-            padding: '8px 14px',
-            border: '1px dashed var(--ink)',
-            borderRadius: 4,
-            background: 'var(--paper-2)',
-          }}
-        >
-          <span className="mono" style={{ fontSize: 11, color: 'var(--ink-2)' }}>
-            <strong style={{ color: 'var(--ink)' }}>For platforms and funds:</strong>{' '}
-            buy the leaderboard data via the Reputation API
-          </span>
-          <span className="mono" style={{ fontSize: 11, color: 'var(--ink)' }}>→</span>
-        </Link>
+        <div style={{ marginTop: 14 }}>
+          <Callout
+            eyebrow="For platforms and funds"
+            action={
+              <Link href="#reputation-api" className="mono" style={{ fontSize: 11 }}>
+                See the Reputation API →
+              </Link>
+            }
+          >
+            Buy the leaderboard data via the Reputation API.
+          </Callout>
+        </div>
 
         {/* Primary two-card row */}
         <div
@@ -491,6 +487,13 @@ const tools = await mcp.tools();
   );
 }
 
+function TierIcon({ id }: { id: PrimaryTier['id'] }) {
+  if (id === 'agent') return <EntityBadge entityType={1} variant="sm" />;
+  if (id === 'pro')
+    return <PixelMark bitmap={STARBURST_MARK} size={18} color="var(--sealed)" />;
+  return <EntityBadge entityType={0} variant="sm" />;
+}
+
 function PrimaryCard({ tier }: { tier: PrimaryTier }) {
   // Either flag thickens the border so the card visually competes with neighbours.
   const emphasised = tier.highlight || tier.recommended;
@@ -525,7 +528,7 @@ function PrimaryCard({ tier }: { tier: PrimaryTier }) {
             border: '1px solid var(--ink)',
           }}
         >
-          Most Popular · waitlist
+          Start here
         </span>
       )}
       {tier.highlight && (
@@ -551,12 +554,16 @@ function PrimaryCard({ tier }: { tier: PrimaryTier }) {
       <div className="col" style={{ gap: 4 }}>
         <span
           style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
             fontSize: 18,
             fontWeight: 600,
             color: 'var(--ink)',
             letterSpacing: '-0.01em',
           }}
         >
+          <TierIcon id={tier.id} />
           {tier.audience}
         </span>
         <div className="row" style={{ alignItems: 'baseline', gap: 8, marginTop: 6 }}>

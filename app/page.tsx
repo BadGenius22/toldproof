@@ -5,6 +5,9 @@ import {
   LiveTicker,
   PageEyebrow,
   PixelMark,
+  CLOCK_MARK,
+  HASH_MARK,
+  ID_MARK,
   SEAL_KEY_MARK,
   SUI_MARK,
   WALRUS_MARK,
@@ -13,6 +16,11 @@ import {
   fmtRel,
   shortHash,
 } from '../components/design';
+import { getRegistrySnapshot, getSuiClientForReads } from '../lib/registry';
+
+// Revalidate the live-pulse line every 60s. Hero text + sample data are
+// static; only the snapshot counts move.
+export const revalidate = 60;
 
 // FAQ content lives next to the JSON-LD so the structured-data block and the
 // visible FAQ section can't drift out of sync.
@@ -65,7 +73,10 @@ const SAMPLE = {
   blobId: 'K9pM2nL5tY7wB1eS6jH4uA8vF3xK9pM2nL5tY7wB1e',
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Best-effort. RPC outage = silent omission of the pulse line. Never
+  // throws; the .catch() ensures the rest of the page still renders.
+  const snap = await getRegistrySnapshot(getSuiClientForReads()).catch(() => null);
   return (
     <div className="page">
       <div className="container">
@@ -94,12 +105,38 @@ export default function HomePage() {
                 marks it hit or miss, and saves the full reasoning forever.
                 Build a record nobody can fake.
               </p>
-              <div className="row" style={{ gap: 10, marginTop: 8 }}>
-                <Link href="/pricing#mcp" className="btn lg">
-                  For your AI agent →
+              {snap && snap.totalLocked > 0 && (
+                <div className="mono live-pulse">
+                  <span className="dot" />
+                  {snap.totalLocked.toLocaleString()} predictions locked
+                  {' · '}
+                  {snap.totalResolved.toLocaleString()} settled
+                  {snap.nextUnlockMs !== null && (
+                    <>
+                      {' · '}
+                      next opens {fmtRel(snap.nextUnlockMs)}
+                    </>
+                  )}
+                </div>
+              )}
+              <div
+                className="col"
+                style={{ gap: 6, marginTop: 8, alignItems: 'flex-start' }}
+              >
+                <Link href="/lock" className="btn lg">
+                  Lock a prediction →
                 </Link>
-                <Link href="/lock" className="btn lg ghost">
-                  For you →
+                <Link
+                  href="/pricing#mcp"
+                  className="mono"
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--ink-3)',
+                    textDecoration: 'none',
+                    padding: '4px 0',
+                  }}
+                >
+                  Building an AI agent? → toldproof.xyz/api/mcp/mcp
                 </Link>
               </div>
               <div
@@ -365,18 +402,18 @@ export default function HomePage() {
               <Guarantee
                 title="When"
                 detail="The exact time you locked it is written on Sui. Nobody can edit it later or change the date."
-                glyph="⏱"
+                bitmap={CLOCK_MARK}
               />
               <Guarantee
                 title="What"
                 detail="A fingerprint of your text is saved before the open date. If even one letter changes, the check fails."
-                glyph="≡"
+                bitmap={HASH_MARK}
                 border
               />
               <Guarantee
                 title="Who"
                 detail="Locked by your Sui wallet, linked to your X handle. The handle in the tweet is the handle that signed it."
-                glyph="ʘ"
+                bitmap={ID_MARK}
               />
             </div>
           </div>
@@ -452,7 +489,7 @@ export default function HomePage() {
               letterSpacing: '0.06em',
             }}
           >
-            <span>Last updated · 2026-05-14</span>
+            <span>Last updated · {process.env.NEXT_PUBLIC_BUILD_DATE ?? new Date().toISOString().slice(0, 10)}</span>
             <span>v0.1 · sui:testnet · walrus:testnet · seal:testnet</span>
           </div>
         </div>
@@ -461,9 +498,25 @@ export default function HomePage() {
   );
 }
 
+function faqSlug(q: string): string {
+  return (
+    'faq-' +
+    q
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .split(/\s+/)
+      .slice(0, 6)
+      .join('-')
+  );
+}
+
 function FaqItem({ q, children }: { q: string; children: React.ReactNode }) {
+  const slug = faqSlug(q);
   return (
     <details
+      id={slug}
+      className="faq-item"
       style={{
         border: '1px solid var(--border)',
         borderRadius: 4,
@@ -479,11 +532,28 @@ function FaqItem({ q, children }: { q: string; children: React.ReactNode }) {
           color: 'var(--ink)',
           listStyle: 'none',
           display: 'flex',
+          alignItems: 'center',
           justifyContent: 'space-between',
           gap: 16,
         }}
       >
-        {q}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          {q}
+          <a
+            href={`#${slug}`}
+            className="faq-anchor mono"
+            aria-label={`Copy link to: ${q}`}
+            style={{
+              fontSize: 12,
+              color: 'var(--muted)',
+              textDecoration: 'none',
+              opacity: 0,
+              transition: 'opacity 0.12s',
+            }}
+          >
+            #
+          </a>
+        </span>
         <span className="mono" style={{ color: 'var(--muted)', fontWeight: 400 }}>+</span>
       </summary>
       <p
@@ -654,12 +724,12 @@ function HowStep({ n, title, body }: { n: string; title: string; body: string })
 function Guarantee({
   title,
   detail,
-  glyph,
+  bitmap,
   border = false,
 }: {
   title: string;
   detail: string;
-  glyph: string;
+  bitmap: string;
   border?: boolean;
 }) {
   return (
@@ -674,16 +744,8 @@ function Guarantee({
         gap: 10,
       }}
     >
-      <div className="row" style={{ gap: 12 }}>
-        <span
-          style={{
-            fontSize: 22,
-            fontFamily: 'var(--font-mono), monospace',
-            color: 'var(--sealed)',
-          }}
-        >
-          {glyph}
-        </span>
+      <div className="row" style={{ gap: 12, alignItems: 'center' }}>
+        <PixelMark bitmap={bitmap} size={24} color="var(--sealed)" />
         <span style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-0.01em' }}>
           {title}
         </span>

@@ -5,7 +5,7 @@
 //      @toldproof verify bot will behave once we upgrade to X API Basic
 //      tier. Same verdict logic, different trigger surface.
 
-import { PageEyebrow } from '../../components/design';
+import { Callout, PageEyebrow } from '../../components/design';
 import { SelfServeVerify } from '../../components/SelfServeVerify';
 import { BotScenarios } from './BotScenarios';
 
@@ -39,49 +39,47 @@ export default function BotPage() {
           examples below show what that looks like.
         </p>
 
-        {/* LIVE: self-serve verifier */}
+        {/* LIVE: self-serve verifier — the hero, 70% above-fold (P0-6). */}
         <div className="mt-32">
           <SelfServeVerify />
         </div>
 
-        {/* ROADMAP: autonomous bot mockup */}
-        <div className="mt-48">
-          <div
+        {/* Permanent rules strip — promoted out of the scenarios sidebar so
+            it's visible without scrolling past the hero (P0-6). */}
+        <div
+          className="mt-24"
+          style={{
+            padding: '14px 16px',
+            border: '1px solid var(--border)',
+            borderRadius: 4,
+            background: 'var(--paper)',
+          }}
+        >
+          <span className="eyebrow">Rules the bot follows</span>
+          <ul
+            className="mono"
             style={{
-              border: '1px dashed var(--border)',
-              borderRadius: 4,
-              padding: '16px 20px',
-              marginBottom: 24,
-              background: 'var(--paper-2)',
+              marginTop: 10,
+              paddingLeft: 16,
+              fontSize: 11.5,
+              color: 'var(--ink-3)',
+              lineHeight: 1.7,
             }}
           >
-            <span
-              className="mono"
-              style={{
-                fontSize: 11,
-                color: 'var(--muted)',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-              }}
-            >
-              Roadmap · ships with X API Basic tier upgrade
-            </span>
-            <p
-              style={{
-                margin: '6px 0 0',
-                fontSize: 13.5,
-                color: 'var(--ink-3)',
-                lineHeight: 1.55,
-              }}
-            >
-              The autonomous bot reads <code className="mono">@toldproof verify</code>{' '}
-              mentions and auto-replies with the same verdict you can get
-              from the verifier above. The cron job + verdict-composition
-              code is already shipped (see{' '}
-              <code className="mono">/api/cron/verify-bot</code>) — it just
-              waits for the bearer token to activate. Mockups below show
-              the planned UX.
-            </p>
+            <li>It only replies when tagged. It never posts on its own.</li>
+            <li>It never says someone is lying.</li>
+            <li>Each person can ask up to 5 times a day.</li>
+            <li>Its bio says: no proof doesn&apos;t mean false.</li>
+          </ul>
+        </div>
+
+        {/* See the bot in action — demoted mockups, single-thread + tab strip. */}
+        <div className="mt-48">
+          <div style={{ marginBottom: 18 }}>
+            <Callout eyebrow="Roadmap">
+              Autonomous <code className="mono">@toldproof verify</code> reply
+              ships with X API Basic tier — same verdict logic, different trigger.
+            </Callout>
           </div>
           <BotScenarios />
         </div>

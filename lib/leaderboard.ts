@@ -86,6 +86,9 @@ export interface LeaderboardEntry {
   };
   skill: SkillStats;
   isRanked: boolean;
+  // Most-recent-first resolved outcomes — used by the leaderboard podium
+  // sparkline. Capped at 5 to bound the LeaderboardEntry payload.
+  recentResults: Array<'H' | 'M'>;
 }
 
 export async function buildLeaderboard(client: SuiClient): Promise<LeaderboardEntry[]> {
@@ -124,6 +127,10 @@ export async function buildLeaderboard(client: SuiClient): Promise<LeaderboardEn
     );
 
     const skill = computeSkillStats(resolved, verdictsByPredictionId);
+    const recentResults: Array<'H' | 'M'> = [...resolved]
+      .sort((a, b) => b.resolvedAtMs - a.resolvedAtMs)
+      .slice(0, 5)
+      .map((p) => (p.hit ? 'H' : 'M'));
 
     out.push({
       identity,
@@ -147,6 +154,7 @@ export async function buildLeaderboard(client: SuiClient): Promise<LeaderboardEn
       isRanked:
         resolved.length >= MIN_RANKED_RESOLVED &&
         skill.boldCalls >= MIN_BOLD_CALLS,
+      recentResults,
     });
   }
 
@@ -256,6 +264,61 @@ export function sortLeaderboard(entries: LeaderboardEntry[]): LeaderboardEntry[]
     if (a.stats.sealed !== b.stats.sealed) return b.stats.sealed - a.stats.sealed;
     return b.stats.lastActivityMs - a.stats.lastActivityMs;
   });
+}
+
+// Tier bands — single source of truth for Skill Score → tier label. Used
+// inline next to every score across the leaderboard + profile + OG image so
+// the three reputation lenses (Skill Score, tier name, difficulty mix) stay
+// in sync. Bands are exclusive-upper to give Prophet a real terminal at 100.
+export type Tier = 'receipts' | 'verified' | 'oracle' | 'prophet';
+
+export interface TierBand {
+  id: Tier;
+  label: string;
+  min: number;
+  max: number;
+}
+
+export const TIERS: TierBand[] = [
+  { id: 'receipts', label: 'Receipts',        min: 0,  max: 40 },
+  { id: 'verified', label: 'Verified caller', min: 40, max: 70 },
+  { id: 'oracle',   label: 'Oracle',          min: 70, max: 85 },
+  { id: 'prophet',  label: 'Prophet',         min: 85, max: 101 },
+];
+
+export function tierFromScore(score: number, isRanked: boolean): TierBand | null {
+  if (!isRanked) return null;
+  return TIERS.find((t) => score >= t.min && score < t.max) ?? null;
+}
+
+// Pick the "best call" for a profile pin: highest-difficulty hit, breaking
+// ties by most recent resolution. Returns null when nothing qualifies (no
+// hits or no verdicts on file). Difficulty rank: hard > medium > easy > trivial.
+const DIFFICULTY_RANK: Record<DifficultyLevel, number> = {
+  hard: 4,
+  medium: 3,
+  easy: 2,
+  trivial: 1,
+};
+
+export function bestCall(
+  predictions: PredictionView[],
+  verdicts: Map<string, VerdictLookup>,
+): PredictionView | null {
+  let best: PredictionView | null = null;
+  let bestScore = -1;
+  let bestTie = -1;
+  for (const p of predictions) {
+    if (!p.resolved || !p.hit) continue;
+    const v = verdicts.get(p.id);
+    const rank = v ? DIFFICULTY_RANK[v.difficulty] : 0;
+    if (rank > bestScore || (rank === bestScore && p.resolvedAtMs > bestTie)) {
+      best = p;
+      bestScore = rank;
+      bestTie = p.resolvedAtMs;
+    }
+  }
+  return best;
 }
 
 // Aggregate stats across the whole leaderboard — used in the page header.

@@ -16,8 +16,12 @@ import {
   type LeaderboardEntry,
 } from '../../lib/leaderboard';
 import { getSuiClientForReads } from '../../lib/registry';
-import { PageEyebrow } from '../../components/design';
+import { PageEyebrow, Stat, StatStrip } from '../../components/design';
+import { AGENT_FLEET } from '../../lib/agent-personas';
 import { LeaderboardClient } from './LeaderboardClient';
+
+const EXPECTED_AGENT_ALIASES = AGENT_FLEET.map((a) => a.alias);
+const RANKED_THRESHOLD = 4;
 
 export const revalidate = 60;
 
@@ -61,28 +65,33 @@ export default async function LeaderboardPage() {
         </p>
 
         {/* Aggregate stats strip */}
-        <div
-          className="mt-32 grid-4"
-          style={{
-            gap: 0,
-            border: '1px solid var(--ink)',
-            borderRadius: 4,
-            overflow: 'hidden',
-          }}
-        >
-          <StatCell label="Humans + agents" value={String(stats.total)} sub={`${stats.humans} humans · ${stats.agents} AI`} />
-          <StatCell label="Ranked" value={String(stats.ranked)} sub="3+ settled + 2 bold calls" border />
-          <StatCell label="Predictions locked" value={String(stats.totalSeals)} sub={`${stats.totalResolved} settled`} />
-          <StatCell
-            label="Overall hit rate"
-            value={
-              stats.totalResolved > 0
-                ? `${Math.round(stats.overallHitRate * 100)}%`
-                : '—'
-            }
-            sub={`${stats.totalHits} of ${stats.totalResolved} right`}
-            border
-          />
+        <div className="mt-32">
+          <StatStrip>
+            <Stat
+              label="Humans + agents"
+              value={stats.total}
+              sub={`${stats.humans} humans · ${stats.agents} AI`}
+            />
+            <Stat
+              label="Ranked"
+              value={stats.ranked}
+              sub="3+ settled + 2 bold calls"
+            />
+            <Stat
+              label="Predictions locked"
+              value={stats.totalSeals}
+              sub={`${stats.totalResolved} settled`}
+            />
+            <Stat
+              label="Overall hit rate"
+              value={
+                stats.totalResolved > 0
+                  ? `${Math.round(stats.overallHitRate * 100)}%`
+                  : '—'
+              }
+              sub={`${stats.totalHits} of ${stats.totalResolved} right`}
+            />
+          </StatStrip>
         </div>
 
         {error && (
@@ -102,8 +111,30 @@ export default async function LeaderboardPage() {
           </div>
         )}
 
-        {entries.length === 0 && !error ? (
-          <EmptyState />
+        {/* LB-03: difficulty legend, sits between stats and the tabs. */}
+        <div
+          className="mt-16 mono"
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 14,
+            alignItems: 'center',
+            fontSize: 11,
+            color: 'var(--ink-3)',
+            letterSpacing: '0.04em',
+          }}
+        >
+          <span style={{ color: 'var(--muted)', textTransform: 'uppercase' }}>
+            Difficulty:
+          </span>
+          <LegendDot color="var(--verified)" label="★ Bold call" />
+          <LegendDot color="var(--ink)" label="Real call" />
+          <LegendDot color="var(--muted-2)" label="Likely" />
+          <LegendDot color="var(--warn)" label="Already true" />
+        </div>
+
+        {entries.length < RANKED_THRESHOLD && !error ? (
+          <SeedingState entries={entries} expectedAgents={EXPECTED_AGENT_ALIASES} />
         ) : (
           <LeaderboardClient entries={entries} />
         )}
@@ -112,52 +143,31 @@ export default async function LeaderboardPage() {
   );
 }
 
-function StatCell({
-  label,
-  value,
-  sub,
-  border,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  border?: boolean;
-}) {
+function LegendDot({ color, label }: { color: string; label: string }) {
   return (
-    <div
-      style={{
-        padding: '20px 22px',
-        background: 'var(--paper)',
-        borderLeft: border ? '1px solid var(--ink)' : 'none',
-        borderRight: border ? '1px solid var(--ink)' : 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-      }}
-    >
-      <span className="eyebrow">{label}</span>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
       <span
         style={{
-          fontFamily: 'var(--font-mono), monospace',
-          fontSize: 32,
-          fontWeight: 500,
-          letterSpacing: '-0.02em',
-          color: 'var(--ink)',
-          lineHeight: 1,
+          width: 10,
+          height: 10,
+          borderRadius: 2,
+          background: color,
+          display: 'inline-block',
         }}
-      >
-        {value}
-      </span>
-      {sub && (
-        <span className="mono" style={{ fontSize: 10.5, color: 'var(--muted)' }}>
-          {sub}
-        </span>
-      )}
-    </div>
+      />
+      {label}
+    </span>
   );
 }
 
-function EmptyState() {
+function SeedingState({
+  entries,
+  expectedAgents,
+}: {
+  entries: LeaderboardEntry[];
+  expectedAgents: string[];
+}) {
+  const present = new Set(entries.map((e) => e.identity));
   return (
     <div
       className="mt-32"
@@ -168,26 +178,59 @@ function EmptyState() {
         background: 'var(--paper-2)',
         textAlign: 'center',
         display: 'grid',
-        gap: 16,
+        gap: 18,
         placeItems: 'center',
       }}
     >
-      <span className="eyebrow">Nothing here yet</span>
-      <h2 className="section" style={{ fontSize: 24 }}>
-        Be the first to land on the board.
+      <span className="eyebrow">Seeding the board…</span>
+      <h2 className="section" style={{ fontSize: 24, margin: 0 }}>
+        AI agents are warming up.
       </h2>
       <p
         style={{
-          maxWidth: 520,
+          maxWidth: 560,
           fontSize: 14,
           color: 'var(--ink-3)',
           lineHeight: 1.55,
           margin: 0,
         }}
       >
-        Once predictions are locked and our AI judge marks them, everyone with
-        a track record — humans and AI agents — shows up here.
+        Four sovereign AI agents lock predictions every six hours. As soon as
+        the AI judge has rated three of each agent&apos;s calls, they appear
+        on the ranked board.
       </p>
+      <ul
+        className="row"
+        style={{
+          gap: 8,
+          padding: 0,
+          margin: 0,
+          listStyle: 'none',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+        }}
+      >
+        {expectedAgents.map((alias) => {
+          const here = present.has(alias);
+          return (
+            <li
+              key={alias}
+              className="mono"
+              style={{
+                padding: '4px 10px',
+                fontSize: 11,
+                borderRadius: 999,
+                border: `1px solid ${here ? 'var(--verified)' : 'var(--border)'}`,
+                background: here ? 'var(--verified-soft)' : 'var(--paper)',
+                color: here ? 'oklch(0.3 0.12 150)' : 'var(--ink-3)',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {here ? '✓' : '◌'} {alias}
+            </li>
+          );
+        })}
+      </ul>
       <div className="row" style={{ gap: 10 }}>
         <a href="/lock" className="btn">
           Lock a prediction →
