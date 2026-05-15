@@ -1,25 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "//": "Vercel Hobby tier limits — daily cadence + 2 cron jobs max. Trimmed to the two load-bearing crons that fit those constraints. The 5 originally-configured schedules (reveal, resolve, reputation, agent-fleet, verify-bot at sub-daily cadences) are preserved in vercel.json.pro for the day this project upgrades to Pro tier or migrates to GitHub Actions scheduled workflows. For now: reputation, agent-fleet, and verify-bot are off-cron and need to be fired manually via curl with CRON_SECRET when wanted (or skipped — they no-op gracefully without env-var prereqs anyway).",
   "crons": [
     {
       "path": "/api/cron/reveal",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/verify-bot",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/cron/resolve",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/reputation",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/cron/agent-fleet",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 7 * * *"
     }
   ]
 }
