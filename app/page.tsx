@@ -45,6 +45,14 @@ const FAQ = [
     q: 'What does this run on?',
     a: 'Three open systems work together: Sui saves the receipts, Walrus stores the hidden text and the AI judge’s reasoning, and Seal locks the key until your open date. All three are built by the same team (Mysten Labs).',
   },
+  {
+    q: 'Why on Sui and not Ethereum?',
+    a: 'Two of the pieces we need only exist on Sui today. Walrus saves the AI judge’s full reasoning forever and very cheaply — Ethereum storage is too expensive for that. Seal holds the key to your prediction until the open date, so nobody (not even us) can read it early — Ethereum doesn’t have a turnkey version of this yet. We could add Ethereum support later for people who want their score there, but the lock-and-open machinery only works where its building blocks live.',
+  },
+  {
+    q: 'What happens if your company disappears?',
+    a: 'The receipts and the scores live on Sui forever, not on our servers. The hidden text and the AI judge’s reasoning live on Walrus, also not on our servers. If we shut down tomorrow, every prediction that has been locked still opens on its date, and every score stays public. We run the bot and the AI judge today, but the data underneath is not ours to delete.',
+  },
 ];
 
 // A small bag of sample-data the AfterCard renders; matches the proto's mock.

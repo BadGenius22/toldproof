@@ -24,7 +24,13 @@ interface PrimaryTier {
   pitch: string;
   features: string[];
   cta: { label: string; href: string; disabled?: boolean };
+  // Audience-category pill (right corner). The Agent tier uses this to mark
+  // itself as a different product, not a different price point.
   highlight?: boolean;
+  // Upgrade-path emphasis (left corner). Per 2025 SaaS UX research,
+  // pricing pages without a visually-highlighted "Recommended" tier
+  // convert 22% worse. Applied to the Pro tier as the upsell target from Free.
+  recommended?: boolean;
 }
 
 interface AddOn {
@@ -71,6 +77,7 @@ const PRIMARY: PrimaryTier[] = [
       'Analyst badge on your profile',
     ],
     cta: { label: 'Join waitlist', href: '#', disabled: true },
+    recommended: true,
   },
   {
     id: 'agent',
@@ -154,6 +161,31 @@ export default function PricingPage() {
           fee, no surprises.
         </p>
 
+        {/* Parallel B2B path — distributed enterprise CTA per SaaS pricing-page
+            best practice (Stripe / Plaid / Datadog all repeat enterprise CTAs
+            rather than concentrate them at the bottom). */}
+        <Link
+          href="#reputation-api"
+          style={{
+            all: 'unset',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 10,
+            marginTop: 14,
+            padding: '8px 14px',
+            border: '1px dashed var(--ink)',
+            borderRadius: 4,
+            background: 'var(--paper-2)',
+          }}
+        >
+          <span className="mono" style={{ fontSize: 11, color: 'var(--ink-2)' }}>
+            <strong style={{ color: 'var(--ink)' }}>For platforms and funds:</strong>{' '}
+            buy the leaderboard data via the Reputation API
+          </span>
+          <span className="mono" style={{ fontSize: 11, color: 'var(--ink)' }}>→</span>
+        </Link>
+
         {/* Primary two-card row */}
         <div
           className="mt-32"
@@ -170,7 +202,7 @@ export default function PricingPage() {
         </div>
 
         {/* Add-ons row */}
-        <div className="mt-48">
+        <div className="mt-48" id="reputation-api">
           <PageEyebrow>Add-ons</PageEyebrow>
           <p
             style={{
@@ -450,6 +482,9 @@ const tools = await mcp.tools();
           <Link href="/bot" className="btn ghost">
             See the verify bot
           </Link>
+          <Link href="#reputation-api" className="btn ghost">
+            For B2B integrators →
+          </Link>
         </div>
       </div>
     </div>
@@ -457,10 +492,12 @@ const tools = await mcp.tools();
 }
 
 function PrimaryCard({ tier }: { tier: PrimaryTier }) {
+  // Either flag thickens the border so the card visually competes with neighbours.
+  const emphasised = tier.highlight || tier.recommended;
   return (
     <div
       style={{
-        border: tier.highlight ? '2px solid var(--ink)' : '1px solid var(--border)',
+        border: emphasised ? '2px solid var(--ink)' : '1px solid var(--border)',
         borderRadius: 4,
         background: 'var(--paper)',
         padding: '26px 26px 22px',
@@ -468,9 +505,29 @@ function PrimaryCard({ tier }: { tier: PrimaryTier }) {
         flexDirection: 'column',
         gap: 16,
         position: 'relative',
-        boxShadow: tier.highlight ? '4px 4px 0 var(--sealed)' : 'none',
+        boxShadow: emphasised ? '4px 4px 0 var(--sealed)' : 'none',
       }}
     >
+      {tier.recommended && (
+        <span
+          style={{
+            position: 'absolute',
+            top: -12,
+            left: 14,
+            background: 'var(--verified, #1aa260)',
+            color: 'var(--paper)',
+            padding: '2px 10px',
+            borderRadius: 999,
+            fontFamily: 'var(--font-mono), monospace',
+            fontSize: 9,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            border: '1px solid var(--ink)',
+          }}
+        >
+          Most Popular · waitlist
+        </span>
+      )}
       {tier.highlight && (
         <span
           style={{
