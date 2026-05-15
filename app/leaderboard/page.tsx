@@ -22,7 +22,13 @@ import { LeaderboardClient } from './LeaderboardClient';
 import { LeaderboardError } from './LeaderboardError';
 
 const EXPECTED_AGENT_ALIASES = AGENT_FLEET.map((a) => a.alias);
-const RANKED_THRESHOLD = 4;
+// Show the real leaderboard as soon as ANY entity exists. The original
+// threshold of 4 was tied to the demo fleet of AI agents seeding the
+// board — but that fleet's cron is disabled on Hobby tier, so the
+// threshold was just hiding real human entries behind imaginary missing
+// data. The SeedingState still fires when entries.length === 0 as a
+// genuine empty state on fresh deploys.
+const RANKED_THRESHOLD = 1;
 
 export const revalidate = 60;
 

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { Providers } from '../components/Providers';
 import { TopBar, FooterBar, ThemeScript } from '../components/design';
@@ -105,6 +107,10 @@ export default function RootLayout({
             <FooterBar />
           </div>
         </Providers>
+        {/* Vercel platform-native observability — page views + Core Web Vitals.
+            Both no-op in dev / for non-Vercel hosts; only emit beacons in prod. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
