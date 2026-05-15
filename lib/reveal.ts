@@ -85,5 +85,12 @@ export async function revealOnce(opts: {
     throw new Error(`reveal tx failed: ${JSON.stringify(result.effects?.status)}`);
   }
 
+  // signAndExecuteTransaction returns when the validator executes, but the
+  // RPC fullnode we'll read from next may not have indexed the object update
+  // yet. Wait for the digest to be visible so subsequent getObject() calls
+  // (e.g. the verify page re-rendering after router.refresh()) see
+  // revealed: true instead of the stale unrevealed state.
+  await suiClient.waitForTransaction({ digest: result.digest });
+
   return { predictionId, digest: result.digest, plaintext };
 }

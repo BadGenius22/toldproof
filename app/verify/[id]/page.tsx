@@ -25,6 +25,9 @@ import {
 } from '../../../lib/schemas';
 import type { SealedPredictionFields } from '../../../lib/sui';
 import { VerifyLiveCountdown } from './live';
+import { RevealButton } from './reveal-button';
+import { ResolveButton } from './resolve-button';
+import { ReasoningTrace, type Trace } from './reasoning-trace';
 
 const RPC_URL = process.env.NEXT_PUBLIC_SUI_RPC ?? 'https://fullnode.testnet.sui.io:443';
 const NETWORK = (process.env.NEXT_PUBLIC_SUI_NETWORK ?? 'testnet') as
@@ -32,6 +35,11 @@ const NETWORK = (process.env.NEXT_PUBLIC_SUI_NETWORK ?? 'testnet') as
   | 'mainnet'
   | 'devnet'
   | 'localnet';
+
+// Always re-fetch on each request so router.refresh() after a manual reveal
+// actually re-runs fetchPrediction and surfaces the new revealed:true state.
+// Without this, Next.js can serve a cached segment showing the pre-reveal data.
+export const dynamic = 'force-dynamic';
 
 function decodeBytesField(v: BytesField): Uint8Array {
   if (Array.isArray(v)) return new Uint8Array(v);
@@ -59,6 +67,24 @@ async function fetchPrediction(id: string): Promise<SealedPredictionFields | nul
   }
 }
 
+// Fetch the AI reasoning trace JSON from Walrus. Best-effort — if the
+// aggregator is down or the JSON is malformed, we return null and the page
+// falls back to NOT rendering the inline trace component (the raw-link
+// footer stays visible inside it, but the section is hidden entirely).
+async function fetchReasoningTrace(blobId: string): Promise<Trace | null> {
+  if (!blobId) return null;
+  try {
+    const url = `https://aggregator.walrus-testnet.walrus.space/v1/blobs/${blobId}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = (await res.json()) as Trace;
+    if (!data || typeof data !== 'object' || !data.verdict) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 export default async function VerifyPage({
   params,
 }: {
@@ -67,6 +93,17 @@ export default async function VerifyPage({
   const { id } = await params;
   const p = await fetchPrediction(id);
   if (!p) notFound();
+  // Fetch the AI reasoning trace from Walrus in parallel with the rest of
+  // the page render. The trace contains the difficulty rating + per-step
+  // tool calls used by <ReasoningTrace>.
+  const reasoningBlobIdForTrace = p.reasoning_blob_id
+    ? new TextDecoder().decode(decodeBytesField(p.reasoning_blob_id))
+    : '';
+  const trace = p.resolved
+    ? await fetchReasoningTrace(reasoningBlobIdForTrace)
+    : null;
+  const difficulty = trace?.verdict.difficulty;
+  const difficultyReasoning = trace?.verdict.difficultyReasoning;
 
   const sealedAtMs = Number(p.sealed_at_ms);
   const unlockAtMs = Number(p.unlock_at_ms);
@@ -185,11 +222,22 @@ export default async function VerifyPage({
                   }}
                 >
                   <span className="eyebrow">
-                    AI Resolution Agent · attested {fmtRel(resolvedAtMs)}
+                    The AI&apos;s call · {fmtRel(resolvedAtMs)}
                   </span>
-                  <Chip status={hit ? 'verified' : 'warn'}>
-                    {hit ? '✓ Hit · they called it' : '✗ Miss · they didn’t'}
-                  </Chip>
+                  <div
+                    className="row"
+                    style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}
+                  >
+                    <Chip status={hit ? 'verified' : 'warn'}>
+                      {hit ? '✓ Hit · they called it' : '✗ Miss · they didn’t'}
+                    </Chip>
+                    {difficulty && (
+                      <DifficultyPill
+                        level={difficulty}
+                        reasoning={difficultyReasoning}
+                      />
+                    )}
+                  </div>
                 </div>
                 <p
                   style={{
@@ -199,30 +247,30 @@ export default async function VerifyPage({
                     color: 'var(--ink-2)',
                   }}
                 >
-                  Several AI judges read the prediction together, checked
-                  what actually happened, and saved every step of their
-                  reasoning on Walrus so anyone can read exactly why they
-                  decided what they did.
+                  The AI read the prediction, checked the facts, and made
+                  a call. Every step of its reasoning is saved on Walrus so
+                  anyone can review exactly how it decided.
                 </p>
-                <div
-                  className="mt-12 row"
-                  style={{ gap: 10, flexWrap: 'wrap' }}
-                >
-                  {reasoningUrl ? (
+                <div className="mt-12">
+                  {trace ? (
+                    <ReasoningTrace trace={trace} rawWalrusUrl={reasoningUrl} />
+                  ) : reasoningUrl ? (
                     <a
                       className="btn ghost"
                       target="_blank"
                       rel="noreferrer"
                       href={reasoningUrl}
                     >
-                      ↗ Read full reasoning trace
+                      ↗ Open the raw record on Walrus
                     </a>
                   ) : null}
-                  <span
-                    className="mono"
-                    style={{ fontSize: 11, color: 'var(--muted)' }}
-                  >
-                    Attested by {shortHash(resolverAddr, 6, 4)}
+                </div>
+                <div
+                  className="mt-12"
+                  style={{ fontSize: 11, color: 'var(--muted)' }}
+                >
+                  <span className="mono">
+                    Signed by AI judge {shortHash(resolverAddr, 6, 4)}
                   </span>
                 </div>
               </div>
@@ -238,12 +286,13 @@ export default async function VerifyPage({
                   color: 'var(--muted)',
                   display: 'flex',
                   justifyContent: 'space-between',
+                  alignItems: 'center',
                   flexWrap: 'wrap',
-                  gap: 8,
+                  gap: 10,
                 }}
               >
-                <span>AI Resolution Agent · waiting in queue</span>
-                <span>verdict + reasoning posted within 5 min</span>
+                <span>AI Resolution Agent · waiting for next cron</span>
+                <ResolveButton id={id} />
               </div>
             )}
           </div>
@@ -267,15 +316,16 @@ export default async function VerifyPage({
                 style={{ justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}
               >
                 <span className="eyebrow">Scrambled text on Walrus · {blobId.slice(0, 22)}…</span>
-                <Chip status={status === 'unlocked' ? 'warn' : 'sealed'}>
-                  {status === 'unlocked' ? (
-                    <>Date reached · waiting to be posted</>
-                  ) : (
-                    <>
-                      Opens in <VerifyLiveCountdown unlockAtMs={unlockAtMs} />
-                    </>
-                  )}
-                </Chip>
+                {status === 'unlocked' ? (
+                  <div className="row" style={{ gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <Chip status="warn">Date reached · waiting to be posted</Chip>
+                    <RevealButton id={id} />
+                  </div>
+                ) : (
+                  <Chip status="sealed">
+                    Opens in <VerifyLiveCountdown unlockAtMs={unlockAtMs} />
+                  </Chip>
+                )}
               </div>
               <HexDump hex={cipherDump} rows={6} highlightFirst={0} />
             </div>
@@ -347,7 +397,7 @@ export default async function VerifyPage({
                         </span>
                       }
                     />
-                    <ReceiptRow k="Attested at" v={fmtAbs(resolvedAtMs)} />
+                    <ReceiptRow k="Decided on" v={fmtAbs(resolvedAtMs)} />
                     <ReceiptRow k="Reasoning (Walrus)" v={reasoningBlobId} />
                   </>
                 )}
@@ -412,6 +462,68 @@ export default async function VerifyPage({
         </div>
       </div>
     </div>
+  );
+}
+
+function DifficultyPill({
+  level,
+  reasoning,
+}: {
+  level: 'trivial' | 'easy' | 'medium' | 'hard';
+  reasoning?: string;
+}) {
+  // Plain-English label + visual treatment per difficulty level. Trivial
+  // gets the warning palette to signal "honest reader judgment required" —
+  // it doesn't downgrade hit/miss, just flags the call as already-true.
+  const labels: Record<typeof level, string> = {
+    trivial: 'Already true when locked',
+    easy: 'Likely outcome',
+    medium: 'Real call',
+    hard: 'Bold call ★',
+  };
+  const styleByLevel: Record<typeof level, { bg: string; fg: string; border: string }> = {
+    trivial: {
+      bg: 'var(--warn-soft, #fff7e6)',
+      fg: 'var(--ink)',
+      border: 'var(--warn)',
+    },
+    easy: {
+      bg: 'var(--paper-2)',
+      fg: 'var(--ink-2)',
+      border: 'var(--border)',
+    },
+    medium: {
+      bg: 'var(--paper-2)',
+      fg: 'var(--ink)',
+      border: 'var(--border)',
+    },
+    hard: {
+      bg: 'var(--verified-soft, #eaffea)',
+      fg: 'oklch(0.3 0.12 150)',
+      border: 'var(--verified)',
+    },
+  };
+  const s = styleByLevel[level];
+  return (
+    <span
+      title={reasoning ?? ''}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '4px 10px',
+        borderRadius: 999,
+        fontSize: 11,
+        fontFamily: 'var(--font-mono), monospace',
+        letterSpacing: '0.04em',
+        background: s.bg,
+        color: s.fg,
+        border: `1px solid ${s.border}`,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {labels[level]}
+    </span>
   );
 }
 
