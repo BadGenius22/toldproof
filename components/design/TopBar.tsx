@@ -6,6 +6,8 @@ import { PixelMark } from './PixelMark';
 import { BRAND_MARK, SUI_MARK } from './bitmaps';
 import { DarkModeToggle } from './DarkModeToggle';
 import { WalletConnect } from '../WalletConnect';
+import { XSignInButton } from '../XSignInButton';
+import { useXSession } from '../../lib/useXSession';
 import { shortHash } from './format';
 
 // Default to the audited testnet deployment so the badge still works on
@@ -16,21 +18,17 @@ const PACKAGE_ID =
   process.env.NEXT_PUBLIC_TOLDPROOF_PACKAGE_ID || FALLBACK_PACKAGE_ID;
 const NETWORK = process.env.NEXT_PUBLIC_SUI_NETWORK || 'testnet';
 
+// Canonical demo profile shown in the nav when a visitor is not signed in.
+// Generic placeholder handle — assumes a seeded `bob` profile on the live
+// registry. Other landing-page sample data (AfterCard, ticker, bot mocks)
+// still uses `dewaxindo` and is independent of this constant.
+const DEMO_PROFILE_HANDLE = 'bob';
+
 interface NavItem {
   href: string;
   label: string;
   match?: (path: string) => boolean;
 }
-
-const NAV: NavItem[] = [
-  { href: '/', label: 'Home', match: (p) => p === '/' },
-  { href: '/lock', label: 'Lock' },
-  { href: '/leaderboard', label: 'Leaderboard' },
-  { href: '/dewaxindo', label: 'Profile', match: (p) => p === '/dewaxindo' },
-  { href: '/bot', label: 'Check bot' },
-  { href: '/pricing', label: 'Pricing' },
-  { href: '/brand', label: 'Brand' },
-];
 
 function isActive(path: string, item: NavItem) {
   if (item.match) return item.match(path);
@@ -39,6 +37,35 @@ function isActive(path: string, item: NavItem) {
 
 export function TopBar() {
   const path = usePathname() ?? '/';
+  const { session } = useXSession();
+  const xHandle = session?.xHandle;
+
+  // Profile is dynamic: signed-in users get their own profile, signed-out
+  // visitors see the canonical demo profile (disambiguated by the "(demo)"
+  // suffix so it's clear it isn't theirs). Keeps the nav slot useful in both
+  // states without auto-routing a fresh visitor to someone else's page silently.
+  const profileItem: NavItem = xHandle
+    ? {
+        href: `/${xHandle}`,
+        label: 'Profile',
+        match: (p) => p === `/${xHandle}`,
+      }
+    : {
+        href: `/${DEMO_PROFILE_HANDLE}`,
+        label: 'Profile (demo)',
+        match: (p) => p === `/${DEMO_PROFILE_HANDLE}`,
+      };
+
+  const nav: NavItem[] = [
+    { href: '/', label: 'Home', match: (p) => p === '/' },
+    { href: '/lock', label: 'Lock' },
+    { href: '/leaderboard', label: 'Leaderboard' },
+    profileItem,
+    { href: '/bot', label: 'Check bot' },
+    { href: '/pricing', label: 'Pricing' },
+    { href: '/brand', label: 'Brand' },
+  ];
+
   return (
     <header className="topbar">
       <div className="topbar-left">
@@ -49,7 +76,7 @@ export function TopBar() {
           TOLDPROOF
         </Link>
         <nav className="nav-row">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -67,6 +94,7 @@ export function TopBar() {
         </span>
         <DarkModeToggle />
         <WalletConnect />
+        <XSignInButton size="sm" />
       </div>
     </header>
   );
