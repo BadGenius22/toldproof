@@ -20,21 +20,21 @@ TOLDPROOF becomes that benchmark. Three components:
 
 ## ✨ What's live today
 
-| Capability | Status | Where |
-|---|---|---|
-| 🔐 Time-locked prediction sealing | ✅ live on Sui testnet | `/lock` |
-| 🆔 X OAuth handle binding (anti-squat) | ✅ live | topbar "Sign in with X" |
-| 📦 10 free predictions / month per human, paid overage at $0.10 | ✅ live | enforced at `/api/seal/preflight` |
-| 🐦 Auto-tweet on seal (opt-in) | ✅ live | "tweet on seal" checkbox |
-| 🤝 Squat-recovery via tweet attestation | ✅ live | `<ReleaseFlow>` modal |
-| 🏷️ "✓ X verified" pill on profile pages | ✅ live | `/[handle]` |
-| 🔍 Self-serve verify (paste tweet URL → defamation-safe verdict) | ✅ live | `/bot` |
-| 🤖 Autonomous `@toldproof verify` mention bot | 🟡 wired, dormant | activates with X API Basic tier upgrade |
-| 🤖 MCP + x402 payments for AI agents | ✅ live | `/api/mcp/mcp` · `seal_prediction` $0.10 USDC on Base |
-| 👥 Multi-agent consensus resolver | ✅ live | `RESOLUTION_AGENT_MODE=consensus` |
-| 🚀 Demo agent fleet (4 sovereign agents, every 6h) | ✅ live | `/api/cron/agent-fleet` |
-| 🧠 Versioned Walrus reputation profiles | ✅ live | `/api/cron/reputation`, on-chain `ReputationProfileUpdated` event |
-| 💵 Unified $0.10 pricing for humans + agents | ✅ live | one `Registry.fees<T>` table, both paths read it |
+| Capability                                                       | Status                 | Where                                                             |
+| ---------------------------------------------------------------- | ---------------------- | ----------------------------------------------------------------- |
+| 🔐 Time-locked prediction sealing                                | ✅ live on Sui testnet | `/lock`                                                           |
+| 🆔 X OAuth handle binding (anti-squat)                           | ✅ live                | topbar "Sign in with X"                                           |
+| 📦 10 free predictions / month per human, paid overage at $0.10  | ✅ live                | enforced at `/api/seal/preflight`                                 |
+| 🐦 Auto-tweet on seal (opt-in)                                   | ✅ live                | "tweet on seal" checkbox                                          |
+| 🤝 Squat-recovery via tweet attestation                          | ✅ live                | `<ReleaseFlow>` modal                                             |
+| 🏷️ "✓ X verified" pill on profile pages                          | ✅ live                | `/[handle]`                                                       |
+| 🔍 Self-serve verify (paste tweet URL → defamation-safe verdict) | ✅ live                | `/bot`                                                            |
+| 🤖 Autonomous `@toldproof verify` mention bot                    | 🟡 wired, dormant      | activates with X API Basic tier upgrade                           |
+| 🤖 MCP + x402 payments for AI agents                             | ✅ live                | `/api/mcp/mcp` · `seal_prediction` $0.10 USDC on Base             |
+| 👥 Multi-agent consensus resolver                                | ✅ live                | `RESOLUTION_AGENT_MODE=consensus`                                 |
+| 🚀 Demo agent fleet (4 sovereign agents, every 6h)               | ✅ live                | `/api/cron/agent-fleet`                                           |
+| 🧠 Versioned Walrus reputation profiles                          | ✅ live                | `/api/cron/reputation`, on-chain `ReputationProfileUpdated` event |
+| 💵 Unified $0.10 pricing for humans + agents                     | ✅ live                | one `Registry.fees<T>` table, both paths read it                  |
 
 ---
 
@@ -43,8 +43,8 @@ TOLDPROOF becomes that benchmark. Three components:
 ```mermaid
 graph TB
     subgraph "Clients"
-      U[Human via Sui wallet + X OAuth] --> SealUI[/lock page/]
-      A[AI agent via MCP] -->|x402 USDC on Base| MCP[/api/mcp]
+      U[Human via Sui wallet + X OAuth] --> SealUI["/lock"]
+      A[AI agent via MCP] -->|x402 USDC on Base| MCP["/api/mcp"]
     end
 
     SealUI --> Move
@@ -99,7 +99,7 @@ graph TB
     GPT --> Critic
     Gemini --> Critic
 
-    Move --> Leaderboard[/leaderboard/]
+    Move --> Leaderboard["/leaderboard"]
 ```
 
 ---
@@ -109,11 +109,13 @@ graph TB
 `move/prediction_vault/sources/prediction_vault.move` — Sui Move 2024, **62/62 tests passing**.
 
 Three seal paths, all ending at the same shared `SealedPrediction`:
+
 - 🟢 `seal_prediction(reg, x_handle, ...)` — humans, free (first 10/month, enforced off-chain)
 - 💵 `seal_prediction_paid<T>(reg, x_handle, ..., fee: Coin<T>, ...)` — humans over quota, paid in any registered coin type
 - 🤖 `seal_prediction_as_agent<T>(reg, alias, ..., fee: Coin<T>, ...)` — agents, paid (same fee table as the human paid path)
 
 Three roles on `Registry`:
+
 - 👑 `admin` — controls fees + rotations (your Phantom wallet after deploy)
 - ⚖️ `resolver` — AI Resolution Agent's signing wallet
 - 🏦 `treasury_addr` — agent fees auto-forward here every seal
@@ -152,10 +154,10 @@ Any MCP-compatible agent:
 
 ```typescript
 // Vercel AI SDK
-import { experimental_createMCPClient } from 'ai';
+import { experimental_createMCPClient } from "ai";
 
 const mcp = await experimental_createMCPClient({
-  transport: { type: 'sse', url: 'https://toldproof.xyz/api/mcp/sse' },
+  transport: { type: "sse", url: "https://toldproof.xyz/api/mcp/sse" },
 });
 const tools = await mcp.tools();
 ```
@@ -171,7 +173,7 @@ Two surfaces, same defamation-safe logic from `lib/verify-bot.ts`:
 - 🟢 **Live · self-serve** at `/bot` — paste any tweet URL → instant verdict against the on-chain Registry → "Copy verdict" + "Reply with this verdict on X →" buttons. Runs on X API Free tier (no mention search needed).
 - 🟡 **Roadmap · autonomous bot** at `/api/cron/verify-bot` — listens for `@toldproof verify` mentions and auto-replies. Code shipped + cron registered; needs X API Basic tier ($100/mo) for the `GET /2/tweets/search/recent` endpoint and the `X_BOT_BEARER_TOKEN` env var. Activates on env var flip — no code changes needed.
 
-Wording stays careful in both cases: *"No locked prediction found for this claim"* — never *"this user is lying"*.
+Wording stays careful in both cases: _"No locked prediction found for this claim"_ — never _"this user is lying"_.
 
 ---
 
@@ -214,27 +216,28 @@ git push
 
 ### 🔑 Required env vars (in `.env.local` + Vercel project)
 
-| Var | Purpose |
-|---|---|
-| `PHANTOM_TREASURY_ADDR` | Your Phantom Sui testnet address — admin authority + fee destination |
-| `NEXT_PUBLIC_TOLDPROOF_PACKAGE_ID` | From `pnpm deploy:v3` output |
-| `NEXT_PUBLIC_PREDICTION_REGISTRY_ID` | From `pnpm deploy:v3` output |
-| `TOLDPROOF_UPGRADE_CAP_ID` | From `pnpm deploy:v3` output |
-| `REVEAL_BOT_PRIVATE_KEY` | Sui keypair for the resolver — reveal cron + resolve cron + reputation cron |
-| **🆕 `DATABASE_URL`** | **Neon Postgres pooled connection — auto-injected via Vercel Marketplace** |
-| **🆕 `TOLDPROOF_OAUTH_KEY`** | **32-byte base64url — encrypts OAuth tokens at rest** |
-| **🆕 `SESSION_SECRET`** | **32-byte base64url — HMAC for session cookies** |
-| **🆕 `X_CLIENT_ID`** | **OAuth 2.0 Client ID from developer.x.com** |
-| **🆕 `X_CLIENT_SECRET`** | **OAuth 2.0 Client Secret (Confidential client)** |
-| `X_BEARER_TOKEN` | App-only bearer token; reserved for autonomous bot (Basic tier) |
-| `X_BOT_BEARER_TOKEN` | Same as above — set when activating `/api/cron/verify-bot` |
-| `TAVILY_API_KEY` | Web search tool for the Resolution Agent (free 1K/mo at tavily.com) |
-| `RESOLUTION_AGENT_MODE` | `single` (default) or `consensus` for Claude+GPT+Gemini fan-out |
-| `TOLDPROOF_AGENT_*_KEY` | Per-agent Sui keypairs for the demo fleet (4 keys, optional) |
-| `TOLDPROOF_X402_RECIPIENT` | Base EVM address that receives MCP x402 payments in USDC |
-| `CRON_SECRET` | Bearer-token auth for all cron routes |
+| Var                                  | Purpose                                                                     |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| `PHANTOM_TREASURY_ADDR`              | Your Phantom Sui testnet address — admin authority + fee destination        |
+| `NEXT_PUBLIC_TOLDPROOF_PACKAGE_ID`   | From `pnpm deploy:v3` output                                                |
+| `NEXT_PUBLIC_PREDICTION_REGISTRY_ID` | From `pnpm deploy:v3` output                                                |
+| `TOLDPROOF_UPGRADE_CAP_ID`           | From `pnpm deploy:v3` output                                                |
+| `REVEAL_BOT_PRIVATE_KEY`             | Sui keypair for the resolver — reveal cron + resolve cron + reputation cron |
+| **🆕 `DATABASE_URL`**                | **Neon Postgres pooled connection — auto-injected via Vercel Marketplace**  |
+| **🆕 `TOLDPROOF_OAUTH_KEY`**         | **32-byte base64url — encrypts OAuth tokens at rest**                       |
+| **🆕 `SESSION_SECRET`**              | **32-byte base64url — HMAC for session cookies**                            |
+| **🆕 `X_CLIENT_ID`**                 | **OAuth 2.0 Client ID from developer.x.com**                                |
+| **🆕 `X_CLIENT_SECRET`**             | **OAuth 2.0 Client Secret (Confidential client)**                           |
+| `X_BEARER_TOKEN`                     | App-only bearer token; reserved for autonomous bot (Basic tier)             |
+| `X_BOT_BEARER_TOKEN`                 | Same as above — set when activating `/api/cron/verify-bot`                  |
+| `TAVILY_API_KEY`                     | Web search tool for the Resolution Agent (free 1K/mo at tavily.com)         |
+| `RESOLUTION_AGENT_MODE`              | `single` (default) or `consensus` for Claude+GPT+Gemini fan-out             |
+| `TOLDPROOF_AGENT_*_KEY`              | Per-agent Sui keypairs for the demo fleet (4 keys, optional)                |
+| `TOLDPROOF_X402_RECIPIENT`           | Base EVM address that receives MCP x402 payments in USDC                    |
+| `CRON_SECRET`                        | Bearer-token auth for all cron routes                                       |
 
 Generate the two crypto secrets locally:
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"  # TOLDPROOF_OAUTH_KEY
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"  # SESSION_SECRET
@@ -244,31 +247,31 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"  
 
 ## ⏰ Vercel cron schedule
 
-| Path | Cadence | Purpose |
-|---|---|---|
-| `/api/cron/reveal` | every 5m | Decrypts unlocked predictions via Seal, posts plaintext on-chain |
-| `/api/cron/resolve` | every 5m | Resolution Agent attests hit/miss, anchors reasoning to Walrus |
-| `/api/cron/reputation` | every 15m | Reputation Agent rebuilds profiles, emits Walrus-anchored events |
-| `/api/cron/agent-fleet` | every 6h | Demo fleet generates + seals fresh predictions per agent |
-| `/api/cron/verify-bot` | every 5m | `@toldproof verify` X bot listener · 🟡 inactive until `X_BOT_BEARER_TOKEN` is set + Basic tier |
+| Path                    | Cadence   | Purpose                                                                                         |
+| ----------------------- | --------- | ----------------------------------------------------------------------------------------------- |
+| `/api/cron/reveal`      | every 5m  | Decrypts unlocked predictions via Seal, posts plaintext on-chain                                |
+| `/api/cron/resolve`     | every 5m  | Resolution Agent attests hit/miss, anchors reasoning to Walrus                                  |
+| `/api/cron/reputation`  | every 15m | Reputation Agent rebuilds profiles, emits Walrus-anchored events                                |
+| `/api/cron/agent-fleet` | every 6h  | Demo fleet generates + seals fresh predictions per agent                                        |
+| `/api/cron/verify-bot`  | every 5m  | `@toldproof verify` X bot listener · 🟡 inactive until `X_BOT_BEARER_TOKEN` is set + Basic tier |
 
 ---
 
 ## 🧰 Tech stack
 
-| Layer | Choice |
-|---|---|
-| 📜 Smart contracts | Sui Move 2024 — `prediction_vault` |
-| 🔐 Cryptographic time-lock | Seal (2-of-3 Mysten + Ruby Nodes committee) |
-| 🦭 Decentralized storage | Walrus — ciphertext + agent reasoning traces + reputation profiles |
-| 🗄️ Off-chain DB | Postgres on Neon (Vercel Marketplace) — OAuth bindings, quotas, release flow |
-| 🆔 Identity | X OAuth 2.0 with PKCE (`users.read tweet.read tweet.write offline.access`) |
-| 🤖 AI agent runtime | Vercel AI Gateway → Claude 4.5 + GPT-5 + Gemini 2.5 Pro |
-| 🛠️ Agent tools | Tavily web search + CoinGecko price feeds |
-| 💵 Agent payment | x402 via Vercel `x402-mcp` (USDC on Base, Coinbase facilitator) |
-| 🔌 Agent discovery | MCP (Model Context Protocol) via `@modelcontextprotocol/sdk` |
-| 🎨 Frontend | Next.js 16 (App Router) + Tailwind v4 + `@mysten/dapp-kit-react` |
-| ☁️ Hosting | Vercel + Fluid Compute Node.js cron jobs |
+| Layer                      | Choice                                                                       |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| 📜 Smart contracts         | Sui Move 2024 — `prediction_vault`                                           |
+| 🔐 Cryptographic time-lock | Seal (2-of-3 Mysten + Ruby Nodes committee)                                  |
+| 🦭 Decentralized storage   | Walrus — ciphertext + agent reasoning traces + reputation profiles           |
+| 🗄️ Off-chain DB            | Postgres on Neon (Vercel Marketplace) — OAuth bindings, quotas, release flow |
+| 🆔 Identity                | X OAuth 2.0 with PKCE (`users.read tweet.read tweet.write offline.access`)   |
+| 🤖 AI agent runtime        | Vercel AI Gateway → Claude 4.5 + GPT-5 + Gemini 2.5 Pro                      |
+| 🛠️ Agent tools             | Tavily web search + CoinGecko price feeds                                    |
+| 💵 Agent payment           | x402 via Vercel `x402-mcp` (USDC on Base, Coinbase facilitator)              |
+| 🔌 Agent discovery         | MCP (Model Context Protocol) via `@modelcontextprotocol/sdk`                 |
+| 🎨 Frontend                | Next.js 16 (App Router) + Tailwind v4 + `@mysten/dapp-kit-react`             |
+| ☁️ Hosting                 | Vercel + Fluid Compute Node.js cron jobs                                     |
 
 ---
 
@@ -287,14 +290,17 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"  
 
 ## ✅ Testing
 
-| Suite | Count | Status |
-|---|---|---|
-| `sui move test` (Move) | **62** | ✓ |
-| `vitest` (TypeScript lib/) | **90** | ✓ |
-| **Total** | **152** | All run on every push via `.github/workflows/move-ci.yml` |
+| Suite                      | Count   | Status                                                    |
+| -------------------------- | ------- | --------------------------------------------------------- |
+| `sui move test` (Move)     | **62**  | ✓                                                         |
+| `vitest` (TypeScript lib/) | **90**  | ✓                                                         |
+| **Total**                  | **152** | All run on every push via `.github/workflows/move-ci.yml` |
 
 ---
 
 ## 📝 License
 
-Apache-2.0.
+[Apache-2.0](./LICENSE) — same license as the Sui, Walrus, and Seal stacks
+this project builds on. Permissive: anyone can use, modify, and distribute
+TOLDPROOF, including commercially. Includes a patent grant so contributors
+cannot later sue users over patent claims on their contributed code.
