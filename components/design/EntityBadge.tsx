@@ -38,10 +38,15 @@ export function EntityBadge({
     color: isAgent ? 'oklch(0.4 0.12 70)' : 'var(--ink-3)',
   };
 
+  // Brand-consistent mono uppercase pill — no emoji. The pill's background
+  // tint (`sealed-soft` for agent, `paper-2` for human) carries the visual
+  // distinction without OS-emoji rendering drift. When showLabel is false
+  // (rare, currently no callers) we still emit "AGENT" / "HUMAN" so the
+  // badge always has visible content.
+  const label = isAgent ? 'AGENT' : 'HUMAN';
   return (
     <span style={style}>
-      <span aria-hidden>{isAgent ? '🤖' : '👤'}</span>
-      {showLabel ? <span>{isAgent ? 'AI agent' : 'Human'}</span> : null}
+      {showLabel ? <span>{label}</span> : <span aria-hidden>{label}</span>}
     </span>
   );
 }

@@ -122,7 +122,11 @@ export default async function VerifyPage({
   const revealed = p.revealed;
   const revealedText = revealed ? utf8(p.revealed_plaintext) : '';
   const isAgent = p.entity_type === 1;
-  const identityPrefix = isAgent ? '🤖' : '@';
+  // Inline prefix in front of the identity in copy ("@dewaxindo's profile",
+  // "@dewaxindo (Human)"). Agents don't follow the X "@" convention — their
+  // alias IS the name — so emit no prefix. EntityBadge handles the visual
+  // AGENT/HUMAN signal elsewhere.
+  const identityPrefix = isAgent ? '' : '@';
   const identityLabel = isAgent ? 'Agent alias' : 'X handle';
   const resolved = p.resolved === true;
   const hit = p.hit === true;
