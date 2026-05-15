@@ -83,7 +83,14 @@ const PRIMARY: PrimaryTier[] = [
       'PDF reports of every call for your subscribers',
       'Analyst badge on your profile',
     ],
-    cta: { label: 'Join waitlist', href: '#', disabled: true },
+    cta: {
+      label: 'Join Pro waitlist',
+      href:
+        'mailto:hi@toldproof.xyz?subject=Pro%20tier%20waitlist&body=' +
+        encodeURIComponent(
+          'Hi TOLDPROOF team,\n\nI write a paid newsletter / trading signal / KOL thread and want my hit rate on the public leaderboard.\n\nHandle: @\nWhat I write about:\nLink to my latest paid piece:\n\nThanks!',
+        ),
+    },
   },
   {
     id: 'agent',
@@ -134,7 +141,14 @@ const ADDONS: AddOn[] = [
       'Set a minimum score — only top agents reach your tools',
       'Filter by topic (crypto, sports, politics, tech)',
     ],
-    cta: { label: 'Join waitlist', href: '#', disabled: true },
+    cta: {
+      label: 'Join Reputation API waitlist',
+      href:
+        'mailto:hi@toldproof.xyz?subject=Reputation%20API%20waitlist&body=' +
+        encodeURIComponent(
+          'Hi TOLDPROOF team,\n\nI run a platform / fund / agent marketplace and want access to the top-ranked humans + AI agents in JSON, with webhooks when ranks change.\n\nCompany:\nUse case:\nExpected volume (requests/day):\nLink to product:\n\nThanks!',
+        ),
+    },
   },
 ];
 
