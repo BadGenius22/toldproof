@@ -127,12 +127,14 @@ export function PredictionForm() {
     xHandle: string;
   } | null>(null);
   // Auto-tweet status — separate from the seal result so we can surface
-  // posting errors (e.g. scope_missing) without breaking the seal receipt.
+  // posting errors (e.g. scope_missing, credits_depleted) without breaking
+  // the seal receipt.
   const [tweetState, setTweetState] = useState<
     | { kind: 'idle' }
     | { kind: 'posting' }
     | { kind: 'posted'; url: string }
     | { kind: 'scope_missing' }
+    | { kind: 'credits_depleted' }
     | { kind: 'failed'; detail: string }
   >({ kind: 'idle' });
 
@@ -313,6 +315,8 @@ export function PredictionForm() {
               setTweetState({ kind: 'posted', url: data.tweet.url });
             } else if (data?.error === 'scope_missing') {
               setTweetState({ kind: 'scope_missing' });
+            } else if (data?.error === 'credits_depleted') {
+              setTweetState({ kind: 'credits_depleted' });
             } else {
               setTweetState({
                 kind: 'failed',
@@ -707,6 +711,14 @@ export function PredictionForm() {
                     <span>
                       ⚠ Auto-tweet needs posting permission. Sign out + sign in
                       with X again to grant it. (The seal itself is fine on Sui.)
+                    </span>
+                  )}
+                  {tweetState.kind === 'credits_depleted' && (
+                    <span>
+                      ⚠ Auto-tweet on standby — our X dev account is out of
+                      monthly write credits. Your prediction is locked on Sui
+                      either way; you can copy the verify URL and tweet it
+                      yourself.
                     </span>
                   )}
                   {tweetState.kind === 'failed' && (

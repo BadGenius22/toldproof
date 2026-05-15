@@ -19,7 +19,11 @@ import {
   SESSION_COOKIE_NAME,
   verifySession,
 } from '../../../../lib/session';
-import { postTweet, TweetScopeError } from '../../../../lib/x-api';
+import {
+  postTweet,
+  TweetScopeError,
+  TweetCreditsError,
+} from '../../../../lib/x-api';
 
 export const runtime = 'nodejs';
 
@@ -83,6 +87,16 @@ export async function POST(req: Request) {
             'Your X access token was issued before we added tweet posting. Sign out + sign in with X again to grant posting permission.',
         },
         { status: 403 },
+      );
+    }
+    if (e instanceof TweetCreditsError) {
+      return NextResponse.json(
+        {
+          error: 'credits_depleted',
+          detail:
+            'X dev account is out of monthly write credits — auto-tweet is on standby until the account is topped up or upgraded to Basic tier. Your prediction is still locked on Sui.',
+        },
+        { status: 402 },
       );
     }
     console.error('[x/post-tweet] failed:', e);

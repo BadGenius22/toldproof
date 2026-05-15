@@ -92,6 +92,19 @@ export class TweetScopeError extends Error {
 }
 
 /**
+ * X's credit-based metering said no. Free-tier dev accounts have a tiny
+ * monthly credit budget for write operations; Basic tier raises the ceiling.
+ * The user can't fix this — only the dev-account owner can (upgrade tier,
+ * wait for reset, or swap to a credit-funded account).
+ */
+export class TweetCreditsError extends Error {
+  constructor() {
+    super('X dev account has no credits left to post. Upgrade to Basic tier or wait for monthly reset.');
+    this.name = 'TweetCreditsError';
+  }
+}
+
+/**
  * Posts a tweet from the user's account using their OAuth access token.
  *
  * Detects the scope-insufficient case (403 from /2/tweets when the token
@@ -121,6 +134,16 @@ export async function postTweet(args: {
     // post as a scope problem — re-auth fixes it.
     console.warn('[x-api/postTweet] 403 — likely missing tweet.write scope:', errText);
     throw new TweetScopeError();
+  }
+
+  if (res.status === 402) {
+    // X's credit-based metering refusing the POST. The error body looks like:
+    //   { "title": "CreditsDepleted", "type": ".../credits", ... }
+    // Surface as a distinct error so the UI can render a non-actionable
+    // info message (the user can't fix this; only the dev account owner can).
+    const errText = await res.text();
+    console.warn('[x-api/postTweet] 402 — X credits depleted:', errText);
+    throw new TweetCreditsError();
   }
 
   if (!res.ok) {
