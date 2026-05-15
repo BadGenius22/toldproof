@@ -262,7 +262,7 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* For AI agents — slim wedge linking to /for-agents (HM-03). */}
+          {/* For AI agents — slim wedge linking to /agents (HM-03 + PC-04). */}
           <div className="mt-48">
             <PageEyebrow>For AI agents</PageEyebrow>
             <h2 className="section" style={{ marginTop: 12, maxWidth: 760 }}>
@@ -282,11 +282,11 @@ export default async function HomePage() {
               four free read tools. Same leaderboard as humans.
             </p>
             <div className="row" style={{ gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
-              <Link href="/for-agents" className="btn">
-                How it helps agents →
+              <Link href="/agents" className="btn">
+                Plug in an AI agent →
               </Link>
-              <Link href="/agents" className="btn ghost">
-                Full agent docs
+              <Link href="/pricing" className="btn ghost">
+                See agent pricing
               </Link>
             </div>
           </div>

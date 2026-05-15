@@ -35,8 +35,12 @@ function BannerInner() {
   const heldBy = params.get('heldBy');
   const errorHandle = params.get('handle');
 
-  // Before mount, render a stable skeleton matching the dimensions of the
-  // real banner — same on server and client, so no hydration mismatch.
+  // We only render for error states or the post-OAuth welcome flash. If the
+  // URL has no error and no verified flag, there's nothing for us to show —
+  // skip the skeleton entirely so the page doesn't reserve an empty band.
+  if (!mounted && !error && !verified) {
+    return null;
+  }
   if (!mounted) {
     return (
       <div
@@ -58,6 +62,11 @@ function BannerInner() {
   const xLinked = !!session;
   const ready = walletConnected && xLinked;
 
+  // The steady states (wallet missing / X missing / ready) are now owned by
+  // ReadinessGate inside PredictionForm. This banner only surfaces:
+  //   1. OAuth error states (handle_taken / cancelled / unknown)
+  //   2. A one-shot post-OAuth "Welcome @handle" confirmation
+  // Anything else → return null so we don't double up with the gate.
   let headline: string;
   let sub: string;
   let tone: 'neutral' | 'verified' | 'warning' = 'neutral';
@@ -65,43 +74,29 @@ function BannerInner() {
   if (error === 'handle_taken' && errorHandle) {
     headline = `@${errorHandle} is claimed by another wallet`;
     sub = heldBy
-      ? `Currently bound to ${heldBy.slice(0, 10)}…${heldBy.slice(-4)}. If this is your X handle, you can prove it via tweet — release flow coming next.`
-      : 'Release flow coming next — you will prove ownership via a single tweet.';
+      ? `Currently bound to ${heldBy.slice(0, 10)}…${heldBy.slice(-4)}. If this is your X handle, you can prove it via tweet — release flow below.`
+      : 'You can prove ownership via a single tweet — release flow below.';
     tone = 'warning';
   } else if (error === 'x_oauth_cancelled') {
     headline = 'X sign-in cancelled';
-    sub = 'No worries. Click "Sign in with X" again whenever you are ready.';
+    sub = 'No worries. Use the sign-in button below whenever you are ready.';
     tone = 'warning';
   } else if (error) {
     headline = 'Something went wrong';
-    sub = `X sign-in failed (${error}). Please try again.`;
+    sub = `X sign-in failed (${error}). Please try again from the gate below.`;
     tone = 'warning';
-  } else if (ready) {
-    // `verified=1` URL param (from the OAuth callback redirect) adds a
-    // one-shot "just signed in" flavor on top of the normal signed-in copy,
-    // but only when the actual session is present. Without this guard the
-    // banner would falsely claim "you are bound" if the URL params lingered
-    // after a wallet switch (which auto-clears the session).
-    if (verified && verifiedHandle && verifiedHandle.toLowerCase() === session.xHandle.toLowerCase()) {
-      headline = `Welcome, @${session.xHandle}`;
-      sub = 'Your X account is now bound to your wallet. Lock your first prediction below.';
-    } else {
-      headline = `Signed in as @${session.xHandle}`;
-      sub = 'You can lock a prediction below. Your handle is cryptographically bound to your wallet.';
-    }
+  } else if (
+    ready &&
+    verified &&
+    verifiedHandle &&
+    verifiedHandle.toLowerCase() === session.xHandle.toLowerCase()
+  ) {
+    headline = `Welcome, @${session.xHandle}`;
+    sub = 'Your X account is now bound to your wallet. Lock your first prediction below.';
     tone = 'verified';
-  } else if (walletConnected && !xLinked && knownBinding) {
-    headline = `Welcome back, @${knownBinding.xHandle}`;
-    sub = 'This wallet was already bound to your X account. Click sign in to restore the link — usually instant if X is still logged in.';
-    tone = 'neutral';
-  } else if (walletConnected && !xLinked) {
-    headline = 'One more step: sign in with X';
-    sub = 'We use it once to bind your X handle to your wallet, so nobody else can claim it on your leaderboard.';
-    tone = 'neutral';
   } else {
-    headline = 'Connect your wallet to lock a prediction';
-    sub = 'Sui wallet (Slush, Phantom, etc.) → then sign in with X to claim your handle.';
-    tone = 'neutral';
+    // Steady state — ReadinessGate handles it. Render nothing.
+    return null;
   }
 
   const borderColor =
@@ -143,22 +138,24 @@ function BannerInner() {
         </p>
       </div>
 
-      <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
-        <XSignInButton size="sm" />
-        {/* Squat-recovery CTA: only show when we got handle_taken AND the
-            user's wallet is connected (so we have a wallet address to put
-            in the verification tweet). */}
-        {error === 'handle_taken' && errorHandle && account && (
-          <button
-            type="button"
-            onClick={() => setShowRelease(true)}
-            className="btn"
-            style={{ padding: '6px 12px', fontSize: 12 }}
-          >
-            Prove @{errorHandle} is yours →
-          </button>
-        )}
-      </div>
+      {(!!error || tone === 'warning') && (
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+          <XSignInButton size="sm" />
+          {/* Squat-recovery CTA: only show when we got handle_taken AND the
+              user's wallet is connected (so we have a wallet address to put
+              in the verification tweet). */}
+          {error === 'handle_taken' && errorHandle && account && (
+            <button
+              type="button"
+              onClick={() => setShowRelease(true)}
+              className="btn"
+              style={{ padding: '6px 12px', fontSize: 12 }}
+            >
+              Prove @{errorHandle} is yours →
+            </button>
+          )}
+        </div>
+      )}
 
       {showRelease && account && errorHandle && (
         <ReleaseFlow
