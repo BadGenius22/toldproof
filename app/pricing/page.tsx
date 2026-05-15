@@ -19,7 +19,7 @@ import {
   BRAND_MARK,
 } from '../../components/design';
 import { CostSlider } from './CostSlider';
-import { WaitlistForm } from './WaitlistForm';
+import { WaitlistForm } from '../../components/WaitlistForm';
 
 interface PrimaryTier {
   id: 'human' | 'pro' | 'agent';
@@ -28,14 +28,7 @@ interface PrimaryTier {
   priceSub: string;
   pitch: string;
   features: string[];
-  cta: {
-    label: string;
-    href: string;
-    disabled?: boolean;
-    // When set, the CTA renders an inline waitlist form (WaitlistForm) and
-    // the href is used as the mailto fallback.
-    waitlist?: 'pro' | 'reputation-api';
-  };
+  cta: { label: string; href: string; disabled?: boolean };
   // Audience-category pill (right corner). The Agent tier uses this to mark
   // itself as a different product, not a different price point.
   highlight?: boolean;
@@ -52,12 +45,7 @@ interface AddOn {
   priceSub: string;
   pitch: string;
   features: string[];
-  cta: {
-    label: string;
-    href: string;
-    disabled?: boolean;
-    waitlist?: 'pro' | 'reputation-api';
-  };
+  cta: { label: string; href: string; disabled?: boolean };
 }
 
 const PRIMARY: PrimaryTier[] = [
@@ -96,15 +84,7 @@ const PRIMARY: PrimaryTier[] = [
       'PDF reports of every call for your subscribers',
       'Analyst badge on your profile',
     ],
-    cta: {
-      label: 'Join Pro waitlist',
-      href:
-        'mailto:hi@toldproof.xyz?subject=Pro%20tier%20waitlist&body=' +
-        encodeURIComponent(
-          'Hi TOLDPROOF team,\n\nI write a paid newsletter / trading signal / KOL thread and want my hit rate on the public leaderboard.\n\nHandle: @\nWhat I write about:\nLink to my latest paid piece:\n\nThanks!',
-        ),
-      waitlist: 'pro',
-    },
+    cta: { label: 'Join the Pro waitlist', href: '#' },
   },
   {
     id: 'agent',
@@ -155,15 +135,7 @@ const ADDONS: AddOn[] = [
       'Set a minimum score — only top agents reach your tools',
       'Filter by topic (crypto, sports, politics, tech)',
     ],
-    cta: {
-      label: 'Join Reputation API waitlist',
-      href:
-        'mailto:hi@toldproof.xyz?subject=Reputation%20API%20waitlist&body=' +
-        encodeURIComponent(
-          'Hi TOLDPROOF team,\n\nI run a platform / fund / agent marketplace and want access to the top-ranked humans + AI agents in JSON, with webhooks when ranks change.\n\nCompany:\nUse case:\nExpected volume (requests/day):\nLink to product:\n\nThanks!',
-        ),
-      waitlist: 'reputation-api',
-    },
+    cta: { label: 'Join the Reputation API waitlist', href: '#' },
   },
 ];
 
@@ -627,13 +599,21 @@ function PrimaryCard({ tier }: { tier: PrimaryTier }) {
       </ul>
 
       <div style={{ marginTop: 8 }}>
-        {tier.cta.waitlist ? (
+        {tier.id === 'pro' ? (
           <WaitlistForm
-            tier={tier.cta.waitlist}
-            label={tier.cta.label}
-            variant={tier.highlight ? 'primary' : 'ghost'}
-            mailtoFallback={tier.cta.href}
+            tier="pro"
+            label="Join the Pro waitlist"
+            variant="primary"
           />
+        ) : tier.cta.disabled ? (
+          <button
+            type="button"
+            className="btn ghost"
+            disabled
+            style={{ width: '100%', justifyContent: 'center', opacity: 0.6 }}
+          >
+            {tier.cta.label}
+          </button>
         ) : (
           <CtaLink
             href={tier.cta.href}
@@ -721,12 +701,11 @@ function AddOnCard({ addon }: { addon: AddOn }) {
       </ul>
 
       <div style={{ marginTop: 4 }}>
-        {addon.cta.waitlist ? (
+        {addon.id === 'reputation-api' ? (
           <WaitlistForm
-            tier={addon.cta.waitlist}
-            label={addon.cta.label}
+            tier="reputation-api"
+            label="Join the Reputation API waitlist"
             variant="ghost"
-            mailtoFallback={addon.cta.href}
           />
         ) : addon.cta.disabled ? (
           <button

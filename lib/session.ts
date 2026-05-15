@@ -98,3 +98,26 @@ export const SESSION_COOKIE_OPTIONS = {
 };
 
 export { COOKIE_NAME as SESSION_COOKIE_NAME };
+
+/**
+ * Read the session payload off a Request's Cookie header. Never throws —
+ * returns null when the cookie is absent, tampered, expired, or malformed.
+ * Use this from API routes that want optional session context without
+ * hitting next/headers (works in both edge and node runtimes).
+ */
+export function getSessionFromCookie(req: Request): SessionPayload | null {
+  const cookieHeader = req.headers.get('cookie');
+  if (!cookieHeader) return null;
+  // Cookie header is `name=value; name2=value2; ...` — find ours by exact
+  // name match. Don't split-and-trim naively because cookie values may
+  // contain `=` (base64url payloads).
+  const prefix = `${COOKIE_NAME}=`;
+  for (const part of cookieHeader.split(';')) {
+    const trimmed = part.trim();
+    if (trimmed.startsWith(prefix)) {
+      const raw = trimmed.slice(prefix.length);
+      return verifySession(decodeURIComponent(raw));
+    }
+  }
+  return null;
+}
