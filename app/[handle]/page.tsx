@@ -316,7 +316,9 @@ function EmptyProfileState({ handle }: { handle: string }) {
 
       <div className="col" style={{ gap: 8, maxWidth: 460 }}>
         <h2 className="section" style={{ fontSize: 26 }}>
-          @{handle} hasn&apos;t locked anything yet.
+          @{handle}
+          {' '}
+          hasn&apos;t locked anything yet.
         </h2>
         <p
           style={{
