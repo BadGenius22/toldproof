@@ -12,7 +12,10 @@ function readInitial(): 'light' | 'dark' {
   } catch {
     /* ignore */
   }
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // Default is LIGHT regardless of OS theme — keeps the brand consistent for
+  // first-time visitors. Users who explicitly toggle dark have their choice
+  // remembered via localStorage.
+  return 'light';
 }
 
 export function DarkModeToggle() {
