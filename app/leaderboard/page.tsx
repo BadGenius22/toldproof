@@ -55,8 +55,9 @@ export default async function LeaderboardPage() {
         >
           Everyone below — analysts, traders, and AI agents — locked
           predictions on Sui before the answer was known. Our AI judge marked
-          each one hit or miss and saved its full reasoning on Walrus. The hit
-          rates you see can&apos;t be faked and anyone can check them.
+          each one hit or miss AND rated how hard each call was. The Skill
+          Score is a difficulty-weighted track record: bold calls count, calls
+          that were already true at lock time don&apos;t. None of it can be faked.
         </p>
 
         {/* Aggregate stats strip */}
@@ -70,7 +71,7 @@ export default async function LeaderboardPage() {
           }}
         >
           <StatCell label="Humans + agents" value={String(stats.total)} sub={`${stats.humans} humans · ${stats.agents} AI`} />
-          <StatCell label="Ranked" value={String(stats.ranked)} sub="3+ settled calls" border />
+          <StatCell label="Ranked" value={String(stats.ranked)} sub="3+ settled + 2 bold calls" border />
           <StatCell label="Predictions locked" value={String(stats.totalSeals)} sub={`${stats.totalResolved} settled`} />
           <StatCell
             label="Overall hit rate"

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { LeaderboardEntry } from '../../lib/leaderboard';
 import { EntityBadge, fmtRel, identityDisplay, shortHash } from '../../components/design';
+import { DifficultyHistogram, deriveProfileTag } from '../../components/DifficultyHistogram';
 
 type Filter = 'all' | 'humans' | 'agents';
 
@@ -133,15 +134,27 @@ function LeaderboardRow({
   rank?: number;
   now: number;
 }) {
-  const pct = Math.round(entry.stats.hitRate * 100);
-  const hitColor = entry.isRanked
-    ? entry.stats.hitRate >= 0.7
+  const hitPct = Math.round(entry.stats.hitRate * 100);
+  const skill = entry.skill.score;
+  // Skill Score color: 70+ = top tier, 40-70 = solid, below = neutral. Ranked
+  // entities only — unranked show "—" to avoid implying a value with too
+  // little data.
+  const skillColor = entry.isRanked
+    ? skill >= 70
       ? 'var(--verified)'
-      : entry.stats.hitRate >= 0.4
+      : skill >= 40
         ? 'var(--ink)'
         : 'var(--warn)'
     : 'var(--muted)';
   const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
+
+  // Compute the hit rate on bold-only calls for the badge derivation. A
+  // bold caller earns the ★ tag only if they actually hit on their bold
+  // bets, not just attempt them.
+  const boldHits = Math.max(0, Math.round(entry.skill.weightedHits));
+  const boldAttempts = Math.max(1, Math.round(entry.skill.weightedAttempts));
+  const hitRateOnBold = boldHits / boldAttempts;
+  const tag = deriveProfileTag(entry.skill.mix, hitRateOnBold);
 
   return (
     <Link
@@ -150,7 +163,7 @@ function LeaderboardRow({
         all: 'unset',
         cursor: 'pointer',
         display: 'grid',
-        gridTemplateColumns: '48px 1fr auto auto',
+        gridTemplateColumns: '48px 1.4fr 1fr auto auto',
         alignItems: 'center',
         gap: 16,
         padding: '14px 18px',
@@ -180,6 +193,30 @@ function LeaderboardRow({
             {identityDisplay(entry.identity, entry.entityType)}
           </span>
           <EntityBadge entityType={entry.entityType} variant="sm" />
+          {tag && (
+            <span
+              className="mono"
+              style={{
+                fontSize: 10,
+                padding: '2px 7px',
+                borderRadius: 999,
+                background:
+                  tag.kind === 'bold'
+                    ? 'var(--verified-soft, #eaffea)'
+                    : 'var(--warn-soft, #fff7e6)',
+                color:
+                  tag.kind === 'bold'
+                    ? 'oklch(0.3 0.12 150)'
+                    : 'var(--ink)',
+                border: `1px solid ${
+                  tag.kind === 'bold' ? 'var(--verified)' : 'var(--warn)'
+                }`,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {tag.label}
+            </span>
+          )}
         </div>
         <span
           className="mono"
@@ -196,24 +233,35 @@ function LeaderboardRow({
         </span>
       </div>
 
-      {/* Hit rate cell */}
+      {/* Difficulty mix histogram — the visible anti-spam signal */}
+      <div className="col" style={{ gap: 4 }}>
+        <DifficultyHistogram mix={entry.skill.mix} compact />
+        <span
+          className="mono"
+          style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}
+        >
+          {hitPct}% hit rate · {entry.stats.hits}/{entry.stats.resolved}
+        </span>
+      </div>
+
+      {/* Skill Score — the headline ranking number */}
       <div className="col" style={{ gap: 2, alignItems: 'flex-end' }}>
         <span
           style={{
             fontFamily: 'var(--font-mono), monospace',
             fontSize: 24,
             fontWeight: 600,
-            color: hitColor,
+            color: skillColor,
             lineHeight: 1,
           }}
         >
-          {entry.isRanked ? `${pct}%` : '—'}
+          {entry.isRanked ? skill : '—'}
         </span>
         <span
           className="mono"
           style={{ fontSize: 10, color: 'var(--muted)', whiteSpace: 'nowrap' }}
         >
-          {entry.stats.hits} of {entry.stats.resolved} right
+          Skill Score
         </span>
       </div>
 

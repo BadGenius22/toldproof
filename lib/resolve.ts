@@ -31,6 +31,7 @@ import {
   VerdictSchema,
   type Verdict,
 } from './agent-tools';
+import { persistVerdict } from './verdict-store';
 
 const MAX_AGENT_STEPS = 8;
 const REASONING_TRACE_EPOCHS = 53;
@@ -236,6 +237,27 @@ export async function resolveOnce(opts: {
   // next getObject() after router.refresh()/reload sees resolved:true. Same
   // read-after-write consistency fix applied to revealOnce().
   await suiClient.waitForTransaction({ digest: signed.digest });
+
+  // 5. Denormalize verdict + difficulty into Postgres for the leaderboard's
+  // skill-score computation. Move is still source of truth — this table is
+  // a cache + difficulty index. We don't fail the resolve if the write
+  // errors; the verdict is already on-chain.
+  try {
+    await persistVerdict({
+      predictionId,
+      identity: pred.identity,
+      entityType: pred.entity_type ?? 0,
+      hit: trace.verdict.hit,
+      difficulty: trace.verdict.difficulty,
+      difficultyReasoning: trace.verdict.difficultyReasoning,
+      confidence: trace.verdict.confidence,
+      sealedAtMs,
+      resolvedAtMs: Date.now(),
+      resolverAddr: signer.getPublicKey().toSuiAddress(),
+    });
+  } catch (e) {
+    console.warn(`[resolve] persistVerdict failed for ${predictionId}:`, e);
+  }
 
   return {
     predictionId,

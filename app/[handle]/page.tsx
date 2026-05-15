@@ -9,6 +9,12 @@ import {
   type PredictionView,
 } from '../../lib/registry';
 import { getSql } from '../../lib/db';
+import { getVerdictsForIdentity } from '../../lib/verdict-store';
+import { computeSkillStats, type VerdictLookup } from '../../lib/leaderboard';
+import {
+  DifficultyHistogram,
+  deriveProfileTag,
+} from '../../components/DifficultyHistogram';
 import { PredictionCard } from '../../components/PredictionCard';
 import {
   EntityBadge,
@@ -81,6 +87,30 @@ export default async function ProfilePage({
   const hits = resolvedPreds.filter((p) => p.hit).length;
   const totalResolved = resolvedPreds.length;
   const hitRate = totalResolved > 0 ? Math.round((hits / totalResolved) * 100) : null;
+
+  // Difficulty-aware skill stats. Pull verdict rows from Postgres (populated
+  // by the resolver) and compute the same Wilson-bound Skill Score that
+  // drives the leaderboard. Best-effort: if Postgres is cold or empty, mix
+  // shows "unknown" entries and skill score = 0 — surfaces the missing data
+  // honestly rather than guessing.
+  let skill: ReturnType<typeof computeSkillStats> | null = null;
+  try {
+    const verdictRows = await getVerdictsForIdentity(handle);
+    const verdictMap = new Map<string, VerdictLookup>();
+    for (const r of verdictRows) {
+      verdictMap.set(r.prediction_id, { difficulty: r.difficulty });
+    }
+    skill = computeSkillStats(resolvedPreds, verdictMap);
+  } catch (e) {
+    console.warn(`[profile] verdict load failed for ${handle}:`, e);
+  }
+
+  // Tag derivation — only meaningful with enough bold calls.
+  const boldHits = skill ? Math.max(0, Math.round(skill.weightedHits)) : 0;
+  const boldAttempts = skill ? Math.max(1, Math.round(skill.weightedAttempts)) : 1;
+  const profileTag = skill
+    ? deriveProfileTag(skill.mix, boldHits / boldAttempts)
+    : null;
 
   // Pick the publisher address of the most recent prediction (if any) for the header.
   const publisher = predictions[0]?.publisher;
@@ -201,6 +231,91 @@ export default async function ProfilePage({
                 border
               />
             </div>
+
+            {/* Skill Score + difficulty mix — the anti-spam disclosure layer */}
+            {skill && totalResolved > 0 && (
+              <div
+                className="mt-24"
+                style={{
+                  border: '1px solid var(--ink)',
+                  borderRadius: 4,
+                  padding: '20px 22px',
+                  background: 'var(--paper)',
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(180px, auto) 1fr',
+                  gap: 24,
+                  alignItems: 'center',
+                }}
+              >
+                <div className="col" style={{ gap: 4 }}>
+                  <span className="eyebrow">Skill Score · 0–100</span>
+                  <div
+                    className="row"
+                    style={{ alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-mono), monospace',
+                        fontSize: 44,
+                        fontWeight: 600,
+                        color:
+                          skill.score >= 70
+                            ? 'var(--verified)'
+                            : skill.score >= 40
+                              ? 'var(--ink)'
+                              : 'var(--warn)',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {skill.score}
+                    </span>
+                    {profileTag && (
+                      <span
+                        className="mono"
+                        style={{
+                          fontSize: 11,
+                          padding: '3px 8px',
+                          borderRadius: 999,
+                          background:
+                            profileTag.kind === 'bold'
+                              ? 'var(--verified-soft, #eaffea)'
+                              : 'var(--warn-soft, #fff7e6)',
+                          color:
+                            profileTag.kind === 'bold'
+                              ? 'oklch(0.3 0.12 150)'
+                              : 'var(--ink)',
+                          border: `1px solid ${
+                            profileTag.kind === 'bold'
+                              ? 'var(--verified)'
+                              : 'var(--warn)'
+                          }`,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {profileTag.label}
+                      </span>
+                    )}
+                  </div>
+                  <span
+                    className="mono"
+                    style={{ fontSize: 11, color: 'var(--muted)' }}
+                  >
+                    {skill.boldCalls} bold call{skill.boldCalls === 1 ? '' : 's'} · weighted by how hard each call was
+                  </span>
+                </div>
+                <div className="col" style={{ gap: 10 }}>
+                  <span className="eyebrow">Mix of calls so far</span>
+                  <DifficultyHistogram mix={skill.mix} />
+                  <span
+                    className="mono"
+                    style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.5 }}
+                  >
+                    Trivial calls (already true at lock time) don&apos;t move the
+                    Skill Score. Bold calls (real or surprising) count most.
+                  </span>
+                </div>
+              </div>
+            )}
 
             <ProfileFilters
               counts={{
