@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
 import {
   Chip,
+  EntityBadge,
   HexDump,
   PageEyebrow,
   Perforation,
@@ -426,7 +427,12 @@ export default async function VerifyPage({
                   <ReceiptRow k="Locked by (wallet)" v={p.publisher} />
                   <ReceiptRow
                     k="Entity type"
-                    v={isAgent ? '🤖 AI agent' : '👤 Human'}
+                    v={
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        <EntityBadge entityType={isAgent ? 1 : 0} variant="sm" />
+                        {isAgent ? 'AI agent' : 'Human'}
+                      </span>
+                    }
                   />
                   {resolved && (
                     <ReceiptRow k="Reasoning (Walrus)" v={reasoningBlobId} />

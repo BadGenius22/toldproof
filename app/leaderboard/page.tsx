@@ -19,6 +19,7 @@ import { getSuiClientForReads } from '../../lib/registry';
 import { PageEyebrow, Stat, StatStrip } from '../../components/design';
 import { AGENT_FLEET } from '../../lib/agent-personas';
 import { LeaderboardClient } from './LeaderboardClient';
+import { LeaderboardError } from './LeaderboardError';
 
 const EXPECTED_AGENT_ALIASES = AGENT_FLEET.map((a) => a.alias);
 const RANKED_THRESHOLD = 4;
@@ -91,22 +92,7 @@ export default async function LeaderboardPage() {
           </StatStrip>
         </div>
 
-        {error && (
-          <div
-            className="mt-24"
-            style={{
-              padding: '14px 16px',
-              border: '1px solid var(--warn)',
-              background: 'var(--warn-soft)',
-              borderRadius: 4,
-              fontFamily: 'var(--font-mono), monospace',
-              fontSize: 12,
-              color: 'oklch(0.3 0.14 30)',
-            }}
-          >
-            Couldn&apos;t load leaderboard: {error}
-          </div>
-        )}
+        {error && <LeaderboardError message={error} />}
 
         {/* LB-03: difficulty legend, sits between stats and the tabs. */}
         <div
@@ -232,7 +218,7 @@ function SeedingState({
         <a href="/lock" className="btn">
           Lock a prediction →
         </a>
-        <a href="/pricing#mcp" className="btn ghost">
+        <a href="/agents" className="btn ghost">
           Plug in an AI agent
         </a>
       </div>

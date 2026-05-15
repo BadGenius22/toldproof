@@ -371,6 +371,56 @@ export default async function ProfilePage({
               </div>
             )}
 
+            {/* PR-06: next-unlock countdown row. Picks the soonest locked
+                prediction whose unlock is still in the future. */}
+            {(() => {
+              const nextUnlock = sealed
+                .slice()
+                .sort((a, b) => a.unlockAtMs - b.unlockAtMs)[0];
+              if (!nextUnlock) return null;
+              const cipherTail = nextUnlock.blobId
+                ? nextUnlock.blobId.slice(0, 18) + '…'
+                : nextUnlock.id.slice(0, 18) + '…';
+              return (
+                <div
+                  className="mt-24"
+                  style={{
+                    padding: '14px 18px',
+                    border: '1px dashed var(--ink)',
+                    borderRadius: 4,
+                    background: 'var(--paper-2)',
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1fr) auto',
+                    gap: 14,
+                    alignItems: 'center',
+                  }}
+                >
+                  <div className="col" style={{ gap: 4, minWidth: 0 }}>
+                    <span className="eyebrow">Next unlock</span>
+                    <span
+                      className="mono"
+                      style={{
+                        fontSize: 12,
+                        color: 'var(--ink-2)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      opens {new Date(nextUnlock.unlockAtMs).toISOString().slice(0, 16).replace('T', ' ')} UTC
+                      <span style={{ color: 'var(--muted)' }}> · cipher {cipherTail}</span>
+                    </span>
+                  </div>
+                  <Link
+                    href={`/verify/${nextUnlock.id}`}
+                    className="btn ghost"
+                  >
+                    See the receipt →
+                  </Link>
+                </div>
+              );
+            })()}
+
             <ProfileFilters
               counts={{
                 all: predictions.length,

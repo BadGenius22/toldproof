@@ -8,16 +8,33 @@ import { EntityBadge, FilterTabs, TagChip, fmtRel, identityDisplay, shortHash } 
 import { DifficultyHistogram, deriveProfileTag } from '../../components/DifficultyHistogram';
 
 type Filter = 'all' | 'humans' | 'agents';
+type TimeWindow = '7d' | '30d' | 'all';
+
+const WINDOW_MS: Record<TimeWindow, number | null> = {
+  '7d': 7 * 24 * 60 * 60_000,
+  '30d': 30 * 24 * 60 * 60_000,
+  all: null,
+};
 
 export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) {
   const [filter, setFilter] = useState<Filter>('all');
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>('30d');
   const now = Date.now();
 
+  // LB-08: Apply time-window filter first (last activity within window) then
+  // entity-type filter. "All time" disables the window cap.
+  const timeFiltered = useMemo(() => {
+    const cap = WINDOW_MS[timeWindow];
+    if (cap === null) return entries;
+    return entries.filter((e) => now - e.stats.lastActivityMs <= cap);
+  }, [entries, timeWindow, now]);
+
   const filtered = useMemo(() => {
-    if (filter === 'all') return entries;
-    if (filter === 'humans') return entries.filter((e) => e.entityType === 0);
-    return entries.filter((e) => e.entityType === 1);
-  }, [entries, filter]);
+    if (filter === 'all') return timeFiltered;
+    if (filter === 'humans')
+      return timeFiltered.filter((e) => e.entityType === 0);
+    return timeFiltered.filter((e) => e.entityType === 1);
+  }, [timeFiltered, filter]);
 
   const ranked = filtered.filter((e) => e.isRanked);
   const upcoming = filtered.filter((e) => !e.isRanked);
@@ -53,9 +70,23 @@ export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) 
     percentileById.set(e.identity, pct);
   });
 
+  const windowTabs: Array<{ id: TimeWindow; label: string }> = [
+    { id: '7d', label: '7 days' },
+    { id: '30d', label: '30 days' },
+    { id: 'all', label: 'All time' },
+  ];
+
   return (
     <>
-      <div className="mt-32">
+      <div className="mt-24">
+        <FilterTabs
+          tabs={windowTabs.map((t) => ({ id: t.id, label: t.label }))}
+          value={timeWindow}
+          onChange={setTimeWindow}
+          rightHint={`${timeFiltered.length} active in window`}
+        />
+      </div>
+      <div className="mt-12">
         <FilterTabs
           tabs={tabs.map((t) => ({ id: t.id, label: t.label, count: t.n }))}
           value={filter}
@@ -199,6 +230,7 @@ function LeaderboardRow({
   now: number;
   percentile?: number;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const hitPct = Math.round(entry.stats.hitRate * 100);
   const skill = entry.skill.score;
   // Skill Score color: 70+ = top tier, 40-70 = solid, below = neutral. Ranked
@@ -221,7 +253,7 @@ function LeaderboardRow({
   const hitRateOnBold = boldHits / boldAttempts;
   const tag = deriveProfileTag(entry.skill.mix, hitRateOnBold);
 
-  return (
+  const linkContent = (
     <Link
       href={`/${entry.identity}`}
       style={{
@@ -234,7 +266,7 @@ function LeaderboardRow({
         padding: '14px 18px',
         background: 'var(--paper)',
         border: '1px solid var(--border)',
-        borderRadius: 4,
+        borderRadius: expanded ? '4px 4px 0 0' : 4,
         transition: 'border-color 0.12s',
       }}
     >
@@ -338,5 +370,81 @@ function LeaderboardRow({
         →
       </span>
     </Link>
+  );
+
+  return (
+    <div className="col" style={{ gap: 0 }}>
+      <div style={{ position: 'relative' }}>
+        {linkContent}
+        {entry.recentRevealed.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Hide recent predictions' : 'Show recent predictions'}
+            style={{
+              all: 'unset',
+              position: 'absolute',
+              right: 8,
+              bottom: 4,
+              fontSize: 11,
+              color: 'var(--muted)',
+              fontFamily: 'var(--font-mono), monospace',
+              cursor: 'pointer',
+              padding: '2px 8px',
+              borderRadius: 3,
+              background: 'var(--paper-2)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            {expanded ? '↑ Hide' : '↓ Last 3'}
+          </button>
+        )}
+      </div>
+      {expanded && entry.recentRevealed.length > 0 && (
+        <div
+          className="col"
+          style={{
+            gap: 6,
+            padding: '10px 18px 14px 66px',
+            border: '1px solid var(--border)',
+            borderTop: 'none',
+            borderRadius: '0 0 4px 4px',
+            background: 'var(--paper-2)',
+          }}
+        >
+          {entry.recentRevealed.map((p) => (
+            <Link
+              key={p.id}
+              href={`/verify/${p.id}`}
+              className="mono"
+              style={{
+                fontSize: 11.5,
+                color: 'var(--ink-3)',
+                textDecoration: 'none',
+                lineHeight: 1.5,
+              }}
+            >
+              <span
+                style={{
+                  display: 'inline-block',
+                  minWidth: 36,
+                  color: p.resolved
+                    ? p.hit
+                      ? 'var(--verified)'
+                      : 'var(--warn)'
+                    : 'var(--muted)',
+                }}
+              >
+                {p.resolved ? (p.hit ? '✓ HIT' : '✗ MISS') : '○ PEND'}
+              </span>
+              <span style={{ marginLeft: 8, color: 'var(--ink-2)' }}>
+                &quot;{p.text}&quot;
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

@@ -91,6 +91,22 @@ export function PredictionForm() {
   );
 
   const [text, setText] = useState('');
+  // LK-06: structured-prediction mode. Free-text remains the default; users
+  // can flip to structured for one-line falsifiable claims like
+  // `BTC > 95000 by 2026-06-30`. Switching back leaves the existing text
+  // intact so users don't lose typing.
+  const [mode, setMode] = useState<'free' | 'structured'>('free');
+  const [sTicker, setSTicker] = useState('BTC');
+  const [sOtherTicker, setSOtherTicker] = useState('');
+  const [sOp, setSOp] = useState<'>' | '<' | '>=' | '<='>('>');
+  const [sValue, setSValue] = useState('');
+  const [sByDate, setSByDate] = useState('');
+  useEffect(() => {
+    if (mode !== 'structured') return;
+    const t = sTicker === 'OTHER' ? sOtherTicker.trim().toUpperCase() : sTicker;
+    if (!t || !sValue || !sByDate) return;
+    setText(`${t} ${sOp} ${sValue} by ${sByDate}`);
+  }, [mode, sTicker, sOtherTicker, sOp, sValue, sByDate]);
   const [unlockIso, setUnlockIso] = useState('');
   useEffect(() => {
     setUnlockIso((prev) => prev || defaultUnlockLocal());
@@ -453,19 +469,113 @@ export function PredictionForm() {
             }}
           >
             <div className="field">
-              <label htmlFor="pred">Your prediction</label>
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <label htmlFor="pred">Your prediction</label>
+                <div className="row" style={{ gap: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => setMode('free')}
+                    className={`filter-tab${mode === 'free' ? ' active' : ''}`}
+                  >
+                    Free text
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode('structured')}
+                    className={`filter-tab${mode === 'structured' ? ' active' : ''}`}
+                  >
+                    Structured
+                  </button>
+                </div>
+              </div>
+              {mode === 'structured' && (
+                <div
+                  className="row"
+                  style={{
+                    gap: 8,
+                    flexWrap: 'wrap',
+                    padding: 10,
+                    border: '1px solid var(--border)',
+                    borderRadius: 4,
+                    background: 'var(--paper-2)',
+                    marginBottom: 8,
+                  }}
+                >
+                  <select
+                    className="input"
+                    value={sTicker}
+                    onChange={(e) => setSTicker(e.target.value)}
+                    disabled={disabled || !!result}
+                    style={{ width: 110 }}
+                  >
+                    {['BTC', 'ETH', 'SUI', 'SOL', 'WAL', 'USDC', 'DOGE', 'OTHER'].map(
+                      (t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                  {sTicker === 'OTHER' && (
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="TICKER"
+                      value={sOtherTicker}
+                      onChange={(e) => setSOtherTicker(e.target.value)}
+                      disabled={disabled || !!result}
+                      style={{ width: 120 }}
+                    />
+                  )}
+                  <select
+                    className="input"
+                    value={sOp}
+                    onChange={(e) => setSOp(e.target.value as typeof sOp)}
+                    disabled={disabled || !!result}
+                    style={{ width: 80 }}
+                  >
+                    <option value=">">&gt;</option>
+                    <option value="<">&lt;</option>
+                    <option value=">=">&ge;</option>
+                    <option value="<=">&le;</option>
+                  </select>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="input"
+                    placeholder="value"
+                    value={sValue}
+                    onChange={(e) => setSValue(e.target.value)}
+                    disabled={disabled || !!result}
+                    style={{ width: 140 }}
+                  />
+                  <span className="mono" style={{ color: 'var(--muted)' }}>by</span>
+                  <input
+                    type="date"
+                    className="input"
+                    value={sByDate}
+                    onChange={(e) => setSByDate(e.target.value)}
+                    disabled={disabled || !!result}
+                    style={{ width: 170 }}
+                  />
+                </div>
+              )}
               <textarea
                 id="pred"
                 className="textarea"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 maxLength={280}
-                disabled={disabled || !!result}
+                disabled={disabled || !!result || mode === 'structured'}
                 required
                 placeholder="BTC > 95k by 2026-06-30"
               />
               <div className="row" style={{ justifyContent: 'space-between' }}>
-                <span className="hint">280 letters max — same as X.</span>
+                <span className="hint">
+                  {mode === 'structured'
+                    ? 'Read-only — edit the fields above. Switch to Free text to type freely.'
+                    : '280 letters max — same as X.'}
+                </span>
                 <span className="hint">{charsLeft} left</span>
               </div>
               {priceHints.length > 0 && (
@@ -572,32 +682,52 @@ export function PredictionForm() {
               </div>
             </div>
 
-            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-              {(
-                [
-                  { label: '+5 min', ms: 5 * 60_000 },
-                  { label: '+1 hr', ms: 60 * 60_000 },
-                  { label: '+1 day', ms: 24 * 60 * 60_000 },
-                  { label: '+1 week', ms: 7 * 24 * 60 * 60_000 },
-                  { label: '+1 month', ms: 30 * 24 * 60 * 60_000 },
-                ] as const
-              ).map((p) => (
-                <button
-                  key={p.label}
-                  type="button"
-                  className="btn ghost"
-                  disabled={disabled || !!result}
-                  onClick={() => {
-                    const d = new Date(Date.now() + p.ms);
-                    d.setSeconds(0);
-                    d.setMilliseconds(0);
-                    setUnlockIso(formatLocalDatetimeInput(d));
-                  }}
-                  style={{ padding: '6px 10px', fontSize: 10 }}
-                >
-                  {p.label}
-                </button>
-              ))}
+            <div className="col" style={{ gap: 6 }}>
+              <span
+                className="mono"
+                style={{
+                  fontSize: 10.5,
+                  color: 'var(--muted)',
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Or pick a shortcut
+              </span>
+              <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                {/* LK-07: commit harder to the date-chips path. Includes EOY
+                    so analysts can lock year-end calls in one click. */}
+                {(
+                  [
+                    { label: '+5 min', ms: 5 * 60_000 },
+                    { label: '+1 hr', ms: 60 * 60_000 },
+                    { label: '+1 day', ms: 24 * 60 * 60_000 },
+                    { label: '+1 week', ms: 7 * 24 * 60 * 60_000 },
+                    { label: '+1 month', ms: 30 * 24 * 60 * 60_000 },
+                    { label: 'EOY', ms: 'eoy' as const },
+                  ] as const
+                ).map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    className="filter-tab"
+                    disabled={disabled || !!result}
+                    onClick={() => {
+                      let d: Date;
+                      if (p.ms === 'eoy') {
+                        d = new Date(new Date().getFullYear(), 11, 31, 23, 59);
+                      } else {
+                        d = new Date(Date.now() + (p.ms as number));
+                      }
+                      d.setSeconds(0);
+                      d.setMilliseconds(0);
+                      setUnlockIso(formatLocalDatetimeInput(d));
+                    }}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <label
@@ -671,7 +801,7 @@ export function PredictionForm() {
           }}
         >
           Are you an AI agent? Skip the form — plug into{' '}
-          <Link href="/pricing#mcp" style={{ color: 'var(--ink-2)' }}>
+          <Link href="/agents" style={{ color: 'var(--ink-2)' }}>
             <code style={{ color: 'var(--sealed)' }}>/api/mcp/mcp</code>
           </Link>{' '}
           and pay $0.10 USDC per prediction.
@@ -897,17 +1027,27 @@ function ReadinessGate({
   if (allReady) {
     return (
       <div className="readiness-pill mono">
-        ✓ Wallet connected · signed in as <strong>@{session.xHandle}</strong>
+        <span>✓ Wallet + X · ready to lock</span>
+        <span style={{ color: 'var(--muted)' }}>
+          · <strong style={{ color: 'inherit' }}>@{session.xHandle}</strong>
+        </span>
       </div>
     );
   }
 
+  // Show a one-step variant when wallet is the only remaining gate, and the
+  // standard two-step card when X also needs sign-in.
+  const stepsRemaining = (walletReady ? 0 : 1) + (xReady ? 0 : 1);
   return (
     <div className="readiness-card">
       <div className="readiness-head">
-        <span className="eyebrow">Two-step setup</span>
+        <span className="eyebrow">
+          {stepsRemaining === 1 ? 'One step left' : 'Two-step setup'}
+        </span>
         <h2 className="section" style={{ fontSize: 22, margin: 0 }}>
-          Get ready in 30 seconds
+          {stepsRemaining === 1
+            ? 'Almost there — finish signing in.'
+            : 'Get ready in 30 seconds'}
         </h2>
       </div>
       <ol className="readiness-steps">
@@ -917,7 +1057,10 @@ function ReadinessGate({
           done={walletReady}
           action={
             !walletReady ? (
-              <span className="hint">Use the wallet button at the top right.</span>
+              <span className="hint" style={{ maxWidth: 220 }}>
+                Use the <strong>Connect</strong> button at the top right of the
+                page.
+              </span>
             ) : undefined
           }
         />

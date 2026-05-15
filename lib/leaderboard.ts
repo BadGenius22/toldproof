@@ -89,6 +89,15 @@ export interface LeaderboardEntry {
   // Most-recent-first resolved outcomes — used by the leaderboard podium
   // sparkline. Capped at 5 to bound the LeaderboardEntry payload.
   recentResults: Array<'H' | 'M'>;
+  // LB-06: 3 most recent revealed predictions for inline row expander.
+  // Truncated text only — never the full prediction body, to bound payload.
+  recentRevealed: Array<{
+    id: string;
+    text: string;
+    revealedAtMs: number;
+    resolved: boolean;
+    hit: boolean;
+  }>;
 }
 
 export async function buildLeaderboard(client: SuiClient): Promise<LeaderboardEntry[]> {
@@ -131,6 +140,17 @@ export async function buildLeaderboard(client: SuiClient): Promise<LeaderboardEn
       .sort((a, b) => b.resolvedAtMs - a.resolvedAtMs)
       .slice(0, 5)
       .map((p) => (p.hit ? 'H' : 'M'));
+    const recentRevealed = [...predictions]
+      .filter((p) => p.revealed)
+      .sort((a, b) => b.revealedAtMs - a.revealedAtMs)
+      .slice(0, 3)
+      .map((p) => ({
+        id: p.id,
+        text: p.revealedPlaintext.slice(0, 160),
+        revealedAtMs: p.revealedAtMs,
+        resolved: p.resolved,
+        hit: p.hit,
+      }));
 
     out.push({
       identity,
@@ -155,6 +175,7 @@ export async function buildLeaderboard(client: SuiClient): Promise<LeaderboardEn
         resolved.length >= MIN_RANKED_RESOLVED &&
         skill.boldCalls >= MIN_BOLD_CALLS,
       recentResults,
+      recentRevealed,
     });
   }
 

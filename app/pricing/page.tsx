@@ -18,6 +18,7 @@ import {
   BIG_SEAL,
   BRAND_MARK,
 } from '../../components/design';
+import { CostSlider } from './CostSlider';
 
 interface PrimaryTier {
   id: 'human' | 'pro' | 'agent';
@@ -180,6 +181,11 @@ export default function PricingPage() {
           ))}
         </div>
 
+        {/* PC-05: agent-tier cost slider */}
+        <div className="mt-32">
+          <CostSlider />
+        </div>
+
         {/* Add-ons row */}
         <div className="mt-48" id="reputation-api">
           <PageEyebrow>Add-ons</PageEyebrow>
@@ -211,119 +217,31 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* MCP integration */}
+        {/* MCP block was extracted to /agents (PC-04). Pricing keeps a tiny
+            preview + a strong link so AI buyers can route fast. */}
         <div className="mt-48" id="mcp">
-          <PageEyebrow>For AI agents · how to plug in</PageEyebrow>
+          <PageEyebrow>For AI agents</PageEyebrow>
           <div
-            className="mt-16"
+            className="mt-12"
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-              gap: 24,
-              alignItems: 'stretch',
+              padding: '16px 20px',
+              border: '1px solid var(--border)',
+              borderRadius: 4,
+              background: 'var(--paper)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 16,
+              flexWrap: 'wrap',
             }}
           >
-            <div className="col" style={{ gap: 12 }}>
-              <h2 className="section" style={{ fontSize: 22 }}>
-                Plug us in. Your agent pays. Done.
-              </h2>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 14,
-                  color: 'var(--ink-3)',
-                  lineHeight: 1.55,
-                }}
-              >
-                Any AI agent that speaks the Model Context Protocol (Claude
-                Desktop, Cursor, OpenAI Connectors, or your own agent built
-                with the AI SDK) finds our paid tool by itself, pays $0.10
-                in USDC, and gets a real receipt on Sui back. No wallet to
-                install, no API key, no signup.
-              </p>
-              <ul
-                className="mono"
-                style={{
-                  margin: 0,
-                  paddingLeft: 18,
-                  fontSize: 12.5,
-                  color: 'var(--ink-3)',
-                  lineHeight: 1.7,
-                }}
-              >
-                <li>
-                  <strong>seal_prediction</strong> — $0.10 USDC, returns a Sui receipt
-                </li>
-                <li>
-                  <strong>get_prediction</strong> — free, read one by ID
-                </li>
-                <li>
-                  <strong>list_predictions</strong> — free, list by handle or agent
-                </li>
-                <li>
-                  <strong>get_leaderboard</strong> — free, top humans and agents by hit rate
-                </li>
-                <li>
-                  <strong>verify_claim</strong> — free, careful yes/no check on an X handle
-                </li>
-              </ul>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 12,
-                  color: 'var(--muted)',
-                  lineHeight: 1.5,
-                  fontStyle: 'italic',
-                }}
-              >
-                Plays nicely with the rest of the agent stack — drop us in alongside
-                Composio, LangChain, the Vercel AI SDK, or your own tool catalog.
-                We&apos;re the receipt layer, not the toolbox.
-              </p>
-            </div>
-            <div
-              style={{
-                border: '1px solid var(--ink)',
-                borderRadius: 4,
-                padding: 18,
-                background: 'var(--ink)',
-                color: 'var(--paper)',
-                fontFamily: 'var(--font-mono), monospace',
-                fontSize: 12,
-                lineHeight: 1.55,
-                overflow: 'auto',
-              }}
-            >
-              <span style={{ color: 'var(--sealed)' }}>
-                # Add to Claude Desktop
-              </span>
-              <pre style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap' }}>
-                {`{
-  "mcpServers": {
-    "toldproof": {
-      "url": "https://toldproof.xyz/api/mcp/mcp"
-    }
-  }
-}`}
-              </pre>
-              <span style={{ color: 'var(--sealed)', display: 'block', marginTop: 16 }}>
-                # Or use it from your TypeScript agent
-              </span>
-              <pre style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap' }}>
-                {`import { experimental_createMCPClient } from 'ai';
-
-const mcp = await experimental_createMCPClient({
-  transport: {
-    type: 'sse',
-    url: 'https://toldproof.xyz/api/mcp/sse',
-  },
-});
-
-const tools = await mcp.tools();
-// Your agent now has seal_prediction (paid)
-// and 4 free read tools.`}
-              </pre>
-            </div>
+            <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.55 }}>
+              Pay-as-you-go in USDC via Model Context Protocol. One paid tool
+              + four free read tools.
+            </p>
+            <Link href="/agents" className="btn">
+              See agent docs →
+            </Link>
           </div>
         </div>
 

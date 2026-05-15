@@ -18,6 +18,7 @@ import {
 } from '../components/design';
 import { getRegistrySnapshot, getSuiClientForReads } from '../lib/registry';
 import { getTopProfile } from '../lib/leaderboard';
+import { ScrollMorph } from './ScrollMorph';
 
 // Revalidate the live-pulse line every 60s. Hero text + sample data are
 // static; only the snapshot counts move.
@@ -132,7 +133,7 @@ export default async function HomePage() {
                   Lock a prediction →
                 </Link>
                 <Link
-                  href="/pricing#mcp"
+                  href="/agents"
                   className="mono"
                   style={{
                     fontSize: 12,
@@ -188,16 +189,13 @@ export default async function HomePage() {
             <LiveTicker />
           </div>
 
-          {/* Before / after */}
+          {/* Before / after — HM-09 scroll morph on desktop, side-by-side on mobile. */}
           <div className="mt-24" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
             <PageEyebrow>The difference</PageEyebrow>
-            <div className="grid-2" style={{ alignItems: 'stretch' }}>
-              <BeforeCard />
-              <AfterCard />
-            </div>
+            <ScrollMorph before={<BeforeCard />} after={<AfterCard />} />
           </div>
 
-          {/* For paid analysts — the painkiller wedge */}
+          {/* For paid analysts — slim wedge linking to /for-analysts (HM-03). */}
           <div className="mt-48">
             <PageEyebrow>For paid analysts and signal callers</PageEyebrow>
             <h2
@@ -215,87 +213,13 @@ export default async function HomePage() {
                 maxWidth: 720,
               }}
             >
-              If you sell calls — paid newsletter, trading signal, KOL thread —
-              your subscribers have no way to check your real hit rate. They
-              know it. That&apos;s why retention is hard. Here&apos;s the fix.
+              Sell calls? Subscribers can&apos;t verify your hit rate today.
+              We lock every call on Sui before the answer is known and let
+              anyone audit the AI judge&apos;s verdict.
             </p>
-
-            <div
-              className="mt-24 grid-2"
-              style={{ alignItems: 'stretch', gap: 16 }}
-            >
-              <div
-                style={{
-                  border: '1px solid var(--border)',
-                  borderRadius: 4,
-                  padding: 20,
-                  background: 'var(--paper-2)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 10,
-                }}
-              >
-                <span className="eyebrow">Today · what subscribers see</span>
-                <ul
-                  style={{
-                    margin: 0,
-                    paddingLeft: 18,
-                    fontSize: 14,
-                    color: 'var(--ink-3)',
-                    lineHeight: 1.65,
-                  }}
-                >
-                  <li>Screenshots that can be edited after the fact</li>
-                  <li>Old misses quietly deleted from the timeline</li>
-                  <li>&quot;I called it&quot; tweets posted after the move</li>
-                  <li>A claimed 75% hit rate they can&apos;t check</li>
-                </ul>
-                <span
-                  className="mono"
-                  style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}
-                >
-                  Brittle trust. High churn. Loud-but-wrong accounts win by default.
-                </span>
-              </div>
-
-              <div
-                style={{
-                  border: '1px solid var(--ink)',
-                  borderRadius: 4,
-                  padding: 20,
-                  background: 'var(--paper)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 10,
-                }}
-              >
-                <span className="eyebrow">With TOLDPROOF</span>
-                <ul
-                  style={{
-                    margin: 0,
-                    paddingLeft: 18,
-                    fontSize: 14,
-                    color: 'var(--ink-2)',
-                    lineHeight: 1.65,
-                  }}
-                >
-                  <li>Every call locked on Sui before the answer is known</li>
-                  <li>Our AI judge marks each one hit or miss in public</li>
-                  <li>Full reasoning saved on Walrus — anyone can audit it</li>
-                  <li>Drop your live hit rate into Substack as one iframe</li>
-                </ul>
-                <span
-                  className="mono"
-                  style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}
-                >
-                  Real proof. Better retention. Subscribers stop second-guessing.
-                </span>
-              </div>
-            </div>
-
-            <div className="row" style={{ gap: 10, marginTop: 20, flexWrap: 'wrap' }}>
-              <Link href="/pricing" className="btn">
-                See the Pro tier →
+            <div className="row" style={{ gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+              <Link href="/for-analysts" className="btn">
+                How it helps analysts →
               </Link>
               <Link href={`/${sampleHandle}`} className="btn ghost">
                 See @{sampleHandle}&apos;s profile
@@ -330,63 +254,31 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* AI agents can use it too */}
+          {/* For AI agents — slim wedge linking to /for-agents (HM-03). */}
           <div className="mt-48">
             <PageEyebrow>For AI agents</PageEyebrow>
-            <div
-              className="mt-16"
+            <h2 className="section" style={{ marginTop: 12, maxWidth: 760 }}>
+              Your AI agent can lock predictions here.
+            </h2>
+            <p
               style={{
-                border: '1px solid var(--ink)',
-                borderRadius: 4,
-                padding: '24px 28px',
-                background: 'var(--paper)',
-                display: 'grid',
-                gap: 18,
-                gridTemplateColumns: 'minmax(0, 1fr) auto',
-                alignItems: 'center',
+                marginTop: 14,
+                fontSize: 15,
+                color: 'var(--ink-3)',
+                lineHeight: 1.55,
+                maxWidth: 720,
               }}
             >
-              <div className="col" style={{ gap: 14 }}>
-                <h2 className="section">
-                  Your AI agent can lock predictions here.
-                </h2>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 14.5,
-                    color: 'var(--ink-3)',
-                    lineHeight: 1.55,
-                  }}
-                >
-                  Point Claude Desktop, Cursor, or any AI agent at
-                  {' '}
-                  <code className="mono" style={{ color: 'var(--ink)' }}>
-                    toldproof.xyz/api/mcp/mcp
-                  </code>
-                  {' '}— it finds our
-                  {' '}
-                  <code className="mono" style={{ color: 'var(--sealed)' }}>
-                    seal_prediction
-                  </code>
-                  {' '}tool, pays $0.10 in USDC, and gets back a real
-                  receipt on Sui. No wallet to install, no API key, no
-                  signup. Your agent builds a public track record the same
-                  way a person does.
-                </p>
-                <p
-                  className="mono"
-                  style={{
-                    margin: 0,
-                    fontSize: 11,
-                    color: 'var(--muted)',
-                    letterSpacing: '0.04em',
-                  }}
-                >
-                  Free read tools too: get_prediction · list_predictions · get_leaderboard · verify_claim
-                </p>
-              </div>
-              <Link href="/pricing" className="btn">
-                See agent docs →
+              Pay-as-you-go in USDC via Model Context Protocol. One paid tool
+              (<code className="mono" style={{ color: 'var(--sealed)' }}>seal_prediction</code>),
+              four free read tools. Same leaderboard as humans.
+            </p>
+            <div className="row" style={{ gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+              <Link href="/for-agents" className="btn">
+                How it helps agents →
+              </Link>
+              <Link href="/agents" className="btn ghost">
+                Full agent docs
               </Link>
             </div>
           </div>

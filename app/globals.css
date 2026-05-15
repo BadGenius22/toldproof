@@ -41,19 +41,21 @@
    .dark class is set on <html> by the dark-mode toggle (avoids OS-only
    prefers-color-scheme so user choice persists). */
 .dark {
-  --paper: #0e0d0a;
-  --paper-2: #16140f;
-  --paper-3: #1f1d17;
-  --ink: #f1efe7;
-  --ink-2: #d9d5c8;
-  --ink-3: #a8a496;
-  --muted: #6a675c;
-  --muted-2: #4a4740;
-  --border: #2a2823;
-  --border-strong: #f1efe7;
-  --sealed-soft: oklch(0.28 0.08 70);
-  --verified-soft: oklch(0.26 0.08 150);
-  --warn-soft: oklch(0.27 0.08 30);
+  /* CC-08: warm dark cream paper — keeps the "paper receipt" metaphor in
+     dark mode instead of looking like a terminal. */
+  --paper: #1a1812;
+  --paper-2: #221f17;
+  --paper-3: #2c281e;
+  --ink: #f3f0e6;
+  --ink-2: #dcd7c8;
+  --ink-3: #a8a394;
+  --muted: #6e6a5b;
+  --muted-2: #4d4940;
+  --border: #38332a;
+  --border-strong: #f3f0e6;
+  --sealed-soft: oklch(0.3 0.09 70);
+  --verified-soft: oklch(0.28 0.09 150);
+  --warn-soft: oklch(0.3 0.1 30);
   --background: var(--paper);
   --foreground: var(--ink);
 }
@@ -555,8 +557,10 @@ textarea {
 }
 
 .eyebrow {
-  font-family: var(--font-mono), monospace;
+  /* CC-01: eyebrows back to sans. Mono now reserved for receipts, hashes,
+     timestamps, IDs, code, ticker rows, and explicit .mono spans. */
   font-size: 11px;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.16em;
   color: var(--muted);
@@ -996,6 +1000,49 @@ h2.section {
   border-radius: 4px;
   z-index: 200;
   animation: toast-in 0.18s ease-out;
+}
+
+/* ─── skeleton loaders (CC-07) ───────────────────────────── */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper-2);
+  border-radius: 4px;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.35),
+    transparent
+  );
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.dark .skeleton::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+}
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton-row {
+  height: 78px;
+  border: 1px solid var(--border);
+}
+.skeleton-card {
+  height: 132px;
+  border: 1px solid var(--border);
 }
 
 /* ─── sticky lock button on mobile (CC-04) ───────────────── */
