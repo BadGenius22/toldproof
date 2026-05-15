@@ -104,9 +104,17 @@ export function ReasoningTrace({ trace, rawWalrusUrl }: Props) {
             }}
           >
             <span className="eyebrow">
-              {isConsensus
-                ? `${workers.length} AI judges read this together`
-                : `Judged by: ${friendlyModelName(workers[0]?.model)}`}
+              {isConsensus ? (
+                <>
+                  {workers.length} AI judges read this together{' '}
+                  <span style={{ color: 'var(--muted)' }}>(panel mode)</span>
+                </>
+              ) : (
+                <>
+                  Judged by: {friendlyModelName(workers[0]?.model)}{' '}
+                  <span style={{ color: 'var(--muted)' }}>(quick mode)</span>
+                </>
+              )}
             </span>
             <span
               className="mono"
