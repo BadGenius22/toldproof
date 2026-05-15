@@ -116,6 +116,42 @@ export function PredictionForm() {
   const handleLocked = !!knownHandle;
   const [autoTweet, setAutoTweet] = useState(true);
 
+  // Price-hint nudge: when the prediction text mentions a known ticker AND a
+  // threshold, the server fetches the current price and computes whether the
+  // call is "already true" right now. Surfaces under the textarea as a soft
+  // warning — never blocks submission.
+  const [priceHints, setPriceHints] = useState<
+    Array<{ ticker: string; message: string; alreadyTrue?: boolean }>
+  >([]);
+  useEffect(() => {
+    const snippet = text.trim();
+    if (snippet.length < 3) {
+      // Clear stale hints when user shortens the text. Wrap in a microtask
+      // so we're not synchronously setting state inside the effect body
+      // (which the react-hooks/set-state-in-effect rule rejects); behavior
+      // is identical from the user's perspective.
+      const clear = setTimeout(() => setPriceHints([]), 0);
+      return () => clearTimeout(clear);
+    }
+    // Debounce — avoid hammering /api/seal/price-hint on every keystroke.
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/seal/price-hint?text=${encodeURIComponent(snippet)}`,
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          ok: boolean;
+          hints: Array<{ ticker: string; message: string; alreadyTrue?: boolean }>;
+        };
+        if (data.ok) setPriceHints(data.hints);
+      } catch {
+        // Best-effort hint — silent on network failure.
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [text]);
+
   const [step, setStep] = useState<Step>('idle');
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{
@@ -427,6 +463,35 @@ export function PredictionForm() {
                 <span className="hint">280 letters max — same as X.</span>
                 <span className="hint">{charsLeft} left</span>
               </div>
+              {priceHints.length > 0 && (
+                <div
+                  className="col"
+                  style={{ gap: 6, marginTop: 4 }}
+                  aria-live="polite"
+                >
+                  {priceHints.map((h) => (
+                    <div
+                      key={h.ticker}
+                      style={{
+                        border: '1px dashed',
+                        borderColor: h.alreadyTrue ? 'var(--warn)' : 'var(--border)',
+                        background: h.alreadyTrue ? 'var(--warn-soft, #fff7e6)' : 'var(--paper-2)',
+                        borderRadius: 4,
+                        padding: '8px 12px',
+                        fontSize: 12,
+                        lineHeight: 1.5,
+                        color: h.alreadyTrue ? 'var(--ink)' : 'var(--ink-2)',
+                        fontFamily: 'var(--font-mono), monospace',
+                      }}
+                    >
+                      <span style={{ marginRight: 6 }}>
+                        {h.alreadyTrue ? '⚠' : 'ℹ'}
+                      </span>
+                      {h.message}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="seal-fields-2">

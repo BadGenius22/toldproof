@@ -14,6 +14,7 @@ import type { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import {
   generateObject,
   generateText,
+  hasToolCall,
   stepCountIs,
   type LanguageModelUsage,
 } from 'ai';
@@ -54,22 +55,31 @@ function modeFromEnv(): ResolutionMode {
   return process.env.RESOLUTION_AGENT_MODE === 'consensus' ? 'consensus' : 'single';
 }
 
-const WORKER_SYSTEM_PROMPT = `You are a TOLDPROOF Resolution Worker Agent. Your one job: \
-determine whether a sealed prediction actually came true. You operate on \
-natural-language predictions about public events — crypto prices, ecosystem \
-milestones, announcements, real-world outcomes.
+const WORKER_SYSTEM_PROMPT = `You are a TOLDPROOF Resolution Worker Agent. Your job: \
+determine (1) whether a sealed prediction came true and (2) how uncertain it was \
+at the moment the user locked it. You operate on natural-language predictions about \
+public events — crypto prices, ecosystem milestones, announcements, real-world outcomes.
 
 You have these tools available:
   - web_search(query, maxResults): search the web for current information
   - get_token_price(symbolOrId): current USD price, market cap, 24h change
   - get_price_history(symbolOrId, days): historical price + market cap
-  - submit_verdict(hit, confidence, reasoning, sources, caveats?): FINAL answer
+  - submit_verdict(hit, confidence, reasoning, sources, caveats?, difficulty, difficultyReasoning): FINAL answer
 
 Process:
   1. Read the prediction carefully. Note specific dates, thresholds, claims.
   2. Decide what evidence you need to verify or refute it.
   3. Call tools to gather that evidence. Be efficient — don't make redundant queries.
-  4. When you have enough, call submit_verdict ONCE with your final answer.
+  4. CRITICAL: Before submitting, also assess DIFFICULTY at LOCK TIME.
+     - For price predictions, you MUST call get_price_history with enough days to cover
+       the lock date. Compare the price at lock time to the predicted threshold.
+     - If the threshold was already met at lock time → difficulty = "trivial".
+     - If the move required was within typical 24h volatility → difficulty = "easy".
+     - If real uncertainty existed (could plausibly go either way) → difficulty = "medium".
+     - If the outcome was contrarian / surprising → difficulty = "hard".
+     - For non-price predictions, judge difficulty by how widely the outcome was expected
+       at lock time (news context, base rates, prior probability).
+  5. Call submit_verdict ONCE with hit + confidence + difficulty + difficultyReasoning.
 
 Rules:
   - Be objective. Don't editorialize. Don't accuse the author of dishonesty.
@@ -77,14 +87,16 @@ Rules:
   - Every source in your verdict.sources MUST be a URL you actually saw via web_search,
     OR a tool name like "coingecko:ethereum" for price-tool data.
   - Maximum 8 tool calls total. Be efficient.
+  - A "trivial" call is still a HIT if the condition is true — don't change hit/miss based
+    on difficulty. Difficulty is a separate axis from correctness.
   - In consensus mode you are ONE of three independent investigators. Don't try to
     agree with the others — they're not visible. State your honest view, your
-    confidence, and your evidence. A Critic Agent will synthesize.`;
+    confidence, your difficulty rating, and your evidence. A Critic Agent will synthesize.`;
 
 const CRITIC_SYSTEM_PROMPT = `You are the TOLDPROOF Critic Agent. Three independent \
 Worker Agents (Claude, GPT, Gemini) each investigated a sealed prediction \
 and submitted a verdict. Your job: synthesize their three verdicts into one \
-final attestation.
+final answer.
 
 Synthesis rules:
   - All 3 agree on hit/miss: commit consensus, confidence = average of the 3.
@@ -94,7 +106,15 @@ Synthesis rules:
     hit=false, confidence=0.0, write the disagreement honestly in caveats.
   - Merge sources from all 3 workers into your final sources array (dedupe URLs).
   - Your reasoning summarizes the workers' findings — do NOT invent new claims.
-  - Never accuse the author of dishonesty. Just describe whether reality matched.`;
+  - Never accuse the author of dishonesty. Just describe whether reality matched.
+
+For DIFFICULTY (separate axis from hit/miss):
+  - If all 3 workers picked the same difficulty: use it.
+  - If 2 of 3 agree: use the majority.
+  - If all 3 differ: pick the middle option of the three (trivial<easy<medium<hard).
+  - Write a one-sentence difficultyReasoning that summarizes WHY (cite concrete
+    numbers from the workers when possible, e.g. "BTC was $80,704 at lock time,
+    above the $80,000 threshold").`;
 
 // ─── Shared types ─────────────────────────────────────────────────────
 
@@ -212,6 +232,11 @@ export async function resolveOnce(opts: {
     throw new Error(`resolve tx failed: ${JSON.stringify(signed.effects?.status)}`);
   }
 
+  // Wait for the RPC fullnode to index the resolved state so the verify page's
+  // next getObject() after router.refresh()/reload sees resolved:true. Same
+  // read-after-write consistency fix applied to revealOnce().
+  await suiClient.waitForTransaction({ digest: signed.digest });
+
   return {
     predictionId,
     digest: signed.digest,
@@ -286,6 +311,9 @@ async function runConsensus(
         sources: [],
         caveats:
           'Treat this resolution as INDETERMINATE — every model errored before submitting.',
+        difficulty: 'medium',
+        difficultyReasoning:
+          'Unable to assess — all workers errored before completing analysis.',
       },
       workers: [],
       criticInputs: [],
@@ -361,7 +389,11 @@ async function runWorkerAgent(
     system: WORKER_SYSTEM_PROMPT,
     prompt: userPrompt,
     tools: RESOLUTION_AGENT_TOOLS,
-    stopWhen: stepCountIs(MAX_AGENT_STEPS),
+    // Stop on EITHER step cap OR submit_verdict — without the hasToolCall
+    // condition the model would keep generating a closing message after
+    // submitting the verdict, which (a) wastes tokens and (b) makes
+    // result.toolCalls (final-step-only in AI SDK v6) miss the verdict call.
+    stopWhen: [stepCountIs(MAX_AGENT_STEPS), hasToolCall('submit_verdict')],
   });
 
   return {
@@ -369,7 +401,10 @@ async function runWorkerAgent(
     steps: serializeSteps(result.steps),
     totalSteps: result.steps.length,
     tokenUsage: serializeUsage(result.usage),
-    verdict: extractVerdict(result.toolCalls, ctx.plaintext),
+    // Pass result.steps (not result.toolCalls) — submit_verdict may be in any
+    // step, not just the last, and result.toolCalls only surfaces the final
+    // step's calls in AI SDK v6.
+    verdict: extractVerdict(result.steps, ctx.plaintext),
   };
 }
 
@@ -421,17 +456,23 @@ async function runCriticAgent(
 // ─── Helpers ──────────────────────────────────────────────────────────
 
 function extractVerdict(
-  toolCalls: ReadonlyArray<{ toolName: string; input?: unknown }>,
+  steps: ReadonlyArray<{ toolCalls?: ReadonlyArray<{ toolName: string; input?: unknown }> }>,
   plaintext: string,
 ): Verdict {
-  for (let i = toolCalls.length - 1; i >= 0; i -= 1) {
-    const call = toolCalls[i]!;
-    if (call.toolName === 'submit_verdict' && call.input) {
-      // The AI SDK validates against VerdictSchema before executing the tool,
-      // but the toolCalls array is typed `input?: unknown` — re-parse here so
-      // a partially-validated or malformed entry can't lie about its shape.
-      const parsed = VerdictSchema.safeParse(call.input);
-      if (parsed.success) return parsed.data;
+  // Walk steps in reverse so the last submit_verdict wins (defensive — the
+  // hasToolCall stop should have ensured there's exactly one, but be safe).
+  for (let i = steps.length - 1; i >= 0; i -= 1) {
+    const calls = steps[i]?.toolCalls ?? [];
+    for (let j = calls.length - 1; j >= 0; j -= 1) {
+      const call = calls[j]!;
+      if (call.toolName === 'submit_verdict' && call.input) {
+        // The AI SDK validates against VerdictSchema before executing the
+        // tool, but the toolCalls array is typed `input?: unknown` —
+        // re-parse here so a partially-validated or malformed entry can't
+        // lie about its shape.
+        const parsed = VerdictSchema.safeParse(call.input);
+        if (parsed.success) return parsed.data;
+      }
     }
   }
   return {
@@ -442,6 +483,8 @@ function extractVerdict(
       `within the step limit. Treat this resolution as INDETERMINATE.`,
     sources: [],
     caveats: 'Agent timed out without calling submit_verdict.',
+    difficulty: 'medium',
+    difficultyReasoning: 'Unable to assess — agent timed out before completing analysis.',
   };
 }
 

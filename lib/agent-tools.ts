@@ -310,6 +310,27 @@ export const VerdictSchema = z.object({
       'Optional 1-2 sentence note on ambiguity, definitions, or sparse evidence. ' +
         'Use when the verdict depends on interpretation.',
     ),
+  difficulty: z
+    .enum(['trivial', 'easy', 'medium', 'hard'])
+    .describe(
+      'How uncertain was this prediction at LOCK time (not now)? ' +
+        '"trivial" = the predicted condition was already true when the user locked it ' +
+        '(e.g. "BTC > $80K" locked when BTC was already $80,704). ' +
+        '"easy" = outcome was very likely at lock time (within typical 24h volatility band, ' +
+        'or claim was widely expected). ' +
+        '"medium" = real uncertainty at lock time — could plausibly go either way. ' +
+        '"hard" = contrarian or surprising outcome that few would have predicted at lock time. ' +
+        'For price predictions, you MUST verify by calling get_price_history covering the lock ' +
+        'date and comparing the price at lock time to the predicted threshold.',
+    ),
+  difficultyReasoning: z
+    .string()
+    .min(20)
+    .describe(
+      'One plain-English sentence explaining the difficulty rating. ' +
+        'Reference concrete numbers when possible (e.g. "BTC was $80,704 at lock time, ' +
+        'above the $80,000 threshold, so the call was already true").',
+    ),
 });
 
 export type Verdict = z.infer<typeof VerdictSchema>;

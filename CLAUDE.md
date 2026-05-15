@@ -94,6 +94,23 @@ Violating any of these is a workflow error. Stop and ask before proceeding.
 - **No backwards-compatibility shims for code that hasn't shipped to users yet.** This is a 12-day build; YAGNI applies aggressively.
 - **No abstraction layer for a single use case.** Three similar functions beats a premature factory pattern.
 
+### Copy & language (user-facing text only)
+- **Plain English. No jargon.** Every word the customer reads — buttons, labels, headings, error messages, empty states, tooltips, badges — must make sense to someone who has never used a blockchain or an AI agent.
+- **Translate the jargon you'd reach for reflexively.** Reference table (extend over time):
+  - "attest" → "decide" / "give a verdict"
+  - "ciphertext" → "scrambled text"
+  - "encrypt" / "seal" → "lock" / "scramble"
+  - "decrypt" → "open" / "unscramble"
+  - "tx digest" / "tx hash" → drop, or "receipt id"
+  - "on-chain" → "on Sui" or drop
+  - "off-chain" → drop, or name the actual system ("in our database")
+  - "AI inference" → "the AI checks" / "the AI decides"
+  - "trivial / non-trivial" → "obvious / surprising"
+  - "verified" stays — common English word, not crypto jargon
+- **Brand names (Sui, Walrus, Seal) are fine** but explain once when first introduced on a page (e.g. "Sui — the blockchain that records this receipt").
+- **Code comments, variable names, and `lib/` internals are exempt.** Those are for developers; technical names are appropriate there.
+- **Test**: would a non-crypto friend understand this without asking what a word means? If not, simplify.
+
 ## File Structure
 
 ```
