@@ -105,6 +105,8 @@ export function FooterBar() {
     <footer className="footer">
       <div className="row" style={{ gap: 14, flexWrap: 'wrap' }}>
         <span>TOLDPROOF · v0.1 · sui:testnet · walrus:testnet · seal:testnet</span>
+        <Link href="/terms">Terms</Link>
+        <Link href="/privacy">Privacy</Link>
       </div>
       <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
         <a
