@@ -18,7 +18,6 @@ import {
 } from '../components/design';
 import { getRegistrySnapshot, getSuiClientForReads } from '../lib/registry';
 import { getTopProfile } from '../lib/leaderboard';
-import { ScrollMorph } from './ScrollMorph';
 
 // Revalidate the live-pulse line every 60s. Hero text + sample data are
 // static; only the snapshot counts move.
@@ -189,10 +188,19 @@ export default async function HomePage() {
             <LiveTicker />
           </div>
 
-          {/* Before / after — HM-09 scroll morph on desktop, side-by-side on mobile. */}
+          {/* Before / after — side-by-side on desktop, stacked on mobile. The
+              old scroll-morph animation was choppy + CPU-heavy + the "morph"
+              wasn't earning its keep. Showing both at once lets the reader
+              compare left-to-right and reads as a stronger contrast. */}
           <div className="mt-24" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
             <PageEyebrow>The difference</PageEyebrow>
-            <ScrollMorph before={<BeforeCard />} after={<AfterCard />} />
+            <div className="diff-grid">
+              <BeforeCard />
+              <span className="diff-arrow" aria-hidden>
+                →
+              </span>
+              <AfterCard />
+            </div>
           </div>
 
           {/* For paid analysts — slim wedge linking to /for-analysts (HM-03). */}

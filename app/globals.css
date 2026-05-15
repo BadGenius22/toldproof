@@ -814,6 +814,23 @@ h2.section {
   display: grid;
   gap: 16px;
 }
+
+/* Side-by-side before/after on the landing page. Mobile collapses to a
+   stacked column via the @media block below — the arrow flips to a down
+   chevron there. Replaces the old ScrollMorph crossfade. */
+.diff-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+}
+.diff-arrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 28px;
+  color: var(--ink-3);
+  line-height: 1;
+  user-select: none;
+}
 .grid-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -1485,6 +1502,13 @@ h2.section {
   }
   .profile-header {
     grid-template-columns: 1fr;
+  }
+  .diff-grid {
+    grid-template-columns: 1fr;
+  }
+  .diff-arrow {
+    transform: rotate(90deg);
+    justify-self: center;
   }
 
   .receipt-row {
