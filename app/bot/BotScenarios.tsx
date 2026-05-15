@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { PageEyebrow, TweetCard } from '../../components/design';
+import { TweetCard } from '../../components/design';
 
 type Scenario = 'verified' | 'no-proof' | 'self-seal';
 
@@ -19,35 +19,31 @@ const SCENARIOS: Array<{ id: Scenario; label: string; hint: string }> = [
 export function BotScenarios() {
   const [scenario, setScenario] = useState<Scenario>('verified');
 
+  // No page+container wrapper — the parent /bot page owns the outer
+  // structure. This component is just the interactive mockup block.
   return (
-    <div className="page">
-      <div className="container">
-        <PageEyebrow>The @toldproof verify bot</PageEyebrow>
-        <h1
-          className="display"
-          style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
-        >
-          Reply to any &quot;I called it&quot; tweet.
-          <br />
-          The bot answers with a yes or no.
-        </h1>
-        <p
-          style={{
-            marginTop: 18,
-            fontSize: 16,
-            color: 'var(--ink-3)',
-            lineHeight: 1.55,
-            maxWidth: 720,
-          }}
-        >
-          Every 5 minutes the bot checks X for tweets that say &quot;@toldproof
-          verify&quot;. It looks up the original poster on Sui to see if they
-          (or their AI agent) really locked the prediction ahead of time, then
-          posts a short reply. The wording stays careful — &quot;no proof
-          found&quot; never &quot;this user is lying.&quot;
-        </p>
+    <div>
+      <h2
+        className="section"
+        style={{ fontSize: 22, margin: '0 0 14px' }}
+      >
+        How the autonomous bot will look on X
+      </h2>
+      <p
+        style={{
+          margin: '0 0 24px',
+          fontSize: 14,
+          color: 'var(--ink-3)',
+          lineHeight: 1.55,
+          maxWidth: 720,
+        }}
+      >
+        Pick a scenario on the left to see the corresponding mock thread.
+        Same verdict logic as the live verifier above — the bot just adds
+        autonomous mention-listening, which needs X API Basic tier to ship.
+      </p>
 
-        <div className="mt-32 bot-split">
+      <div className="bot-split">
           <div className="col" style={{ gap: 12 }}>
             <span className="eyebrow">Scenarios</span>
             <div className="col" style={{ gap: 8 }}>
@@ -116,7 +112,6 @@ export function BotScenarios() {
             {scenario === 'self-seal' && <ThreadSelfSeal />}
           </div>
         </div>
-      </div>
     </div>
   );
 }
