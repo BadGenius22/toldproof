@@ -17,10 +17,17 @@ const AUTHORIZE_URL = 'https://x.com/i/oauth2/authorize';
 const TOKEN_URL = 'https://api.x.com/2/oauth2/token';
 const USERS_ME_URL = 'https://api.x.com/2/users/me';
 
-// Scopes — keep minimal. tweet.read is required to call /2/users/me (X quirk);
-// users.read is the actual capability; offline.access gets us a refresh_token.
-// Add tweet.write later when we ship the optional auto-tweet feature.
-const SCOPES = ['users.read', 'tweet.read', 'offline.access'].join(' ');
+// Scopes:
+//   users.read     — read the user's profile (/2/users/me) after OAuth
+//   tweet.read     — required even for /2/users/me (X quirk)
+//   tweet.write    — post tweets from the user's account (auto-tweet on seal)
+//   offline.access — get a refresh_token so we can post tweets >2h after OAuth
+//
+// IMPORTANT: changing this scope set means existing access tokens DON'T have
+// the new scope. Affected users need to sign out + sign in again. After
+// re-OAuth their new tokens cover the wider scope set. The /api/x/post-tweet
+// endpoint detects scope-insufficient errors and tells the user to re-auth.
+const SCOPES = ['users.read', 'tweet.read', 'tweet.write', 'offline.access'].join(' ');
 
 function loadClientCreds(): { id: string; secret: string } {
   const id = process.env.X_CLIENT_ID;

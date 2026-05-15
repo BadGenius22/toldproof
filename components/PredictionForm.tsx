@@ -14,7 +14,7 @@ import { aesGcmEncrypt, randomAesKey, sha256 } from '../lib/crypto';
 import { storeBlob, epochsForUnlock } from '../lib/walrus';
 import { getSealClient, encryptAesKey } from '../lib/seal';
 import { env } from '../lib/env';
-import { useXSession } from '../lib/useXSession';
+import { useXSession, startXOAuth } from '../lib/useXSession';
 import { useQuota } from '../lib/useQuota';
 import {
   Chip,
@@ -86,7 +86,7 @@ export function PredictionForm() {
   const account = useCurrentAccount();
   const dAppKit = useDAppKit();
   const router = useRouter();
-  const { session } = useXSession();
+  const { session, knownBinding } = useXSession();
   const { quota, refetch: refetchQuota } = useQuota();
   const [suiClient] = useState(
     () => new SuiJsonRpcClient({ url: RPC_URL, network: NETWORK }),
@@ -98,13 +98,22 @@ export function PredictionForm() {
     setUnlockIso((prev) => prev || defaultUnlockLocal());
   }, []);
   const [xHandle, setXHandle] = useState('');
-  // Auto-fill + lock the X handle from the OAuth session so users can't
-  // claim a handle they don't own. The seal-gate API does the
-  // authoritative check, but pre-filling makes the UX obvious.
+  // Auto-fill + lock the X handle. Two sources, session takes priority:
+  //   1. Active OAuth session — authoritative, gates seal submission.
+  //   2. knownBinding — the wallet has a prior DB binding but the cookie
+  //      session is gone (e.g. user just reconnected the wallet). Surfaces
+  //      the handle visually so the form isn't blank during the
+  //      "welcome back, click to re-sign-in" state.
+  // The seal-gate API does the authoritative check at submit time; this
+  // is purely a UX pre-fill.
+  const knownHandle = session?.xHandle ?? knownBinding?.xHandle ?? '';
   useEffect(() => {
-    if (session?.xHandle) setXHandle(session.xHandle);
-  }, [session?.xHandle]);
-  const handleLocked = !!session;
+    if (knownHandle) setXHandle(knownHandle);
+  }, [knownHandle]);
+  // "Locked" if we have any OAuth-derived identity to show, regardless of
+  // whether the live session is active. Submit still gates on session via
+  // /api/seal/preflight.
+  const handleLocked = !!knownHandle;
   const [autoTweet, setAutoTweet] = useState(true);
 
   const [step, setStep] = useState<Step>('idle');
@@ -117,6 +126,15 @@ export function PredictionForm() {
     unlockAtMs: number;
     xHandle: string;
   } | null>(null);
+  // Auto-tweet status — separate from the seal result so we can surface
+  // posting errors (e.g. scope_missing) without breaking the seal receipt.
+  const [tweetState, setTweetState] = useState<
+    | { kind: 'idle' }
+    | { kind: 'posting' }
+    | { kind: 'posted'; url: string }
+    | { kind: 'scope_missing' }
+    | { kind: 'failed'; detail: string }
+  >({ kind: 'idle' });
 
   const running = step !== 'idle' && step !== 'done' && step !== 'error';
   const disabled = running;
@@ -275,7 +293,46 @@ export function PredictionForm() {
         .then(() => refetchQuota())
         .catch(() => {});
 
-      setTimeout(() => router.push(`/verify/${created.objectId}`), 2200);
+      // Auto-tweet if opted in. Independent from quota record + nav — failure
+      // here doesn't block the receipt. We update tweetState so the success
+      // screen can render the resulting tweet URL or the re-auth nudge.
+      if (autoTweet) {
+        setTweetState({ kind: 'posting' });
+        void (async () => {
+          try {
+            const res = await fetch('/api/x/post-tweet', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                predictionId: created.objectId,
+                unlockAtMs: Number(unlockAtMs),
+              }),
+            });
+            const data = await res.json().catch(() => null);
+            if (res.ok && data?.tweet?.url) {
+              setTweetState({ kind: 'posted', url: data.tweet.url });
+            } else if (data?.error === 'scope_missing') {
+              setTweetState({ kind: 'scope_missing' });
+            } else {
+              setTweetState({
+                kind: 'failed',
+                detail: data?.detail ?? 'Could not post tweet',
+              });
+            }
+          } catch (err) {
+            setTweetState({
+              kind: 'failed',
+              detail: err instanceof Error ? err.message : String(err),
+            });
+          }
+        })();
+      }
+
+      // Auto-navigate to the verify page after the receipt is visible. Give
+      // a bit more time when auto-tweet is on so the tweet status has a
+      // chance to render before the user is whisked away.
+      const navDelayMs = autoTweet ? 4500 : 2200;
+      setTimeout(() => router.push(`/verify/${created.objectId}`), navDelayMs);
     } catch (e: unknown) {
       console.error(e);
       setError(e instanceof Error ? e.message : String(e));
@@ -287,6 +344,7 @@ export function PredictionForm() {
     setStep('idle');
     setError(null);
     setResult(null);
+    setTweetState({ kind: 'idle' });
   }
 
   return (
@@ -373,17 +431,26 @@ export function PredictionForm() {
                 <input
                   id="handle"
                   className="input"
-                  value={xHandle}
-                  onChange={(e) => setXHandle(e.target.value.replace(/^@/, ''))}
-                  disabled={disabled || !!result || handleLocked}
+                  // The handle is ALWAYS controlled by OAuth — never editable.
+                  // If signed in, it shows the bound handle. If not, the
+                  // field is empty + disabled, prompting sign-in.
+                  value={handleLocked ? xHandle : ''}
+                  onChange={() => {
+                    /* read-only — controlled by OAuth session */
+                  }}
+                  disabled
+                  readOnly
                   required
-                  placeholder="elonmusk"
-                  readOnly={handleLocked}
+                  placeholder={
+                    handleLocked ? 'elonmusk' : '(Sign in with X to set your handle)'
+                  }
                 />
                 <span className="hint">
-                  {handleLocked
+                  {session
                     ? `Linked to your X account ✓ — your prediction will be filed under @${xHandle}.`
-                    : 'Sign in with X (top of page) to verify this handle.'}
+                    : knownBinding
+                    ? `This wallet is bound to @${knownBinding.xHandle}. Sign in (top of page) to restore your session before sealing.`
+                    : 'Sign in with X (top of page) to claim your handle. We auto-fill it from your account so nobody else can.'}
                 </span>
                 {quota && (
                   <span
@@ -487,14 +554,47 @@ export function PredictionForm() {
             </label>
 
             {!result && (
-              <button
-                type="submit"
-                className="btn lg"
-                disabled={disabled || !account}
-                style={{ alignSelf: 'flex-start', marginTop: 4 }}
-              >
-                {!account ? 'Connect wallet to lock' : '▮ Lock my prediction'}
-              </button>
+              <>
+                {/* Three states, three buttons. The "no session" buttons swap
+                    type=submit for type=button and actively kick off OAuth
+                    on click — rather than telling the user to find some
+                    other CTA. The lock button only renders when we have a
+                    real session to seal under. */}
+                {!account ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="btn lg"
+                    style={{ alignSelf: 'flex-start', marginTop: 4 }}
+                  >
+                    Connect wallet to lock
+                  </button>
+                ) : !session ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void startXOAuth(account.address);
+                    }}
+                    className="btn lg"
+                    style={{ alignSelf: 'flex-start', marginTop: 4 }}
+                  >
+                    𝕏{' '}
+                    {knownBinding
+                      ? `Sign in as @${knownBinding.xHandle} to continue`
+                      : 'Sign in with X to continue'}{' '}
+                    →
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="btn lg"
+                    disabled={disabled}
+                    style={{ alignSelf: 'flex-start', marginTop: 4 }}
+                  >
+                    ▮ Lock my prediction
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -571,6 +671,52 @@ export function PredictionForm() {
                 </dl>
               </div>
               <Perforation />
+              {/* Auto-tweet status — only rendered when the user opted in. */}
+              {tweetState.kind !== 'idle' && (
+                <div
+                  className="receipt-body"
+                  style={{
+                    fontSize: 12,
+                    color:
+                      tweetState.kind === 'posted'
+                        ? 'var(--verified)'
+                        : tweetState.kind === 'failed' ||
+                          tweetState.kind === 'scope_missing'
+                        ? 'var(--danger, #c25400)'
+                        : 'var(--ink-3)',
+                    fontFamily: 'var(--font-mono), monospace',
+                  }}
+                >
+                  {tweetState.kind === 'posting' && (
+                    <span>● Posting your tweet…</span>
+                  )}
+                  {tweetState.kind === 'posted' && (
+                    <span>
+                      ✓ Tweeted ·{' '}
+                      <a
+                        href={tweetState.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ textDecoration: 'underline' }}
+                      >
+                        view on X →
+                      </a>
+                    </span>
+                  )}
+                  {tweetState.kind === 'scope_missing' && (
+                    <span>
+                      ⚠ Auto-tweet needs posting permission. Sign out + sign in
+                      with X again to grant it. (The seal itself is fine on Sui.)
+                    </span>
+                  )}
+                  {tweetState.kind === 'failed' && (
+                    <span>
+                      ⚠ Auto-tweet failed: {tweetState.detail}. (The seal
+                      itself is fine on Sui.)
+                    </span>
+                  )}
+                </div>
+              )}
               <div
                 className="receipt-body row"
                 style={{ justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}

@@ -25,7 +25,7 @@ function BannerInner() {
   useEffect(() => setMounted(true), []);
 
   const account = useCurrentAccount();
-  const { session } = useXSession();
+  const { session, knownBinding } = useXSession();
   const params = useSearchParams();
   const [showRelease, setShowRelease] = useState(false);
 
@@ -77,13 +77,23 @@ function BannerInner() {
     sub = `X sign-in failed (${error}). Please try again.`;
     tone = 'warning';
   } else if (ready) {
-    headline = `Signed in as @${session.xHandle}`;
-    sub = 'You can lock a prediction below. Your handle is cryptographically bound to your wallet.';
+    // `verified=1` URL param (from the OAuth callback redirect) adds a
+    // one-shot "just signed in" flavor on top of the normal signed-in copy,
+    // but only when the actual session is present. Without this guard the
+    // banner would falsely claim "you are bound" if the URL params lingered
+    // after a wallet switch (which auto-clears the session).
+    if (verified && verifiedHandle && verifiedHandle.toLowerCase() === session.xHandle.toLowerCase()) {
+      headline = `Welcome, @${session.xHandle}`;
+      sub = 'Your X account is now bound to your wallet. Lock your first prediction below.';
+    } else {
+      headline = `Signed in as @${session.xHandle}`;
+      sub = 'You can lock a prediction below. Your handle is cryptographically bound to your wallet.';
+    }
     tone = 'verified';
-  } else if (verified && verifiedHandle) {
-    headline = `Welcome, @${verifiedHandle}`;
-    sub = 'Your X account is now bound to your wallet. Lock your first prediction below.';
-    tone = 'verified';
+  } else if (walletConnected && !xLinked && knownBinding) {
+    headline = `Welcome back, @${knownBinding.xHandle}`;
+    sub = 'This wallet was already bound to your X account. Click sign in to restore the link — usually instant if X is still logged in.';
+    tone = 'neutral';
   } else if (walletConnected && !xLinked) {
     headline = 'One more step: sign in with X';
     sub = 'We use it once to bind your X handle to your wallet, so nobody else can claim it on your leaderboard.';

@@ -18,7 +18,7 @@ interface Props {
 
 export function XSignInButton({ size = 'md', onSignOut }: Props) {
   const account = useCurrentAccount();
-  const { session, isLoading, signOut, signingOut } = useXSession();
+  const { session, isLoading, signOut, signingOut, knownBinding } = useXSession();
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,27 +44,17 @@ export function XSignInButton({ size = 'md', onSignOut }: Props) {
   const padding = size === 'sm' ? '6px 12px' : '10px 16px';
   const fontSize = size === 'sm' ? 12 : 14;
 
-  // State 1 — no wallet
+  // State 1 — no wallet. Render nothing in the topbar so the wallet-connect
+  // button right next to us is the unambiguous next step. (The SealAuthBanner
+  // on /lock still surfaces the full "connect wallet first" guidance.)
   if (!account) {
-    return (
-      <button
-        type="button"
-        disabled
-        className="btn ghost"
-        style={{ padding, fontSize, opacity: 0.5 }}
-      >
-        Connect wallet first
-      </button>
-    );
+    return null;
   }
 
-  // Loading initial session check
+  // Loading initial session check — keep silent to avoid topbar flicker on
+  // every nav. The button will reappear once the session resolves.
   if (isLoading) {
-    return (
-      <button type="button" disabled className="btn ghost" style={{ padding, fontSize }}>
-        Loading…
-      </button>
-    );
+    return null;
   }
 
   // State 3 — signed in
@@ -101,7 +91,10 @@ export function XSignInButton({ size = 'md', onSignOut }: Props) {
     );
   }
 
-  // State 2 — wallet connected, no X session
+  // State 2 — wallet connected, no X session. Two sub-states:
+  //   2a. This wallet HAS bound an X handle before → "Sign in as @handle"
+  //       (one-click re-OAuth, near-instant if X session still warm).
+  //   2b. Never bound → generic "Sign in with X".
   return (
     <div className="col" style={{ gap: 6 }}>
       <button
@@ -111,7 +104,11 @@ export function XSignInButton({ size = 'md', onSignOut }: Props) {
         className="btn"
         style={{ padding, fontSize }}
       >
-        {starting ? 'Redirecting to X…' : '𝕏  Sign in with X'}
+        {starting
+          ? 'Redirecting to X…'
+          : knownBinding
+          ? `𝕏  Sign in as @${knownBinding.xHandle}`
+          : '𝕏  Sign in with X'}
       </button>
       {error && (
         <span style={{ fontSize: 11, color: 'var(--danger, #c00)' }}>{error}</span>
