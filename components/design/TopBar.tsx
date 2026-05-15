@@ -117,6 +117,15 @@ export function FooterBar() {
           <PixelMark bitmap={SUI_MARK} size={14} color="var(--ink)" />
           Package · {shortHash(PACKAGE_ID, 6, 4)}
         </a>
+        <a
+          className="onchain-badge"
+          href="https://x.com/toldproof"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Follow @toldproof on X"
+        >
+          @toldproof on X
+        </a>
         <span>Sui Overflow 2026</span>
       </div>
     </footer>
