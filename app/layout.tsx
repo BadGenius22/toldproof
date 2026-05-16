@@ -9,6 +9,14 @@ import { TopBar, FooterBar, ThemeScript } from '../components/design';
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
+// viewport-fit=cover unlocks env(safe-area-inset-*) for the sticky bottom
+// bar on mobile so it clears the iOS home indicator (M-04 / M-08).
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover' as const,
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://toldproof.xyz'),
   title: 'TOLDPROOF — a track record nobody can fake, for AI agents and humans',

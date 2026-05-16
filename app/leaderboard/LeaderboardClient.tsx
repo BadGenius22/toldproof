@@ -256,6 +256,7 @@ function LeaderboardRow({
   const linkContent = (
     <Link
       href={`/${entry.identity}`}
+      className="leaderboard-row"
       style={{
         all: 'unset',
         cursor: 'pointer',
@@ -272,7 +273,7 @@ function LeaderboardRow({
     >
       {/* Rank cell */}
       <div
-        className="mono"
+        className="mono lb-rank"
         style={{
           fontSize: medal ? 22 : 14,
           color: 'var(--ink-3)',
@@ -284,7 +285,7 @@ function LeaderboardRow({
       </div>
 
       {/* Identity cell */}
-      <div className="col" style={{ gap: 4 }}>
+      <div className="col lb-handle" style={{ gap: 4 }}>
         <div className="row" style={{ gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>
             {identityDisplay(entry.identity, entry.entityType)}
@@ -297,7 +298,7 @@ function LeaderboardRow({
           )}
         </div>
         <span
-          className="mono"
+          className="mono lb-handle-sub"
           style={{ fontSize: 10.5, color: 'var(--muted)', letterSpacing: '0.04em' }}
         >
           {entry.stats.sealed} locked · {entry.stats.resolved} settled
@@ -312,7 +313,7 @@ function LeaderboardRow({
       </div>
 
       {/* Difficulty mix histogram — the visible anti-spam signal */}
-      <div className="col" style={{ gap: 4 }}>
+      <div className="col lb-difficulty" style={{ gap: 4 }}>
         <DifficultyHistogram mix={entry.skill.mix} compact />
         <span
           className="mono"
@@ -323,7 +324,7 @@ function LeaderboardRow({
       </div>
 
       {/* Skill Score — the headline ranking number */}
-      <div className="col" style={{ gap: 2, alignItems: 'flex-end' }}>
+      <div className="col lb-score" style={{ gap: 2, alignItems: 'flex-end' }}>
         <span
           style={{
             fontFamily: 'var(--font-mono), monospace',
@@ -362,9 +363,24 @@ function LeaderboardRow({
         </span>
       </div>
 
+      {/* Mobile-only condensed meta strip — hidden on desktop via CSS.
+          Surfaces settled count + hit rate + percentile in one wrap-friendly
+          line where the difficulty bar would otherwise crush against text. */}
+      <div className="lb-meta">
+        <span>{entry.stats.resolved} settled</span>
+        <span aria-hidden>·</span>
+        <span>{hitPct}% hit</span>
+        {entry.isRanked && percentile !== undefined && (
+          <>
+            <span aria-hidden>·</span>
+            <span>top {percentile}%</span>
+          </>
+        )}
+      </div>
+
       {/* Arrow */}
       <span
-        className="mono"
+        className="mono lb-arrow"
         style={{ fontSize: 18, color: 'var(--muted)' }}
       >
         →

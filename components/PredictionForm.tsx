@@ -459,7 +459,7 @@ export function PredictionForm() {
         </div>
 
         {account && session && (
-        <form onSubmit={handleSubmit} className="mt-32 seal-layout">
+        <form id="lock-form" onSubmit={handleSubmit} className="mt-32 seal-layout">
           <div
             style={{
               display: 'grid',
@@ -788,6 +788,25 @@ export function PredictionForm() {
             </div>
           </details>
         </form>
+        )}
+
+        {/* M-04: fixed-bottom CTA on mobile. The in-flow submit button is
+            hidden below --bp-md via CSS; this bar replaces it with a
+            thumb-friendly target that stays glued above the iOS home
+            indicator (env(safe-area-inset-bottom)). */}
+        {account && session && !result && (
+          <div className="lock-mobile-bar">
+            <button
+              type="submit"
+              form="lock-form"
+              className="btn lg"
+              disabled={disabled}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}
+            >
+              <PixelMark bitmap={PIXEL_LOCK} size={14} color="currentColor" />
+              Lock my prediction
+            </button>
+          </div>
         )}
 
         {/* LK-05: agent footer — one-liner under the form, not above. */}

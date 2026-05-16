@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { PixelMark } from './PixelMark';
 import { BRAND_MARK, SUI_MARK } from './bitmaps';
 import { DarkModeToggle } from './DarkModeToggle';
+import { MobileNavDrawer } from './MobileNavDrawer';
 import { WalletConnect } from '../WalletConnect';
 import { XSignInButton } from '../XSignInButton';
 import { useXSession } from '../../lib/useXSession';
@@ -39,6 +41,9 @@ export function TopBar() {
   const path = usePathname() ?? '/';
   const { session } = useXSession();
   const xHandle = session?.xHandle;
+  // M-01: drawer state lives here so the hamburger button + the drawer
+  // backdrop stay in lockstep.
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Profile is dynamic: signed-in users get their own profile, signed-out
   // visitors see the canonical demo profile (disambiguated by the "(demo)"
@@ -66,37 +71,64 @@ export function TopBar() {
     { href: '/brand', label: 'Brand' },
   ];
 
+  // Same items, but shaped for the drawer (active flag pre-computed).
+  const drawerNav = nav.map((item) => ({
+    href: item.href,
+    label: item.label,
+    active: isActive(path, item),
+  }));
+
   return (
-    <header className="topbar">
-      <div className="topbar-left">
-        <Link href="/" className="brand-link">
-          <span className="brand-mark">
-            <PixelMark bitmap={BRAND_MARK} size={20} color="var(--paper)" />
-          </span>
-          TOLDPROOF
-        </Link>
-        <nav className="nav-row">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={isActive(path, item) ? 'active' : ''}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
-      <div className="topbar-right">
-        <span className="testnet-dot">
-          <span className="dot" />
-          testnet
-        </span>
-        <DarkModeToggle />
-        <WalletConnect />
-        <XSignInButton size="sm" />
-      </div>
-    </header>
+    <>
+      <header className="topbar">
+        <div className="topbar-left">
+          <Link href="/" className="brand-link">
+            <span className="brand-mark">
+              <PixelMark bitmap={BRAND_MARK} size={20} color="var(--paper)" />
+            </span>
+            TOLDPROOF
+          </Link>
+          <nav className="nav-row topbar-nav-desktop">
+            {nav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={isActive(path, item) ? 'active' : ''}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+        <div className="topbar-right">
+          <div className="topbar-chrome-desktop">
+            <span className="testnet-dot">
+              <span className="dot" />
+              testnet
+            </span>
+            <DarkModeToggle />
+          </div>
+          <WalletConnect />
+          <XSignInButton size="sm" />
+          <button
+            type="button"
+            className="topbar-hamburger"
+            aria-label="Open menu"
+            aria-expanded={drawerOpen}
+            onClick={() => setDrawerOpen(true)}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+        </div>
+      </header>
+      <MobileNavDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        nav={drawerNav}
+      />
+    </>
   );
 }
 

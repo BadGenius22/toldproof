@@ -96,15 +96,7 @@ export default async function HomePage() {
                 nobody can fake — for{' '}
                 <span className="accent">AI agents</span> and humans.
               </h1>
-              <p
-                style={{
-                  fontSize: 18,
-                  lineHeight: 1.5,
-                  color: 'var(--ink-2)',
-                  margin: 0,
-                  textWrap: 'pretty',
-                }}
-              >
+              <p className="hero-lede">
                 Lock a prediction today. We hide the text and pick a future
                 date for it to open. An AI judge reads what actually happened,
                 marks it hit or miss, and saves the full reasoning forever.
@@ -112,61 +104,50 @@ export default async function HomePage() {
               </p>
               {snap && snap.totalLocked > 0 && (
                 <div className="mono live-pulse">
-                  <span className="dot" />
-                  {snap.totalLocked.toLocaleString()} predictions locked
-                  {' · '}
-                  {snap.totalResolved.toLocaleString()} settled
+                  <span className="dot" aria-hidden />
+                  <span className="live-pulse-item">
+                    {snap.totalLocked.toLocaleString()} predictions locked
+                  </span>
+                  <span className="sep" aria-hidden>·</span>
+                  <span className="live-pulse-item">
+                    {snap.totalResolved.toLocaleString()} settled
+                  </span>
                   {snap.nextUnlockMs !== null && (
                     <>
-                      {' · '}
-                      next opens {fmtRel(snap.nextUnlockMs)}
+                      <span className="sep" aria-hidden>·</span>
+                      <span className="live-pulse-item">
+                        next opens {fmtRel(snap.nextUnlockMs)}
+                      </span>
                     </>
                   )}
                 </div>
               )}
-              <div
-                className="col"
-                style={{ gap: 6, marginTop: 8, alignItems: 'flex-start' }}
-              >
+              <div className="hero-cta-row">
                 <Link href="/lock" className="btn lg">
                   Lock a prediction →
                 </Link>
-                <Link
-                  href="/agents"
-                  className="mono"
-                  style={{
-                    fontSize: 12,
-                    color: 'var(--ink-3)',
-                    textDecoration: 'none',
-                    padding: '4px 0',
-                  }}
-                >
-                  Building an AI agent? → toldproof.xyz/api/mcp/mcp
-                </Link>
               </div>
-              <div
-                className="row"
-                style={{
-                  gap: 18,
-                  marginTop: 12,
-                  color: 'var(--muted)',
-                  fontFamily: 'var(--font-mono), monospace',
-                  fontSize: 11,
-                  letterSpacing: '0.06em',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <PixelMark bitmap={SUI_MARK} size={14} color="var(--ink-3)" /> SUI
-                </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <PixelMark bitmap={WALRUS_MARK} size={14} color="var(--ink-3)" /> WALRUS
-                </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <PixelMark bitmap={SEAL_KEY_MARK} size={14} color="var(--ink-3)" /> SEAL
-                </span>
-                <span>· no edits, no take-backs, no middleman</span>
+              <p className="hero-mcp">
+                Building an AI agent? →{' '}
+                <Link href="/agents" className="hero-mcp-url">
+                  toldproof.xyz/api/mcp/mcp
+                </Link>
+              </p>
+              <div className="hero-stack">
+                <ul className="hero-stack-chips">
+                  <li>
+                    <PixelMark bitmap={SUI_MARK} size={14} color="var(--ink-3)" /> SUI
+                  </li>
+                  <li>
+                    <PixelMark bitmap={WALRUS_MARK} size={14} color="var(--ink-3)" /> WALRUS
+                  </li>
+                  <li>
+                    <PixelMark bitmap={SEAL_KEY_MARK} size={14} color="var(--ink-3)" /> SEAL
+                  </li>
+                </ul>
+                <p className="hero-stack-tagline">
+                  · no edits, no take-backs, no middleman
+                </p>
               </div>
             </div>
 

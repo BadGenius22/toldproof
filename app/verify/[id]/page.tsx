@@ -473,11 +473,8 @@ export default async function VerifyPage({
 
             <Perforation />
 
-            <div
-              className="receipt-body row"
-              style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}
-            >
-              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+            <div className="receipt-body receipt-footer-row">
+              <div className="row">
                 <a
                   className="btn ghost"
                   target="_blank"
@@ -499,7 +496,7 @@ export default async function VerifyPage({
                   See on Walrus ↗
                 </a>
               </div>
-              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+              <div className="row">
                 <ShareButton
                   text={composeShareText(p, revealed, hit, resolved, unlockAtMs)}
                   url={`https://toldproof.xyz/verify/${id}`}

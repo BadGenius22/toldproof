@@ -28,6 +28,13 @@
   /* Background/foreground for Tailwind compat — sourced from paper/ink */
   --background: var(--paper);
   --foreground: var(--ink);
+
+  /* Breakpoints — docs for humans (media queries can't read custom props).
+     720 and 960 recur throughout the responsive rules below; don't introduce
+     new breakpoints without updating these tokens too. */
+  --bp-sm: 480px;
+  --bp-md: 720px;
+  --bp-lg: 960px;
 }
 
 @theme inline {
@@ -68,10 +75,10 @@ html,
 body {
   margin: 0;
   padding: 0;
-}
-
-html {
-  overflow-x: hidden;
+  /* clip > hidden — keeps position: sticky working while still catching
+     anything that escapes the viewport horizontally. */
+  overflow-x: clip;
+  max-width: 100vw;
 }
 
 body {
@@ -82,8 +89,14 @@ body {
   text-rendering: optimizeLegibility;
   font-feature-settings: "ss01", "ss02", "cv11";
   transition: background 0.2s, color 0.2s;
-  overflow-x: hidden;
-  max-width: 100vw;
+}
+
+/* M-08: media defaults — fluid by default, never overflow their column. */
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
 }
 
 /* Subtle pixel grid on every page */
@@ -116,6 +129,9 @@ textarea {
 
 .mono {
   font-family: var(--font-mono), ui-monospace, monospace;
+  /* Long unbroken strings (tx hashes, blob IDs) wrap inside their column
+     instead of forcing horizontal scroll (M-08). */
+  overflow-wrap: anywhere;
 }
 
 /* ─── animations ─────────────────────────────────────────── */
@@ -347,6 +363,138 @@ textarea {
 .dark-toggle:hover {
   border-color: var(--ink);
   background: var(--paper-2);
+}
+
+/* M-01: chrome wrapper around testnet pill + dark-mode toggle.
+   On desktop the chrome sits inline in the topbar; below --bp-md it hides
+   and the items move into the mobile drawer. */
+.topbar-chrome-desktop {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* M-01: hamburger button. Hidden on desktop; revealed below --bp-lg. */
+.topbar-hamburger {
+  display: none;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 8px;
+  cursor: pointer;
+  flex-direction: column;
+  gap: 4px;
+  align-items: stretch;
+  color: var(--ink);
+}
+.topbar-hamburger span {
+  display: block;
+  height: 2px;
+  background: var(--ink);
+  border-radius: 1px;
+}
+
+/* M-01: mobile slide-in drawer. The whole stack is rendered always so we can
+   animate the panel transform; pointer-events get unlocked only when open. */
+.mobile-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+.mobile-drawer.open {
+  pointer-events: auto;
+}
+.mobile-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 19, 15, 0.42);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.mobile-drawer.open .mobile-drawer-backdrop {
+  opacity: 1;
+}
+.mobile-drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(86vw, 340px);
+  background: var(--paper);
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);
+  transition: transform 0.24s cubic-bezier(0.2, 0.9, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 22px calc(28px + env(safe-area-inset-bottom));
+  gap: 20px;
+}
+.mobile-drawer.open .mobile-drawer-panel {
+  transform: translateX(0);
+}
+.mobile-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mobile-drawer-close {
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 6px;
+  color: var(--ink);
+}
+.mobile-drawer-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+  overflow-y: auto;
+}
+.mobile-drawer-nav a {
+  display: block;
+  padding: 14px 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--border);
+  min-height: 44px;
+}
+.mobile-drawer-nav a.active {
+  color: var(--sealed);
+}
+.mobile-drawer-nav a.active::before {
+  content: "▸ ";
+  color: var(--sealed);
+}
+.mobile-drawer-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+/* Below --bp-lg: collapse nav links into hamburger. */
+@media (max-width: 960px) {
+  .topbar-nav-desktop {
+    display: none;
+  }
+  .topbar-hamburger {
+    display: flex;
+  }
 }
 
 .footer {
@@ -594,8 +742,10 @@ textarea {
 h1.display {
   font-family: var(--font-sans), sans-serif;
   font-weight: 600;
-  font-size: clamp(40px, 6vw, 64px);
-  line-height: 0.98;
+  /* M-02: wider clamp range so phones get a 32px floor instead of 40px,
+     dropping the hero H1 from 5 lines to ~3 on a 375px viewport. */
+  font-size: clamp(32px, 7.2vw, 64px);
+  line-height: 1.02;
   letter-spacing: -0.03em;
   margin: 0;
   text-wrap: balance;
@@ -971,6 +1121,22 @@ h2.section {
   overflow: hidden;
   position: relative;
   height: 38px;
+  /* M-03: fade both edges so the marquee never clips mid-letter at the
+     viewport boundary on mobile (or anywhere else). */
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 24px,
+    #000 calc(100% - 24px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 24px,
+    #000 calc(100% - 24px),
+    transparent 100%
+  );
 }
 .ticker-track {
   display: flex;
@@ -980,6 +1146,18 @@ h2.section {
   width: max-content;
   animation: ticker 60s linear infinite;
   will-change: transform;
+}
+@media (max-width: 480px) {
+  .ticker-track {
+    animation-duration: 38s;
+    gap: 22px;
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
 }
 .ticker-item {
   font-family: var(--font-mono), monospace;
@@ -1062,14 +1240,134 @@ h2.section {
   border: 1px solid var(--border);
 }
 
-/* ─── sticky lock button on mobile (CC-04) ───────────────── */
+/* ─── sticky lock button on mobile (M-04 replaces CC-04) ─── */
 
+/* In-flow submit button — visible on desktop, hidden on mobile because
+   the .lock-mobile-bar (below) takes over as the primary CTA. */
 @media (max-width: 720px) {
   .lock-submit-btn {
-    position: sticky;
-    bottom: 12px;
-    z-index: 5;
-    box-shadow: 0 4px 14px rgba(20, 19, 15, 0.18);
+    display: none !important;
+  }
+}
+
+/* Fixed bottom bar — primary CTA on mobile. Always rendered (so the
+   form="lock-form" attribute works), display: none above the breakpoint. */
+.lock-mobile-bar {
+  display: none;
+}
+@media (max-width: 720px) {
+  .lock-mobile-bar {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: var(--paper);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 14px rgba(20, 19, 15, 0.08);
+  }
+  .lock-mobile-bar .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  /* Pad the bottom of the form so the fixed bar can't cover the last
+     field or the auto-tweet checkbox. */
+  .seal-layout {
+    padding-bottom: 88px;
+  }
+}
+
+/* ─── receipt footer (verify, M-05) ──────────────────────── */
+
+.receipt-footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+}
+.receipt-footer-row .row {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 480px) {
+  .receipt-footer-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .receipt-footer-row .row {
+    width: 100%;
+  }
+  .receipt-footer-row .btn {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+  }
+}
+
+/* ─── leaderboard row (M-06) ─────────────────────────────── */
+
+/* On desktop the condensed "meta strip" is hidden — its info is split
+   across the handle sub-line and the difficulty histogram. On mobile it
+   replaces both. */
+.leaderboard-row .lb-meta {
+  display: none;
+}
+/* On mobile the handle's sub-line + the difficulty histogram both drop
+   away (see overrides below); the lb-meta strip carries the same info in
+   a single wrap-friendly line. */
+@media (max-width: 720px) {
+  .leaderboard-row .lb-handle-sub {
+    display: none;
+  }
+}
+
+/* The desktop grid lives as an inline style on the <Link> in
+   LeaderboardClient.tsx (5-column table-row look). On mobile we override
+   it via this class so the row collapses to "rank · handle · score" on
+   top, then a "meta" strip below with settled/hit/percentile. */
+@media (max-width: 720px) {
+  .leaderboard-row {
+    grid-template-columns: 32px minmax(0, 1fr) auto !important;
+    grid-template-areas:
+      "rank handle score"
+      "rank meta meta"
+      "rank arrow arrow" !important;
+    row-gap: 6px !important;
+    padding: 14px 14px !important;
+  }
+  .leaderboard-row .lb-rank {
+    grid-area: rank;
+  }
+  .leaderboard-row .lb-handle {
+    grid-area: handle;
+    min-width: 0;
+  }
+  .leaderboard-row .lb-meta {
+    grid-area: meta;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    font-family: var(--font-mono), monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+  .leaderboard-row .lb-score {
+    grid-area: score;
+    align-items: flex-end;
+  }
+  .leaderboard-row .lb-arrow {
+    grid-area: arrow;
+    justify-self: end;
+    align-self: end;
+  }
+  /* Difficulty mini-bar lives in the desktop "meta" cell; on mobile it
+     would crush against the text strip, so hide it and surface percentile
+     as text inside .lb-meta. */
+  .leaderboard-row .lb-difficulty {
+    display: none;
   }
 }
 
@@ -1248,10 +1546,14 @@ h2.section {
 /* ─── live pulse (landing hero) ──────────────────────────── */
 
 .live-pulse {
-  display: inline-flex;
+  /* M-02: switched from inline-flex to flex with wrapping. Each
+     value+separator pair stays glued together via .live-pulse-item, so
+     "in 29d" never breaks mid-string when the line wraps. */
+  display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 12px;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 13px;
   color: var(--ink-3);
   letter-spacing: 0.04em;
   margin-top: 6px;
@@ -1262,6 +1564,104 @@ h2.section {
   background: var(--verified);
   border-radius: 50%;
   animation: pulse-led 1.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.live-pulse .sep {
+  color: var(--muted);
+}
+.live-pulse-item {
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .live-pulse {
+    font-size: 12px;
+  }
+}
+
+/* ─── hero (landing) ─────────────────────────────────────── */
+
+.hero-lede {
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  text-wrap: pretty;
+  max-width: 56ch;
+  margin: 0;
+}
+@media (max-width: 720px) {
+  .hero-lede {
+    font-size: 15px;
+    line-height: 1.5;
+  }
+}
+
+.hero-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+.hero-cta-row .btn {
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .hero-cta-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .hero-cta-row .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.hero-mcp {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  color: var(--ink-3);
+  margin: 0;
+  word-break: break-word;
+  padding: 4px 0;
+  letter-spacing: 0.04em;
+}
+.hero-mcp-url {
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  /* "anywhere" lets the URL break inside the path segment if the
+     column is narrower than the URL itself. */
+  overflow-wrap: anywhere;
+}
+
+.hero-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.hero-stack-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+}
+.hero-stack-chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hero-stack-tagline {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
 }
 
 /* ─── readiness gate (lock page) ─────────────────────────── */
@@ -1457,31 +1857,27 @@ h2.section {
 }
 
 @media (max-width: 720px) {
+  /* M-01: topbar stays single-row on mobile. The nav links go into the
+     slide-in drawer (.mobile-drawer) and the chrome (network pill +
+     theme toggle) does too. The topbar itself just gets tighter padding. */
   .topbar {
-    padding: 10px 16px;
-    flex-wrap: wrap;
+    padding: 12px 16px;
     gap: 10px;
   }
   .topbar-left {
-    gap: 16px;
-    width: 100%;
-    justify-content: space-between;
+    gap: 12px;
   }
   .topbar-right {
-    width: 100%;
-    justify-content: space-between;
     gap: 8px;
   }
-  .nav-row {
-    gap: 14px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .nav-row::-webkit-scrollbar {
+  /* Hide the testnet pill + dark-mode toggle on mobile — they move into
+     the drawer footer. */
+  .topbar-chrome-desktop {
     display: none;
   }
-  .nav-row a,
-  .nav-row button {
+  /* Compact wallet button on mobile (matches drawer footer chrome). */
+  .topbar-right .wallet-pill {
+    padding: 8px 12px;
     font-size: 11px;
   }
 
@@ -1502,6 +1898,14 @@ h2.section {
   }
   .profile-header {
     grid-template-columns: 1fr;
+  }
+  /* M-07: profile action buttons fill the row, split equally. */
+  .profile-header .row-actions {
+    width: 100%;
+  }
+  .profile-header .row-actions .btn {
+    flex: 1;
+    justify-content: center;
   }
   .diff-grid {
     grid-template-columns: 1fr;
@@ -1527,6 +1931,7 @@ h2.section {
     font-size: 10px;
     letter-spacing: 0.08em;
     gap: 8px;
+    flex-wrap: wrap;
   }
   .receipt-body {
     padding: 14px;
@@ -1561,8 +1966,32 @@ h2.section {
     font-size: 10px;
   }
 
-  h1.display {
-    font-size: 36px !important;
+  /* M-04: prevent iOS Safari auto-zoom on input focus (anything <16px
+     triggers it and traps the layout at an awkward scroll position). */
+  .input,
+  .textarea {
+    font-size: 16px;
+    padding: 12px 14px;
+  }
+  .textarea {
+    min-height: 140px;
+  }
+
+  /* M-08: thumb-friendly tap targets. */
+  .btn {
+    padding: 12px 16px;
+    min-height: 44px;
+  }
+  .btn.lg {
+    padding: 14px 18px;
+    min-height: 48px;
+  }
+}
+
+/* M-08: container padding tightens once more on the narrowest viewports. */
+@media (max-width: 480px) {
+  .container {
+    padding: 24px 14px calc(24px + env(safe-area-inset-bottom));
   }
 }
 
