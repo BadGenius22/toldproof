@@ -871,7 +871,7 @@ export function PredictionForm() {
             <div className="receipt receipt-settle">
               <div className="receipt-header">
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  <PixelMark bitmap={BRAND_MARK} size={14} color="var(--paper)" />
+                  <PixelMark bitmap={BRAND_MARK} size={14} tone="on-ink" />
                   Your receipt
                 </span>
                 <Chip status="sealed">Locked</Chip>

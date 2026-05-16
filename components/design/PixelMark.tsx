@@ -1,10 +1,17 @@
 import { useMemo } from 'react';
 import { parseBitmap } from './bitmaps';
 
+// `tone` lets callers say *which surface the mark sits on* instead of
+// pinning a literal colour. Dark surfaces (brand-mark, receipt-header,
+// active step) should pass `tone="on-ink"` so the fill flips with the
+// theme without per-surface `.dark` overrides.
+type Tone = 'auto' | 'on-paper' | 'on-ink';
+
 interface PixelMarkProps {
   bitmap: string;
   size?: number;
   color?: string;
+  tone?: Tone;
   bg?: string;
   radius?: number;
   gap?: number;
@@ -16,13 +23,21 @@ interface PixelMarkProps {
 export function PixelMark({
   bitmap,
   size = 24,
-  color = 'currentColor',
+  color,
+  tone = 'auto',
   bg = 'transparent',
   radius = 0,
   gap = 0,
   title,
   className,
 }: PixelMarkProps) {
+  const fill =
+    color ??
+    (tone === 'on-ink'
+      ? 'var(--paper)'
+      : tone === 'on-paper'
+        ? 'var(--ink)'
+        : 'currentColor');
   const { w, h, cells } = useMemo(() => parseBitmap(bitmap), [bitmap]);
   return (
     <svg
@@ -43,7 +58,7 @@ export function PixelMark({
           y={y + gap / 2}
           width={1 - gap}
           height={1 - gap}
-          fill={color}
+          fill={fill}
         />
       ))}
     </svg>

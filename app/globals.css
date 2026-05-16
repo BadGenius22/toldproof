@@ -14,13 +14,18 @@
   --muted: #807c70;
   --muted-2: #a8a496;
 
-  /* Accents — single chroma, vary hue */
+  /* Accents — single chroma, vary hue. *-text vars carry the readable
+     foreground for chips/tags so dark-mode can override without touching
+     the soft backgrounds. */
   --sealed: oklch(0.72 0.14 70); /* warm amber — sealed/locked */
   --sealed-soft: oklch(0.95 0.06 70);
+  --sealed-text: oklch(0.4 0.12 70);
   --verified: oklch(0.62 0.14 150); /* green — revealed/verified */
   --verified-soft: oklch(0.94 0.06 150);
+  --verified-text: oklch(0.35 0.12 150);
   --warn: oklch(0.62 0.18 30); /* red — no-proof / warn */
   --warn-soft: oklch(0.94 0.06 30);
+  --warn-text: oklch(0.4 0.14 30);
 
   --border: #d6d2c4;
   --border-strong: #1a1814;
@@ -55,14 +60,21 @@
   --paper-3: #2c281e;
   --ink: #f3f0e6;
   --ink-2: #dcd7c8;
-  --ink-3: #a8a394;
-  --muted: #6e6a5b;
-  --muted-2: #4d4940;
+  /* D-04: lifted one step so receipt mono rows (id:, sha256:, walrus:) and
+     the corner timestamp clear AA against the cream paper. */
+  --ink-3: #b5b1a3;
+  --muted: #8c887b;
+  --muted-2: #6a675c;
   --border: #38332a;
   --border-strong: #f3f0e6;
-  --sealed-soft: oklch(0.3 0.09 70);
-  --verified-soft: oklch(0.28 0.09 150);
-  --warn-soft: oklch(0.3 0.1 30);
+  --sealed-soft: oklch(0.3 0.1 70);
+  --verified-soft: oklch(0.28 0.1 150);
+  --warn-soft: oklch(0.29 0.1 30);
+  /* D-01: bright chip foregrounds so HIT / MISS / LOCKED text reads
+     against the dark soft accents. */
+  --sealed-text: oklch(0.88 0.12 70);
+  --verified-text: oklch(0.86 0.14 150);
+  --warn-text: oklch(0.84 0.14 30);
   --background: var(--paper);
   --foreground: var(--ink);
 }
@@ -279,15 +291,9 @@ textarea {
 .dark .brand-mark {
   background: var(--ink);
 }
-.dark .brand-mark svg rect {
-  fill: var(--paper) !important;
-}
-.dark .receipt-header svg rect {
-  fill: var(--paper) !important;
-}
-.dark .step-item.active svg rect {
-  fill: var(--paper) !important;
-}
+/* D-07: PixelMark now exposes a `tone` prop. Dark-surface call sites pass
+   tone="on-ink" so the fill flips with the theme — no per-surface
+   overrides needed. */
 
 .nav-row {
   display: flex;
@@ -532,9 +538,9 @@ textarea {
   background: var(--ink);
   color: var(--paper);
 }
-.onchain-badge:hover svg rect {
-  fill: var(--paper) !important;
-}
+/* PixelMark inside the badge now defaults to currentColor, so it flips
+   with the .onchain-badge text on hover and across themes — no fill
+   override needed. */
 
 /* ─── buttons ─────────────────────────────────────────────── */
 
@@ -668,17 +674,17 @@ textarea {
 }
 .chip.sealed {
   background: var(--sealed-soft);
-  color: oklch(0.4 0.12 70);
+  color: var(--sealed-text);
   border-color: var(--sealed);
 }
 .chip.verified {
   background: var(--verified-soft);
-  color: oklch(0.35 0.12 150);
+  color: var(--verified-text);
   border-color: var(--verified);
 }
 .chip.warn {
   background: var(--warn-soft);
-  color: oklch(0.4 0.14 30);
+  color: var(--warn-text);
   border-color: var(--warn);
 }
 .chip.neutral {
@@ -931,6 +937,94 @@ h2.section {
 }
 .tweet-body .l {
   color: oklch(0.55 0.16 245);
+}
+
+/* ─── tweet reply thread (landing diff section) ──────────── */
+
+.tweet-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+.tweet-reply {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-left: 32px;
+  position: relative;
+}
+.tweet-reply::before {
+  content: "";
+  position: absolute;
+  left: -18px;
+  top: 18px;
+  width: 12px;
+  height: 1px;
+  background: var(--border);
+}
+.tweet-reply .avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tweet-reply .tweet-head {
+  font-size: 12px;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.tweet-reply .tweet-head .name {
+  font-size: 13px;
+}
+.tweet-reply .tweet-head .handle,
+.tweet-reply .tweet-head .time {
+  font-size: 11px;
+}
+.tweet-reply .tweet-body {
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 1px;
+  color: var(--ink-2);
+}
+.tweet-reply.bot-warn {
+  background: var(--paper-2);
+  border-color: var(--ink-3);
+}
+.tweet-reply.bot-warn .avatar {
+  background: var(--ink-3);
+  color: var(--paper);
+}
+.tweet-reply.bot-verified {
+  background: var(--verified-soft);
+  border-color: var(--verified);
+}
+.tweet-reply.bot-verified .avatar {
+  background: var(--verified);
+  color: var(--paper);
+}
+.tweet-reply .verdict {
+  font-weight: 600;
+}
+.tweet-reply.bot-warn .verdict {
+  color: var(--ink);
+}
+.tweet-reply.bot-verified .verdict {
+  color: oklch(0.32 0.12 150);
+}
+@media (max-width: 720px) {
+  .tweet-reply {
+    margin-left: 18px;
+    padding: 9px 11px;
+  }
+  .tweet-reply::before {
+    left: -10px;
+    width: 6px;
+  }
 }
 
 /* ─── glyph block ────────────────────────────────────────── */
@@ -1689,7 +1783,7 @@ h2.section {
   border: 1px solid var(--verified);
   background: var(--verified-soft);
   font-size: 11px;
-  color: oklch(0.35 0.12 150);
+  color: var(--verified-text);
   letter-spacing: 0.06em;
   margin-bottom: 24px;
   width: fit-content;
@@ -1775,6 +1869,11 @@ h2.section {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
+}
+/* D-02: subtle inner stroke in dark mode so the soft-bg + accent-border
+   pill carries the same visual weight as the old saturated pill. */
+.dark .tag-chip {
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, currentColor 18%, transparent);
 }
 
 /* ─── filter tabs ────────────────────────────────────────── */
@@ -2053,11 +2152,100 @@ h2.section {
   background: var(--verified-soft);
   border-radius: 4px;
   font-size: 12px;
-  color: oklch(0.35 0.12 150);
+  color: var(--verified-text);
   text-align: center;
 }
 @media (max-width: 480px) {
   .waitlist-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* ─── dark-mode contrast pass (DARK_MODE_FIXES.md) ───────── */
+
+/* D-03: ghost button — needs a faint tint + bordered surface in dark so it
+   reads as a clickable affordance, not floating glyphs. */
+.dark .btn.ghost {
+  background: color-mix(in oklch, var(--ink) 6%, transparent);
+  border-color: color-mix(in oklch, var(--ink) 70%, transparent);
+}
+.dark .btn.ghost:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.dark .btn.ghost:focus-visible {
+  outline: 2px solid var(--sealed);
+  outline-offset: 2px;
+}
+
+/* D-05: filter tabs + topbar nav — inactive states need to clear AA at
+   12px against the cream paper. */
+.dark .filter-tab {
+  color: var(--ink-2);
+}
+.dark .filter-tab.active {
+  color: var(--paper);
+  background: var(--ink);
+}
+.dark .filter-tab-count {
+  color: var(--muted);
+  opacity: 1;
+}
+.dark .nav-row a,
+.dark .nav-row button {
+  color: var(--ink-2);
+}
+.dark .nav-row a:hover,
+.dark .nav-row button:hover,
+.dark .nav-row a.active,
+.dark .nav-row button.active {
+  color: var(--ink);
+}
+
+/* D-06: inputs, hex dumps, perforations — surfaces that lose their edges
+   on the cream paper. */
+.dark .input:focus,
+.dark .textarea:focus {
+  border-color: var(--ink-2);
+  box-shadow: 0 0 0 3px rgba(241, 239, 231, 0.08);
+}
+.dark .hex {
+  background: #14120d;
+  border-color: #2a2823;
+}
+.dark .hex .cipher {
+  color: #7c7868;
+}
+.dark .hex .plain {
+  color: #f1efe7;
+  font-weight: 500;
+}
+.dark .perf,
+.dark .receipt-row {
+  border-color: #3a3730;
+}
+.dark .perf::before,
+.dark .perf::after {
+  background: #1f1d17;
+}
+
+/* D-08: live-pulse — soft halo so the pulse animation registers against
+   the cream paper. */
+.dark .live-pulse .dot {
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--verified) 18%, transparent);
+}
+
+/* D-09: tweet card link + bot avatar — the link blue was tuned for light
+   paper; lift it for dark. */
+.dark .tweet-body .l {
+  color: oklch(0.78 0.14 245);
+}
+.dark .tweet .avatar {
+  background: var(--ink);
+  color: var(--paper);
+}
+.dark .tweet .avatar.bot {
+  background: var(--sealed);
+  color: var(--paper);
 }

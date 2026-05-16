@@ -84,7 +84,7 @@ export function TopBar() {
         <div className="topbar-left">
           <Link href="/" className="brand-link">
             <span className="brand-mark">
-              <PixelMark bitmap={BRAND_MARK} size={20} color="var(--paper)" />
+              <PixelMark bitmap={BRAND_MARK} size={20} tone="on-ink" />
             </span>
             TOLDPROOF
           </Link>
@@ -148,7 +148,7 @@ export function FooterBar() {
           rel="noopener noreferrer"
           title={`View on Suivision · ${PACKAGE_ID}`}
         >
-          <PixelMark bitmap={SUI_MARK} size={14} color="var(--ink)" />
+          <PixelMark bitmap={SUI_MARK} size={14} />
           Package · {shortHash(PACKAGE_ID, 6, 4)}
         </a>
         <a

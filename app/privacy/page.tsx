@@ -233,7 +233,7 @@ export default function PrivacyPage() {
 
         <div className="mt-48 row" style={{ gap: 12, flexWrap: 'wrap' }}>
           <Link href="/lock" className="btn">
-            <PixelMark bitmap={BRAND_MARK} size={14} color="var(--paper)" />
+            <PixelMark bitmap={BRAND_MARK} size={14} tone="on-ink" />
             Lock a prediction →
           </Link>
           <Link href="/terms" className="btn ghost">

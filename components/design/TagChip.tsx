@@ -9,10 +9,10 @@ interface VariantStyle {
 }
 
 const STYLES: Record<Variant, VariantStyle> = {
-  bold:     { bg: 'var(--verified-soft)', fg: 'oklch(0.3 0.12 150)', border: 'var(--verified)' },
-  verified: { bg: 'var(--verified-soft)', fg: 'oklch(0.35 0.12 150)', border: 'var(--verified)' },
-  warn:     { bg: 'var(--warn-soft)',     fg: 'oklch(0.4 0.14 30)',   border: 'var(--warn)' },
-  sealed:   { bg: 'var(--sealed-soft)',   fg: 'oklch(0.4 0.12 70)',   border: 'var(--sealed)' },
+  bold:     { bg: 'var(--verified-soft)', fg: 'var(--verified-text)', border: 'var(--verified)' },
+  verified: { bg: 'var(--verified-soft)', fg: 'var(--verified-text)', border: 'var(--verified)' },
+  warn:     { bg: 'var(--warn-soft)',     fg: 'var(--warn-text)',     border: 'var(--warn)' },
+  sealed:   { bg: 'var(--sealed-soft)',   fg: 'var(--sealed-text)',   border: 'var(--sealed)' },
   neutral:  { bg: 'var(--paper-2)',       fg: 'var(--ink-3)',         border: 'var(--border)' },
 };
 

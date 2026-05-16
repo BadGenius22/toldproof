@@ -347,7 +347,7 @@ export default async function VerifyPage({
             <SealMark idShort={idShort} variant="corner" />
             <div className="receipt-header">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <PixelMark bitmap={BRAND_MARK} size={14} color="var(--paper)" />
+                <PixelMark bitmap={BRAND_MARK} size={14} tone="on-ink" />
                 TOLDPROOF · receipt · v0.1
               </span>
               <span style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 10, opacity: 0.7 }}>

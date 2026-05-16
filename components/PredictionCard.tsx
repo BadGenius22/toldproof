@@ -57,23 +57,14 @@ export function PredictionCard({ p, pinned = false }: PredictionCardProps) {
     <div style={{ position: 'relative' }}>
       {pinned && (
         <span
-          className="mono"
           style={{
             position: 'absolute',
             top: -10,
             left: 16,
             zIndex: 2,
-            padding: '3px 10px',
-            borderRadius: 999,
-            border: '1px solid var(--verified)',
-            background: 'var(--verified-soft)',
-            color: 'oklch(0.3 0.12 150)',
-            fontSize: 10.5,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
           }}
         >
-          ★ Best call so far
+          <TagChip variant="bold">★ Best call so far</TagChip>
         </span>
       )}
     <Link
