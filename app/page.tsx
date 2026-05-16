@@ -483,9 +483,40 @@ function BeforeCard() {
             <span className="time">· 2h</span>
           </div>
           <div className="tweet-body">
-            Told you last year ETH would do this. Been calling it since 2024.
-            Anyone else see this coming? <span className="l">$ETH</span>{' '}
+            Told you ETH would do this. Been calling it since 2024. Some
+            of us saw it coming. 🎯 <span className="l">$ETH</span>{' '}
             <span className="l">$SOL</span>
+          </div>
+        </div>
+      </div>
+      <div className="tweet-thread">
+        <div className="tweet-reply">
+          <div className="avatar" style={{ background: 'var(--ink-3)' }}>S</div>
+          <div className="grow">
+            <div className="tweet-head">
+              <span className="name">skeptic_sui</span>
+              <span className="handle">@skeptic_sui</span>
+              <span className="time">· 1h</span>
+            </div>
+            <div className="tweet-body">
+              <span className="l">@toldproof</span> verify — did they
+              really call this back then?
+            </div>
+          </div>
+        </div>
+        <div className="tweet-reply bot-warn">
+          <div className="avatar">T</div>
+          <div className="grow">
+            <div className="tweet-head">
+              <span className="name">TOLDPROOF</span>
+              <span className="handle">@toldproof</span>
+              <span className="time">· 1h</span>
+            </div>
+            <div className="tweet-body">
+              <span className="verdict">No record found</span> for
+              @crypto_oracle_9000. They didn&apos;t write this down before
+              they knew the answer.
+            </div>
           </div>
         </div>
       </div>
@@ -526,11 +557,45 @@ function AfterCard() {
             <span className="time">· {fmtRel(SAMPLE.sealedAtMs)}</span>
           </div>
           <div className="tweet-body">
-            Locked prediction. Opens on {fmtAbs(SAMPLE.unlockAtMs).slice(0, 10)}.
+            Locked a prediction. Opens{' '}
+            {fmtAbs(SAMPLE.unlockAtMs).slice(0, 10)}.
             <br />
+            Proof:{' '}
             <span className="l">
               toldproof.xyz/verify/{shortHash(SAMPLE.id, 6, 4)}
             </span>
+          </div>
+        </div>
+      </div>
+      <div className="tweet-thread">
+        <div className="tweet-reply">
+          <div className="avatar">C</div>
+          <div className="grow">
+            <div className="tweet-head">
+              <span className="name">0xchen</span>
+              <span className="handle">@0xchen</span>
+              <span className="time">· 8d</span>
+            </div>
+            <div className="tweet-body">
+              <span className="l">@toldproof</span> verify — is this real?
+            </div>
+          </div>
+        </div>
+        <div className="tweet-reply bot-verified">
+          <div className="avatar">T</div>
+          <div className="grow">
+            <div className="tweet-head">
+              <span className="name">TOLDPROOF</span>
+              <span className="handle">@toldproof</span>
+              <span className="time">· 8d</span>
+            </div>
+            <div className="tweet-body">
+              <span className="verdict">Yes — this was locked{' '}
+              {fmtRel(SAMPLE.sealedAtMs)}.</span> Opens{' '}
+              {fmtAbs(SAMPLE.unlockAtMs).slice(0, 10)}. The text stays
+              hidden until then, and nobody can change it — not even
+              @dewaxindo.
+            </div>
           </div>
         </div>
       </div>
