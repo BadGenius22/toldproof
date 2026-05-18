@@ -4,20 +4,24 @@
 
 ## What We Are Building
 
-Cryptographic receipts for crypto Twitter. Users seal predictions on Sui + Walrus + Seal with a time-locked decryption policy; a public X bot verifies whether anyone's "I called it" claim has a matching sealed prediction.
+Verifiable reputation for humans and AI agents. Anyone — a human via Sui wallet + X OAuth, or an AI agent via MCP + x402 payments — seals a prediction on Sui + Walrus + Seal with a time-locked decryption policy. At unlock, an AI Resolution Agent reads the plaintext, checks what actually happened (web search + price feeds), and stamps hit or miss on Sui with its full reasoning anchored to Walrus. A public X bot verifies "I called it" claims, and a single leaderboard ranks humans and AI agents side-by-side on cryptographically-attested track records.
 
 ## The Customer
 
-Crypto-native X users frustrated by hindsight farming — fake "I told you so" posts, fake hiring announcements, fake success stories. They want to credibilize their own calls publicly AND call out fakes by other accounts.
+Two surfaces, one primitive:
+
+1. **Humans** — crypto-native X users frustrated by hindsight farming (fake "I told you so" posts, fake hiring announcements, fake success stories). They want to credibilize their own calls publicly AND call out fakes by other accounts.
+2. **AI agent builders** — anyone shipping an agent that makes claims about the world (forecasters, research agents, signal callers). They need a public, vendor-neutral benchmark for "which agent actually calls things right" — something HumanEval and MMLU don't provide.
 
 The hackathon judges (Sui Foundation, Mysten leadership, Walrus partners) are the *first* customer. Optimize the demo for them; user acquisition is a post-prize problem.
 
-## MVP Scope
+## Current Scope (what's shipped + what's left)
 
-The MVP must do these things. **Nothing else.**
+The product covers BOTH surfaces — humans and AI agents — on the same contract and the same leaderboard. The list below is the locked feature set. **Nothing else.**
 
+### Human path
 1. Connect Sui wallet (Sui Wallet / Slush) + link an X handle via OAuth.
-2. Seal a prediction: form takes text + unlock timestamp → encrypts via Seal time-lock → uploads ciphertext to Walrus → records `(blob_id, hash, x_handle, unlock_at, owner)` on a Sui Move contract.
+2. Seal a prediction: form takes text + unlock timestamp → encrypts via Seal time-lock → uploads ciphertext to Walrus → records `(blob_id, hash, x_handle, unlock_at, owner)` on the Sui Move contract.
 3. Public profile page at `/[x_handle]` lists every sealed prediction (locked + revealed) for that handle.
 4. Verification page at `/[id]` shows proof metadata for a specific prediction.
 5. Optional auto-tweet on seal (user OAuth posts: "Sealed prediction at [t]. Verifies on [unlock]. Proof: toldproof.xyz/[id]").
@@ -25,20 +29,29 @@ The MVP must do these things. **Nothing else.**
 7. `@toldproof verify` bot: listens for mentions containing "verify", checks if the parent tweet's author has a matching sealed prediction, replies with verdict (neutral wording — see Non-Negotiables).
 8. Hit/miss tracking per address (simple counter; reputation NFT is stretch only).
 
-### Explicitly OUT of MVP scope
+### AI agent path
+9. MCP server at `/api/mcp/mcp` — any MCP-compatible agent (Claude Desktop, Cursor, AI SDK) can discover the `seal_prediction` tool.
+10. x402 payments — agent pays $0.10 USDC on Base per seal; no wallet, no signup, no API key.
+11. Agent identity locks — first-claim-wins on alias, alias bound to first wallet to prevent impersonation.
+12. Demo agent fleet — 4 sovereign agents seeded on a 6-hour cron to populate the leaderboard.
+
+### Resolution + reputation (shared)
+13. AI Resolution Agent (cron) — at unlock, reads plaintext, runs tool-use loop (web search via Tavily + price feeds via CoinGecko), commits hit/miss on Sui with full reasoning trace anchored to Walrus.
+14. Multi-agent consensus mode — Claude + GPT + Gemini work the problem in parallel; a fourth model synthesizes. Pro tier.
+15. Versioned Walrus reputation profiles — per-identity profile chain, each linked to the previous via Walrus blob ID.
+16. Unified leaderboard at `/leaderboard` — humans and AI agents ranked side-by-side by calibration score.
+
+### Explicitly OUT of scope
 
 - Voice, avatars, character customization (not this product)
 - NSFW content of any kind (regulatory exclusion zone)
-- Vague-claim parsing or NLP — predictions are free-text, judged by humans on reveal
-- Oracle integration for auto-resolution (Pyth/Switchboard) — manual claim resolution v1
-- Subscription billing / Stripe integration
+- Subscription billing / Stripe integration (defer to post-hackathon)
 - Reputation NFT minting (defer to stretch goals after hackathon)
 - Polymarket / Metaculus integration
 - Mobile-native app (web app responsive only)
 - Multi-language support
-- Private mode (hash-only public, ciphertext private) — defer if time-constrained
 - Email notifications
-- Webhooks / API for third-party developers
+- Public webhooks / API for third-party developers (MCP is the only agent surface for now)
 
 Every time you're tempted to add something not in this list, stop and ask: does this help win the hackathon demo? If no, it's out.
 
@@ -170,20 +183,23 @@ Violating any of these is a workflow error. Stop and ask before proceeding.
     └── seed-bot.ts
 ```
 
-## Definition of Done (MVP)
+## Definition of Done
 
-The MVP is finished when ALL of these are true:
+The build is finished when ALL of these are true:
 
-1. **Sealed prediction end-to-end on mainnet**: a user can connect wallet, type prediction, click seal, and the result is verifiable at `toldproof.xyz/verify/[id]` with a real Walrus blob and Sui object.
-2. **Time-locked reveal works**: a test prediction set 1 hour out actually unlocks and decrypts via Seal on schedule.
-3. **X auto-tweet on seal** works for the user OAuth path.
-4. **Reveal watcher** posts the reveal tweet within 10 minutes of unlock time.
-5. **`@toldproof verify`** replies to mention within 5 minutes with the correct verdict (verified or no-proof-found).
-6. **Public profile page** shows all sealed predictions for a given X handle.
-7. **60-second demo video** is filmed, edited, and uploaded — covers seal → reveal → callout flow.
-8. **DeepSurge submission page** is live with project description, video link, GitHub link, mainnet package ID, and screenshots.
-9. **Mainnet Move contracts** have been reviewed by user and pass the seal_approve test cases (positive + negative).
-10. **README.md** at the project root explains the architecture in under 200 lines for hackathon judges.
+1. **Human seal end-to-end on testnet**: a user can connect wallet, sign in with X, type a prediction, click seal, and the result is verifiable at `toldproof.xyz/verify/[id]` with a real Walrus blob and Sui object.
+2. **AI agent seal end-to-end via MCP + x402**: an agent (Claude Desktop or AI SDK) can discover the `seal_prediction` tool, pay $0.10 USDC on Base, and get a Sui-verified prediction back — no signup required.
+3. **Time-locked reveal works**: a test prediction set 1 hour out actually unlocks and decrypts via Seal on schedule.
+4. **AI Resolution Agent attests outcomes**: at unlock, the resolve cron reads the plaintext, runs the tool-use loop, and commits hit/miss on Sui with reasoning anchored to Walrus.
+5. **X auto-tweet on seal** works for the user OAuth path.
+6. **Reveal watcher** posts the reveal tweet within 10 minutes of unlock time.
+7. **`@toldproof verify`** (self-serve at `/bot` today, autonomous cron behind X API Basic) returns the correct verdict — verified or no-proof-found — with defamation-safe wording.
+8. **Public profile page** shows all sealed predictions for a given X handle, including hit rate.
+9. **Mixed leaderboard** ranks humans and AI agents side-by-side at `/leaderboard`.
+10. **60-second demo video** is filmed, edited, and uploaded — covers human seal → agent seal → reveal → leaderboard flow.
+11. **DeepSurge submission page** is live with project description, video link, GitHub link, testnet package ID, and screenshots.
+12. **Testnet Move contracts** have been reviewed by user and pass the seal_approve test cases (positive + negative).
+13. **README.md** at the project root explains the architecture for hackathon judges.
 
 ## Required skill usage
 

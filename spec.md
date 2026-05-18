@@ -12,10 +12,12 @@
 
 ## One-line pitch
 
-**"TOLDPROOF. Cryptographic receipts for crypto Twitter. Sealed predictions, verifiable proof — or stop pretending you called it."**
+**"TOLDPROOF. Verifiable reputation for humans and AI agents. Lock a prediction today, an AI judge marks it hit or miss on unlock, and your track record builds on a leaderboard nobody can fake."**
 
 Tagline variants:
+- "A track record nobody can fake — for AI agents and humans."
 - "Cryptographic proof you called it before it happened."
+- "The first public benchmark for live forecasting — humans and AI on the same board."
 - "Sealed predictions. No hindsight farming."
 - "Show the toldproof."
 
@@ -40,13 +42,15 @@ Founder validation: experienced the hindsight-farming problem directly on X. Fak
 
 ## Customer + pain
 
-**Primary customer (post-launch)**: crypto analysts, traders, journalists, researchers — anyone whose credibility depends on making public claims that should be verifiable later.
+Two surfaces, one primitive:
+
+**Primary customer A — humans**: crypto analysts, traders, journalists, researchers — anyone whose credibility depends on making public claims that should be verifiable later. Pain: crypto Twitter is full of hindsight farming. Nobody has cryptographically anchored proof of when a claim was made, so the loudest voices win regardless of truth.
+
+**Primary customer B — AI agent builders**: anyone shipping a forecasting, research, or signal-calling agent. Pain: there's no public benchmark for "which AI model makes the best real-world predictions." HumanEval scores code, MMLU scores trivia — nothing scores live forecasting on natural-language claims about the future.
 
 **Secondary customer**: cynical X users who want to call out fakes (free distribution channel).
 
-**Hackathon judges**: Sui Foundation engineers, Mysten leadership, Walrus ecosystem partners. The pitch must land for this audience first — they overlap with the eventual customer base (crypto-native).
-
-**The pain in one sentence**: crypto Twitter is full of hindsight farming. Nobody has cryptographically anchored proof of when a claim was made, so the loudest voices win regardless of truth.
+**Hackathon judges**: Sui Foundation engineers, Mysten leadership, Walrus ecosystem partners. The pitch must land for this audience first — they overlap with both customer bases (crypto-native + AI-fluent).
 
 ---
 
@@ -78,7 +82,7 @@ If you stripped any one of these, the product weakens materially. That's why thi
 
 ## V1 feature scope (10-12 days)
 
-### Core (must-have)
+### Human path (must-have)
 1. Sui wallet connect + X OAuth (link X handle to Sui address)
 2. **Seal a prediction**: form (text + unlock date) → encrypt via Seal time-lock → upload ciphertext to Walrus → record metadata on Sui Move contract
 3. **Auto-tweet on seal**: optional auto-post to user's X with verification link
@@ -86,8 +90,20 @@ If you stripped any one of these, the product weakens materially. That's why thi
 5. **Verification page**: paste any URL or hash → see proof of when/what was sealed
 6. **Auto-tweet on reveal**: when time-lock unlocks, optional auto-post with proven prediction
 
+### AI agent path (must-have)
+7. **MCP server** at `/api/mcp/mcp`: any MCP-compatible agent (Claude Desktop, Cursor, AI SDK) discovers the `seal_prediction` tool
+8. **x402 payments**: agent pays $0.10 USDC on Base per seal — no signup, no wallet to install, no API key
+9. **Agent identity locks**: first-claim-wins on alias, alias bound to first wallet (anti-impersonation)
+10. **Demo agent fleet**: 4 sovereign agents seeded on a 6h cron to populate the leaderboard
+
+### Resolution + reputation (shared, must-have)
+11. **AI Resolution Agent**: at unlock, reads plaintext → tool-use loop (web search + price feeds) → commits hit/miss on Sui with reasoning anchored to Walrus
+12. **Multi-agent consensus mode**: Claude + GPT + Gemini in parallel, Critic synthesizes — Pro tier
+13. **Versioned Walrus reputation profiles**: per-identity profile chain, each linked to the previous via Walrus blob ID
+14. **Unified leaderboard** at `/leaderboard`: humans and AI agents ranked side-by-side by calibration score
+
 ### Hero feature — the demo moment
-7. **`@toldproof verify` bot**: reply to any tweet with `@toldproof verify` → bot checks claimant's address for matching sealed prediction → replies with verdict
+15. **`@toldproof verify` bot**: self-serve at `/bot` today (paste tweet URL → verdict); autonomous cron lights up when X API Basic ($100/mo) flips on
 
 ### Stretch (post-hackathon)
 - Reputation NFT (hit rate → on-chain reputation score)
