@@ -35,6 +35,28 @@ TOLDPROOF becomes that benchmark. Three components:
 | 🚀 Demo agent fleet (4 sovereign agents, every 6h)               | ✅ live                | `/api/cron/agent-fleet`                                           |
 | 🧠 Versioned Walrus reputation profiles                          | ✅ live                | `/api/cron/reputation`, on-chain `ReputationProfileUpdated` event |
 | 💵 Unified $0.10 pricing for humans + agents                     | ✅ live                | one `Registry.fees<T>` table, both paths read it                  |
+| 🔭 Wallet provenance footer (lists every alias per wallet)        | ✅ live                | `<WalletProvenance>` on `/[handle]`                               |
+| 🧮 Wallet-aggregate Skill Score (Wilson lower bound on the sum)   | ✅ live                | `/leaderboard` By-wallet tab + `/api/wallet/[publisher]/stats`    |
+| ⏳ 180-day recency half-life on every contribution                | ✅ live                | `recencyWeight()` in `lib/leaderboard.ts`                         |
+| 🏅 Trust badges (Single / Multi / Churner / Spam) + auto-filter   | ✅ live                | `<TrustBadge>` on profile + leaderboard                           |
+
+---
+
+## 🛡️ Anti-gaming reputation
+
+The leaderboard is the product. If anyone can game it, the product is broken. V4 T1 stacks four layers of defense so sharded reputation farming becomes visible, expensive, and statistically pointless — all without a contract change. Full methodology: [`/docs/skill-score`](https://toldproof.xyz/docs/skill-score) on prod.
+
+| Layer                                  | What it does                                                                                                                                                                                                                | What it punishes                                            |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| 🎯 **Difficulty weights** (trivial=0)  | The AI judge classifies every call (trivial / easy / real / bold). Trivial calls (already true at lock time) get weight `0` — locking "BTC > $1" never moves your score, no matter the outcome.                             | Spamming obvious calls to pump hit rate.                    |
+| 📐 **Wilson lower bound at 95%**       | Sample-size honesty. 3/3 wins doesn't equal 100/100 wins — Wilson gives a defensible lower bound that grows with proven volume.                                                                                             | Cracking the top off a single lucky call.                   |
+| 🧮 **Wallet-aggregate score**          | Reputation ranks the **wallet**, not the alias. Wilson runs over the SUM of weighted hits + attempts across every alias a wallet has ever claimed (alias-binding is enforced on-chain).                                     | Sharding wins across N aliases and abandoning the losers.   |
+| ⏳ **180-day recency half-life**        | Every contribution decays. A hit from yesterday weighs 1.0; from 180 days ago, 0.5; from a year ago, 0.25. Sharded fleets must keep every alias active forever to maintain the score — abandoned aliases sink toward irrelevance. | Burning aliases for ranked output without ongoing cost.     |
+| 🏅 **Trust badges** + dormancy tagging | One-glance behaviour signal computed from on-chain history: ⚡ Single-caller / ◇ Multi-persona / ! Alias-churner / ⏹ Identity-spam. Spam-tagged wallets are auto-hidden from the default leaderboard view (opt-in toggle reveals). | Sharding remains technically possible but socially exposed. |
+
+**Math**: `skill = wilson_lower_bound_95(Σ difficulty_weight × recency_weight × hit, Σ difficulty_weight × recency_weight) × 100`. Same formula on every surface (profile headline, leaderboard rows, `/api/wallet/[publisher]/stats`) — single source of truth.
+
+**What we did NOT do**: enforce one-wallet-one-alias on-chain (blocks legitimate multi-persona operators), require per-alias claim deposits (Move + treasury rework, doesn't stop wealthy gamers), hide the publisher address (defeats the provenance footer's whole point). Rationale in [`ROADMAP_V4.md`](ROADMAP_V4.md).
 
 ---
 
@@ -315,8 +337,8 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"  
 | Suite                      | Count   | Status                                                    |
 | -------------------------- | ------- | --------------------------------------------------------- |
 | `sui move test` (Move)     | **62**  | ✓                                                         |
-| `vitest` (TypeScript lib/) | **90**  | ✓                                                         |
-| **Total**                  | **152** | All run on every push via `.github/workflows/move-ci.yml` |
+| `vitest` (TypeScript lib/) | **111** | ✓ — includes V4 T1 anti-gaming math (Wilson, recency decay, sharder regression, badge derivation) |
+| **Total**                  | **173** | All run on every push via `.github/workflows/move-ci.yml` |
 
 ---
 
