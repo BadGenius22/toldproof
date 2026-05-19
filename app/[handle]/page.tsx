@@ -81,11 +81,16 @@ async function getXBinding(handle: string): Promise<{
   }
 }
 
-// Anything that isn't a plausible X handle = 404.
-// X handles: alphanumeric + underscore, 1-15 chars.
+// Anything that isn't a plausible identity = 404. Identity covers BOTH:
+//   • Human X handles (alphanumeric + underscore, X caps at 15 chars)
+//   • Agent aliases (a-z, 0-9, _, -, up to 64 chars — matches the Move
+//     contract's MAX_IDENTITY_LEN + assert_canonical_identity charset)
+// The Move validator is the source of truth; this JS regex must be at
+// least as permissive or live aliases like "agent-evm-7ff1bba1" would
+// 404 before we even query Sui.
 function isPlausibleHandle(s: string): boolean {
   if (s.startsWith('0x')) return false;
-  return /^[A-Za-z0-9_]{1,15}$/.test(s);
+  return /^[a-z0-9_-]{1,64}$/.test(s);
 }
 
 export default async function ProfilePage({
