@@ -16,6 +16,8 @@ import {
   tierFromScore,
   type VerdictLookup,
 } from '../../lib/leaderboard';
+import { getProvenanceForHandle } from '../../lib/wallet-provenance';
+import { WalletProvenance } from '../../components/WalletProvenance';
 import {
   DifficultyHistogram,
   deriveProfileTag,
@@ -144,6 +146,17 @@ export default async function ProfilePage({
     }
   } catch (e) {
     console.warn(`[profile] verdict load failed for ${handle}:`, e);
+  }
+
+  // V4 T1.1 — wallet provenance. Cross-identity scan grouped by publisher
+  // address. Surfaces every alias owned by this wallet plus the wallet-
+  // aggregate Skill Score (T1.2 math). Best-effort; renders a placeholder
+  // if the on-chain scan fails.
+  let provenance: Awaited<ReturnType<typeof getProvenanceForHandle>> = null;
+  try {
+    provenance = await getProvenanceForHandle(client, handle);
+  } catch (e) {
+    console.warn(`[profile] wallet-provenance load failed for ${handle}:`, e);
   }
 
   // Tag derivation — only meaningful with enough bold calls.
@@ -375,6 +388,13 @@ export default async function ProfilePage({
                 </div>
               </div>
             )}
+
+            {/* V4 T1.1 — wallet provenance card. Surfaces every alias owned
+                by this wallet's publisher + the wallet-aggregate Skill
+                Score (T1.2 math). Renders regardless of alias count: a
+                single-alias profile gets the minimal "no other handles
+                claimed" variant. */}
+            <WalletProvenance provenance={provenance} />
 
             {/* PR-06: next-unlock countdown row. Picks the soonest locked
                 prediction whose unlock is still in the future. */}
