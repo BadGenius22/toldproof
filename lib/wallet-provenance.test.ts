@@ -14,8 +14,10 @@ import { describe, it, expect } from 'vitest';
 import {
   summarisePublisher,
   aliasState,
+  deriveBehaviorBadge,
   DORMANT_MS,
   ABANDONED_MS,
+  type AliasSummary,
 } from './wallet-provenance';
 import type { PredictionView } from './registry';
 import {
@@ -241,5 +243,90 @@ describe('summarisePublisher', () => {
     );
     expect(result.walletAggregateScore).not.toBeNull();
     expect(result.walletAggregateScore!).toBeLessThan(maxAliasScore);
+  });
+});
+
+describe('deriveBehaviorBadge (V4 T1.4)', () => {
+  const day = 24 * 60 * 60 * 1000;
+  function mkAlias(over: Partial<AliasSummary> = {}): AliasSummary {
+    return {
+      handle: 'x',
+      publisher: '0xabc',
+      calls: 5,
+      weightedHits: 3,
+      weightedAttempts: 5,
+      skillScore: 50,
+      lastActivityMs: NOW - 5 * day,
+      state: 'active',
+      isCurrent: false,
+      ...over,
+    };
+  }
+
+  it('returns "single" for one alias with 10+ resolved calls', () => {
+    expect(
+      deriveBehaviorBadge([mkAlias({ handle: 'solo', calls: 12 })], NOW),
+    ).toBe('single');
+  });
+
+  it('returns null for one alias under the 10-call floor', () => {
+    expect(deriveBehaviorBadge([mkAlias({ calls: 4 })], NOW)).toBeNull();
+  });
+
+  it('returns "multi" for 2-3 active aliases with no abandons', () => {
+    expect(
+      deriveBehaviorBadge(
+        [
+          mkAlias({ handle: 'a', state: 'active' }),
+          mkAlias({ handle: 'b', state: 'active' }),
+        ],
+        NOW,
+      ),
+    ).toBe('multi');
+  });
+
+  it('does NOT return "multi" if any alias is abandoned', () => {
+    expect(
+      deriveBehaviorBadge(
+        [
+          mkAlias({ handle: 'a', state: 'active' }),
+          mkAlias({ handle: 'b', state: 'abandoned', lastActivityMs: NOW - 100 * day }),
+        ],
+        NOW,
+      ),
+    ).not.toBe('multi');
+  });
+
+  it('returns "churn" when 4+ aliases claimed recently with 50%+ dormant', () => {
+    const aliases = [
+      mkAlias({ handle: 'a', state: 'active', lastActivityMs: NOW - 10 * day }),
+      mkAlias({ handle: 'b', state: 'active', lastActivityMs: NOW - 20 * day }),
+      mkAlias({ handle: 'c', state: 'dormant', lastActivityMs: NOW - 60 * day }),
+      mkAlias({ handle: 'd', state: 'dormant', lastActivityMs: NOW - 70 * day }),
+    ];
+    expect(deriveBehaviorBadge(aliases, NOW)).toBe('churn');
+  });
+
+  it('returns "spam" at 10+ aliases', () => {
+    const aliases = Array.from({ length: 12 }, (_, i) =>
+      mkAlias({ handle: `s-${i}`, calls: 3 }),
+    );
+    expect(deriveBehaviorBadge(aliases, NOW)).toBe('spam');
+  });
+
+  it('returns null on empty input', () => {
+    expect(deriveBehaviorBadge([], NOW)).toBeNull();
+  });
+
+  it('spam beats churn beats multi beats single (priority order)', () => {
+    // 10 aliases + most dormant fast → should still be spam (highest).
+    const aliases = Array.from({ length: 11 }, (_, i) =>
+      mkAlias({
+        handle: `c-${i}`,
+        state: i < 6 ? 'dormant' : 'active',
+        lastActivityMs: NOW - (i < 6 ? 60 : 10) * day,
+      }),
+    );
+    expect(deriveBehaviorBadge(aliases, NOW)).toBe('spam');
   });
 });

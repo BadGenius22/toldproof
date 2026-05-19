@@ -74,6 +74,8 @@ export interface WalletProvenance {
   walletAggregateScore: number | null;
   /** Best per-alias score in the bundle (for the "vs alias-best" delta). */
   bestAliasScore: number | null;
+  /** V4 T1.4 — behaviour signal: single / multi / churn / spam / null. */
+  badge: BehaviorBadge;
 }
 
 // ─── Pure helpers ────────────────────────────────────────────────────
@@ -179,7 +181,94 @@ export function summarisePublisher(
     totalWeightedAttempts,
     walletAggregateScore,
     bestAliasScore,
+    badge: deriveBehaviorBadge(aliases, nowMs),
   };
+}
+
+// ─── Behaviour badge derivation (V4 T1.4) ────────────────────────────
+
+export type BehaviorBadge = 'single' | 'multi' | 'churn' | 'spam' | null;
+
+export interface BehaviorBadgeRule {
+  variant: NonNullable<BehaviorBadge>;
+  label: string;
+  rule: string;
+  /** Plain-English signal shown on hover / docs page. */
+  signal: string;
+}
+
+export const BEHAVIOR_BADGE_RULES: BehaviorBadgeRule[] = [
+  {
+    variant: 'spam',
+    label: '⏹ Identity-spam',
+    rule: 'aliasCount ≥ 10',
+    signal:
+      'Strong warning. Auto-demoted from the default leaderboard view; surface via opt-in toggle only.',
+  },
+  {
+    variant: 'churn',
+    label: '! Alias-churner',
+    rule:
+      'aliasCount ≥ 4 in trailing 90d AND ≥ 50% of those aliases became dormant within 30d',
+    signal: 'Warning — looks like sharded reputation. Surface but don\'t suppress.',
+  },
+  {
+    variant: 'multi',
+    label: '◇ Multi-persona',
+    rule:
+      '2-3 aliases, all currently active, none ever abandoned',
+    signal: 'Legitimate segmentation — like a person operating two parallel handles.',
+  },
+  {
+    variant: 'single',
+    label: '⚡ Single-caller',
+    rule: 'aliasCount = 1 AND ≥ 10 resolved predictions',
+    signal: 'High-trust. One alias, sustained track record.',
+  },
+];
+
+/**
+ * Computes the trust badge for a wallet from its alias summaries. Rules
+ * are checked in priority order (spam > churn > multi > single); first
+ * match wins. Returns `null` when no rule applies (insufficient data).
+ *
+ * Pure, deterministic. Tested in wallet-provenance.test.ts.
+ */
+export function deriveBehaviorBadge(
+  aliases: AliasSummary[],
+  nowMs: number,
+): BehaviorBadge {
+  const total = aliases.length;
+  if (total === 0) return null;
+
+  // Spam — sheer alias count
+  if (total >= 10) return 'spam';
+
+  // Churn — many recent claims, mostly dormant within 30d
+  const recent = aliases.filter(
+    (a) => nowMs - a.lastActivityMs <= CHURN_WINDOW_MS,
+  );
+  if (recent.length >= 4) {
+    const wentDormantFast = recent.filter(
+      (a) => a.state === 'dormant' || a.state === 'abandoned',
+    ).length;
+    if (wentDormantFast / recent.length >= 0.5) return 'churn';
+  }
+
+  // Multi — legit segmentation: 2-3 aliases, all active, no abandons
+  if (total >= 2 && total <= 3) {
+    const allActive = aliases.every((a) => a.state === 'active');
+    const noAbandoned = aliases.every((a) => a.state !== 'abandoned');
+    if (allActive && noAbandoned) return 'multi';
+  }
+
+  // Single — disciplined, sustained
+  if (total === 1) {
+    const calls = aliases[0]?.calls ?? 0;
+    if (calls >= 10) return 'single';
+  }
+
+  return null;
 }
 
 // ─── I/O ─────────────────────────────────────────────────────────────

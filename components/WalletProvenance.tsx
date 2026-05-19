@@ -15,6 +15,7 @@
 import Link from 'next/link';
 import type { AliasSummary, WalletProvenance } from '../lib/wallet-provenance';
 import { fmtRel, shortHash } from './design';
+import { TrustBadge } from './TrustBadge';
 
 interface Props {
   provenance: WalletProvenance | null;
@@ -54,7 +55,8 @@ export function WalletProvenance({ provenance, nowMs = Date.now() }: Props) {
     );
   }
 
-  const { publisher, aliases, walletAggregateScore, bestAliasScore } = provenance;
+  const { publisher, aliases, walletAggregateScore, bestAliasScore, badge } =
+    provenance;
   const walletShort = shortHash(publisher, 6, 4);
 
   // Single-alias variant — keep the section visible as a guarantee, but
@@ -133,7 +135,7 @@ export function WalletProvenance({ provenance, nowMs = Date.now() }: Props) {
           alignItems: 'center',
         }}
       >
-        <div className="col" style={{ gap: 2 }}>
+        <div className="col" style={{ gap: 4 }}>
           <span
             className="mono"
             style={{
@@ -155,12 +157,15 @@ export function WalletProvenance({ provenance, nowMs = Date.now() }: Props) {
             </span>
           )}
         </div>
-        <span
-          className="mono"
-          style={{ fontSize: 26, fontWeight: 600, lineHeight: 1 }}
-        >
-          {aggregateLabel}
-        </span>
+        <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+          {badge && <TrustBadge variant={badge} />}
+          <span
+            className="mono"
+            style={{ fontSize: 26, fontWeight: 600, lineHeight: 1 }}
+          >
+            {aggregateLabel}
+          </span>
+        </div>
       </div>
     </Card>
   );

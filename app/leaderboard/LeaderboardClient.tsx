@@ -4,12 +4,37 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { LeaderboardEntry, WalletGroup } from '../../lib/leaderboard';
 import { tierFromScore } from '../../lib/leaderboard';
+import {
+  deriveBehaviorBadge,
+  aliasState,
+  type AliasSummary,
+  type BehaviorBadge,
+} from '../../lib/wallet-provenance';
 import { EntityBadge, FilterTabs, TagChip, fmtRel, identityDisplay, shortHash } from '../../components/design';
 import { DifficultyHistogram, deriveProfileTag } from '../../components/DifficultyHistogram';
+import { TrustBadge } from '../../components/TrustBadge';
 
 type Filter = 'all' | 'humans' | 'agents';
 type TimeWindow = '7d' | '30d' | 'all';
 type ViewMode = 'wallet' | 'alias';
+
+// V4 T1.4 — derive the trust badge for a wallet group at render time from
+// its alias-level data. Same shape deriveBehaviorBadge expects (subset of
+// AliasSummary that includes calls + state).
+function badgeForGroup(group: WalletGroup, now: number): BehaviorBadge {
+  const aliases: AliasSummary[] = group.aliases.map((a) => ({
+    handle: a.identity,
+    publisher: a.publisher,
+    calls: a.stats.resolved,
+    weightedHits: a.skill.weightedHits,
+    weightedAttempts: a.skill.weightedAttempts,
+    skillScore: a.isRanked ? a.skill.score : null,
+    lastActivityMs: a.stats.lastActivityMs,
+    state: aliasState(a.stats.lastActivityMs, now),
+    isCurrent: false,
+  }));
+  return deriveBehaviorBadge(aliases, now);
+}
 
 const WINDOW_MS: Record<TimeWindow, number | null> = {
   '7d': 7 * 24 * 60 * 60_000,
@@ -515,27 +540,78 @@ function WalletBoard({
   entityFilter: Filter;
   now: number;
 }) {
+  const [showSpam, setShowSpam] = useState(false);
+
+  // Compute badges once per group so WalletRow doesn't re-derive.
+  const annotated = walletGroups.map((g) => ({
+    group: g,
+    badge: badgeForGroup(g, now),
+  }));
+
   // Apply same time-window + entity filters as the alias view.
-  const filtered = walletGroups.filter((g) => {
+  // Plus T1.4 — spam-tagged wallets are hidden by default; toggle to reveal.
+  const filtered = annotated.filter(({ group: g, badge }) => {
     if (timeWindowCap !== null && now - g.lastActivityMs > timeWindowCap) return false;
     if (entityFilter === 'humans' && g.primaryEntityType !== 0) return false;
     if (entityFilter === 'agents' && g.primaryEntityType !== 1) return false;
+    if (badge === 'spam' && !showSpam) return false;
     return true;
   });
-  const ranked = filtered.filter((g) => g.isRanked);
-  const provisional = filtered.filter((g) => !g.isRanked);
+  const ranked = filtered.filter(({ group: g }) => g.isRanked);
+  const provisional = filtered.filter(({ group: g }) => !g.isRanked);
+  const hiddenSpamCount = annotated.filter(
+    ({ badge }) => badge === 'spam',
+  ).length;
 
   return (
     <>
       {ranked.length > 0 && (
         <div className="mt-16">
-          <span className="eyebrow">Ranked wallets · sorted by wallet-aggregate Skill Score</span>
+          <div
+            className="row"
+            style={{
+              justifyContent: 'space-between',
+              alignItems: 'baseline',
+              flexWrap: 'wrap',
+              gap: 8,
+            }}
+          >
+            <span className="eyebrow">
+              Ranked wallets · sorted by wallet-aggregate Skill Score
+            </span>
+            {hiddenSpamCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowSpam((v) => !v)}
+                className="mono"
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--border)',
+                  borderRadius: 999,
+                  padding: '3px 10px',
+                  fontSize: 11,
+                  cursor: 'pointer',
+                  color: 'var(--ink-3)',
+                }}
+              >
+                {showSpam
+                  ? `Hide ${hiddenSpamCount} identity-spam`
+                  : `Show ${hiddenSpamCount} identity-spam`}
+              </button>
+            )}
+          </div>
           <div
             className="mt-12"
             style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
           >
-            {ranked.map((g, i) => (
-              <WalletRow key={g.publisher} group={g} rank={i + 1} now={now} />
+            {ranked.map(({ group: g, badge }, i) => (
+              <WalletRow
+                key={g.publisher}
+                group={g}
+                rank={i + 1}
+                now={now}
+                badge={badge}
+              />
             ))}
           </div>
         </div>
@@ -560,8 +636,14 @@ function WalletBoard({
             className="mt-12"
             style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
           >
-            {provisional.map((g) => (
-              <WalletRow key={g.publisher} group={g} rank={null} now={now} />
+            {provisional.map(({ group: g, badge }) => (
+              <WalletRow
+                key={g.publisher}
+                group={g}
+                rank={null}
+                now={now}
+                badge={badge}
+              />
             ))}
           </div>
         </div>
@@ -590,10 +672,12 @@ function WalletRow({
   group,
   rank,
   now,
+  badge,
 }: {
   group: WalletGroup;
   rank: number | null;
   now: number;
+  badge: BehaviorBadge;
 }) {
   const tier = tierFromScore(group.walletAggregateScore, group.isRanked);
   const hitRate = group.totalResolved > 0 ? Math.round((group.totalHits / group.totalResolved) * 100) : null;
@@ -645,6 +729,7 @@ function WalletRow({
               ? '1 alias'
               : `${group.aliasCount} aliases`}
           </TagChip>
+          {badge && <TrustBadge variant={badge} />}
         </div>
         <span
           className="mono"
