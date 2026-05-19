@@ -2,7 +2,8 @@
 // + AUDIT_REPORT_V3.md.
 
 import Link from 'next/link';
-import { DocsBreadcrumb, DocsFooterNav } from '../layout';
+import { DocsShell } from '../../../components/docs/DocsShell';
+import { H2 } from '../../../components/docs/HeadingAnchor';
 
 export const metadata = {
   title: 'Audit · TOLDPROOF docs',
@@ -12,198 +13,190 @@ export const metadata = {
 
 export default function AuditPage() {
   return (
-    <div className="page">
-      <div className="container">
-        <DocsBreadcrumb here="Audit" />
-        <h1
-          className="display"
-          style={{ fontSize: 'clamp(32px, 4.5vw, 52px)', marginTop: 12, maxWidth: 780 }}
-        >
-          Three audit rounds. Each one cleared before adding the next path.
-        </h1>
-        <p
-          style={{
-            marginTop: 18,
-            fontSize: 16,
-            color: 'var(--ink-3)',
-            lineHeight: 1.55,
-            maxWidth: 720,
-          }}
-        >
+    <DocsShell
+      slug="audit"
+      title="Three audit rounds. Each one cleared before adding the next path."
+      eyebrow="Security"
+      lede={
+        <p>
           Every time the contract grew a new attack surface — paid coins, agent
-          identities, reputation events — we ran{' '}
-          <code style={{ fontFamily: 'var(--font-mono), monospace' }}>
-            /dewaxguard core
-          </code>{' '}
+          identities, reputation events — we ran <code className="mono">/dewaxguard core</code>{' '}
           on it before moving on. v3 is the current head; the previous two are
           archived for traceability.
         </p>
-
-        <div className="mt-48">
-          <span className="eyebrow">Current head · v3</span>
-          <div
-            className="mt-16"
-            style={{
-              border: '1px solid var(--ink)',
-              borderRadius: 4,
-              padding: 24,
-              background: 'var(--paper)',
-              display: 'grid',
-              gap: 16,
-            }}
-          >
-            <SeverityGrid />
-            <div
-              style={{
-                borderTop: '1px dashed var(--border)',
-                paddingTop: 14,
-                fontSize: 14,
-                color: 'var(--ink-2)',
-                lineHeight: 1.6,
-              }}
-            >
-              <strong style={{ fontWeight: 600 }}>Scope:</strong>{' '}
-              <code style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 13 }}>
-                /dewaxguard core
-              </code>{' '}
-              re-audit on the new{' '}
-              <code style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 13 }}>
-                seal_prediction_paid&lt;T&gt;
-              </code>{' '}
-              path plus a regression check on every fix from the v2 bundle. Contract
-              cleared for testnet.
-            </div>
-            <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
-              <a
-                href="https://github.com/BadGenius22/toldproof/blob/main/AUDIT_REPORT_V3.md"
-                target="_blank"
-                rel="noreferrer"
-                className="btn"
-              >
-                Read v3 report on GitHub →
-              </a>
-            </div>
-          </div>
+      }
+    >
+      <H2 slug="current-head-v3">Current head · v3</H2>
+      <div
+        style={{
+          border: '1px solid var(--ink)',
+          borderRadius: 4,
+          padding: 24,
+          background: 'var(--paper)',
+          display: 'grid',
+          gap: 16,
+        }}
+      >
+        <SeverityGrid />
+        <div
+          style={{
+            borderTop: '1px dashed var(--border)',
+            paddingTop: 14,
+            fontSize: 14,
+            color: 'var(--ink-2)',
+            lineHeight: 1.6,
+          }}
+        >
+          <strong style={{ fontWeight: 600 }}>Scope:</strong>{' '}
+          <code className="mono">/dewaxguard core</code> re-audit on the new{' '}
+          <code className="mono">seal_prediction_paid&lt;T&gt;</code> path plus a
+          regression check on every fix from the v2 bundle. Contract cleared for
+          testnet.
         </div>
-
-        <div className="mt-48">
-          <span className="eyebrow">Audit history</span>
-          <div
-            className="mt-16"
-            style={{
-              border: '1px solid var(--border)',
-              borderRadius: 4,
-              overflow: 'hidden',
-              background: 'var(--paper)',
-            }}
-          >
-            <HistoryRow
-              version="v1"
-              counts="0 / 0 / 1 / 4 / 4"
-              note="Initial Move package. 1 Medium + 4 Low + 4 Info, all addressed before v2."
-              href="https://github.com/BadGenius22/toldproof/blob/main/AUDIT_REPORT.md"
-            />
-            <HistoryRow
-              version="v2"
-              counts="0 / 1 / 4 / 5 / 2"
-              note="After adding generic Coin<T> fees, agent identity locks, role separation, and reputation events. All addressed before v3 publish."
-              href="https://github.com/BadGenius22/toldproof/blob/main/AUDIT_REPORT_V2.md"
-            />
-            <HistoryRow
-              version="v3"
-              counts="0 / 0 / 0 / 0 / 3"
-              note="Current head. Only 3 Informational notes — contract cleared for testnet."
-              href="https://github.com/BadGenius22/toldproof/blob/main/AUDIT_REPORT_V3.md"
-              highlight
-              last
-            />
-          </div>
-          <p
-            style={{
-              marginTop: 12,
-              fontSize: 12,
-              color: 'var(--muted)',
-              lineHeight: 1.55,
-            }}
-          >
-            Format: Critical / High / Medium / Low / Informational.
-          </p>
-        </div>
-
-        <div className="mt-48">
-          <span className="eyebrow">What the audit looked for</span>
-          <div className="mt-16 grid-2" style={{ gap: 16 }}>
-            <CheckCard
-              title="seal_approve scope"
-              detail="Confirmed entry, not public entry — other Move packages cannot compose the access policy."
-            />
-            <CheckCard
-              title="Reveal hash gate"
-              detail="sha256(plaintext) == content_hash asserted on every reveal. Cron can't substitute messages."
-            />
-            <CheckCard
-              title="Identity locks"
-              detail="First-claim-wins for humans and agents, with the extra agent-alias-to-wallet lock for impersonation resistance."
-            />
-            <CheckCard
-              title="Role separation"
-              detail="admin · resolver · treasury_addr are three distinct addresses. Compromise of one doesn't cascade."
-            />
-            <CheckCard
-              title="Generic coin path"
-              detail="seal_prediction_paid<T> works with any registered Coin<T> type and forwards correctly to the treasury."
-            />
-            <CheckCard
-              title="Defamation safety"
-              detail="lib/verify-bot.ts unit-tested — bot wording can't accidentally become accusatory."
-            />
-          </div>
-        </div>
-
-        <div className="mt-48">
-          <span className="eyebrow">Defense in depth (off-chain)</span>
-          <ul
-            style={{
-              marginTop: 16,
-              paddingLeft: 20,
-              display: 'grid',
-              gap: 8,
-              fontSize: 14,
-              color: 'var(--ink-3)',
-              lineHeight: 1.6,
-            }}
-          >
-            <li>OAuth access + refresh tokens encrypted at rest (AES-256-GCM).</li>
-            <li>Session cookies HMAC-signed, HttpOnly, Secure (prod), SameSite=Lax.</li>
-            <li>PKCE on every OAuth flow.</li>
-            <li>All cron routes Bearer-token gated.</li>
-            <li>
-              Rate-limited verification bot — max 5 verifies/day per requester to
-              prevent harassment campaigns.
-            </li>
-          </ul>
-        </div>
-
-        <div className="mt-48 row" style={{ gap: 10, flexWrap: 'wrap' }}>
+        <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
           <a
             href="https://github.com/BadGenius22/toldproof/blob/main/AUDIT_REPORT_V3.md"
             target="_blank"
             rel="noreferrer"
             className="btn"
           >
-            Full v3 report →
+            Read v3 report on GitHub →
           </a>
-          <Link href="/docs" className="btn ghost">
-            Back to docs index
-          </Link>
         </div>
+      </div>
 
-        <DocsFooterNav
-          prev={{ href: '/docs/resolution', label: 'Resolution Agent' }}
-          next={null}
+      <H2 slug="audit-history">Audit history · v1 → v2 → v3</H2>
+      <ProgressionBar />
+      <div
+        style={{
+          border: '1px solid var(--border)',
+          borderRadius: 4,
+          overflow: 'hidden',
+          background: 'var(--paper)',
+          marginTop: 16,
+        }}
+      >
+        <HistoryRow
+          version="v1"
+          counts="0 / 0 / 1 / 4 / 4"
+          note="Initial Move package. 1 Medium + 4 Low + 4 Info, all addressed before v2."
+          href="https://github.com/BadGenius22/toldproof/blob/main/AUDIT_REPORT.md"
+        />
+        <HistoryRow
+          version="v2"
+          counts="0 / 1 / 4 / 5 / 2"
+          note="After adding generic Coin<T> fees, agent identity locks, role separation, and reputation events. All addressed before v3 publish."
+          href="https://github.com/BadGenius22/toldproof/blob/main/AUDIT_REPORT_V2.md"
+        />
+        <HistoryRow
+          version="v3"
+          counts="0 / 0 / 0 / 0 / 3"
+          note="Current head. Only 3 Informational notes — contract cleared for testnet."
+          href="https://github.com/BadGenius22/toldproof/blob/main/AUDIT_REPORT_V3.md"
+          highlight
+          last
         />
       </div>
-    </div>
+      <p
+        style={{
+          fontSize: 12,
+          color: 'var(--muted)',
+          lineHeight: 1.55,
+          marginTop: 12,
+        }}
+      >
+        Format: Critical / High / Medium / Low / Informational.
+      </p>
+
+      <H2 slug="findings-list">All v3 findings · individually</H2>
+      <p>
+        Every finding in v3 was Informational only. Listed individually here so
+        nothing&apos;s hidden behind a count.
+      </p>
+      <div style={{ display: 'grid', gap: 10 }}>
+        <FindingRow
+          sev="Info"
+          title="Hardcoded testnet RPC fallback in scripts/deploy-v3.ts"
+          status="Acknowledged · scripts only, not in deployed contract"
+          anchor="info-1"
+        />
+        <FindingRow
+          sev="Info"
+          title="Move.lock pinned to specific framework rev"
+          status="Acknowledged · matches Sui best practice for reproducible builds"
+          anchor="info-2"
+        />
+        <FindingRow
+          sev="Info"
+          title="Generic-coin fee table has no upper-bound check"
+          status="Acknowledged · admin-only setter, trust model documented in spec.md"
+          anchor="info-3"
+        />
+      </div>
+
+      <H2 slug="what-the-audit-looked-for">What the audit looked for</H2>
+      <div className="grid-2" style={{ gap: 16 }}>
+        <CheckCard
+          title="seal_approve scope"
+          detail="Confirmed entry, not public entry — other Move packages cannot compose the access policy."
+        />
+        <CheckCard
+          title="Reveal hash gate"
+          detail="sha256(plaintext) == content_hash asserted on every reveal. Cron can't substitute messages."
+        />
+        <CheckCard
+          title="Identity locks"
+          detail="First-claim-wins for humans and agents, with the extra agent-alias-to-wallet lock for impersonation resistance."
+        />
+        <CheckCard
+          title="Role separation"
+          detail="admin · resolver · treasury_addr are three distinct addresses. Compromise of one doesn't cascade."
+        />
+        <CheckCard
+          title="Generic coin path"
+          detail="seal_prediction_paid<T> works with any registered Coin<T> type and forwards correctly to the treasury."
+        />
+        <CheckCard
+          title="Defamation safety"
+          detail="lib/verify-bot.ts unit-tested — bot wording can't accidentally become accusatory."
+        />
+      </div>
+
+      <H2 slug="defense-in-depth">Defense in depth (off-chain)</H2>
+      <ul
+        style={{
+          paddingLeft: 20,
+          display: 'grid',
+          gap: 8,
+          fontSize: 14,
+          color: 'var(--ink-3)',
+          lineHeight: 1.6,
+        }}
+      >
+        <li>OAuth access + refresh tokens encrypted at rest (AES-256-GCM).</li>
+        <li>Session cookies HMAC-signed, HttpOnly, Secure (prod), SameSite=Lax.</li>
+        <li>PKCE on every OAuth flow.</li>
+        <li>All cron routes Bearer-token gated.</li>
+        <li>
+          Rate-limited verification bot — max 5 verifies/day per requester to prevent
+          harassment campaigns.
+        </li>
+      </ul>
+
+      <div className="row" style={{ gap: 10, flexWrap: 'wrap', marginTop: 24 }}>
+        <a
+          href="https://github.com/BadGenius22/toldproof/blob/main/AUDIT_REPORT_V3.md"
+          target="_blank"
+          rel="noreferrer"
+          className="btn"
+        >
+          Full v3 report →
+        </a>
+        <Link href="/docs" className="btn ghost">
+          Back to docs index
+        </Link>
+      </div>
+    </DocsShell>
   );
 }
 
@@ -274,6 +267,89 @@ function SeverityCell({
       >
         {label}
       </div>
+    </div>
+  );
+}
+
+// Visual progression: total findings count shrinks v1 → v2 → v3.
+function ProgressionBar() {
+  const rounds = [
+    { label: 'v1', total: 9, sev: { C: 0, H: 0, M: 1, L: 4, I: 4 } },
+    { label: 'v2', total: 12, sev: { C: 0, H: 1, M: 4, L: 5, I: 2 } },
+    { label: 'v3', total: 3, sev: { C: 0, H: 0, M: 0, L: 0, I: 3 } },
+  ];
+  const maxTotal = 12;
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 12,
+        marginTop: 4,
+      }}
+    >
+      {rounds.map((r) => {
+        const heightPct = (r.total / maxTotal) * 100;
+        return (
+          <div
+            key={r.label}
+            style={{
+              display: 'grid',
+              gridTemplateRows: '120px auto',
+              gap: 8,
+              alignItems: 'end',
+            }}
+          >
+            <div
+              style={{
+                position: 'relative',
+                height: 120,
+                borderBottom: '1px solid var(--ink)',
+                display: 'flex',
+                alignItems: 'flex-end',
+                justifyContent: 'center',
+              }}
+              aria-label={`${r.label}: ${r.total} findings`}
+            >
+              <div
+                style={{
+                  width: '70%',
+                  height: `${heightPct}%`,
+                  background:
+                    'linear-gradient(to top, var(--sealed-soft), var(--verified-soft))',
+                  border: '1px solid var(--border)',
+                  borderBottom: 'none',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'center',
+                  paddingTop: 6,
+                  color: 'var(--ink)',
+                  fontFamily: 'var(--font-mono), monospace',
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                {r.total}
+              </div>
+            </div>
+            <div
+              className="mono"
+              style={{
+                fontSize: 11,
+                color: 'var(--muted)',
+                textAlign: 'center',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}
+            >
+              {r.label} ·{' '}
+              <span style={{ color: 'var(--ink-3)' }}>
+                {r.sev.C}/{r.sev.H}/{r.sev.M}/{r.sev.L}/{r.sev.I}
+              </span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -349,6 +425,69 @@ function HistoryRow({
   );
 }
 
+function FindingRow({
+  sev,
+  title,
+  status,
+  anchor,
+}: {
+  sev: 'Info' | 'Low' | 'Medium' | 'High' | 'Critical';
+  title: string;
+  status: string;
+  anchor: string;
+}) {
+  return (
+    <a
+      href={`https://github.com/BadGenius22/toldproof/blob/main/AUDIT_REPORT_V3.md#${anchor}`}
+      target="_blank"
+      rel="noreferrer"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'auto 1fr auto',
+        gap: 14,
+        alignItems: 'center',
+        padding: '12px 14px',
+        border: '1px solid var(--border)',
+        borderRadius: 4,
+        background: 'var(--paper)',
+        textDecoration: 'none',
+        color: 'inherit',
+      }}
+    >
+      <span
+        className="mono"
+        style={{
+          fontSize: 10,
+          color: 'var(--muted)',
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          padding: '3px 6px',
+          background: 'var(--paper-2)',
+          borderRadius: 3,
+        }}
+      >
+        {sev}
+      </span>
+      <div style={{ display: 'grid', gap: 2 }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
+          {title}
+        </span>
+        <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>{status}</span>
+      </div>
+      <span
+        className="mono"
+        style={{
+          fontSize: 11,
+          color: 'var(--muted)',
+          letterSpacing: '0.06em',
+        }}
+      >
+        Read ↗
+      </span>
+    </a>
+  );
+}
+
 function CheckCard({ title, detail }: { title: string; detail: string }) {
   return (
     <div
@@ -361,10 +500,7 @@ function CheckCard({ title, detail }: { title: string; detail: string }) {
         gap: 8,
       }}
     >
-      <div
-        className="row"
-        style={{ alignItems: 'center', gap: 10 }}
-      >
+      <div className="row" style={{ alignItems: 'center', gap: 10 }}>
         <span
           aria-hidden
           style={{

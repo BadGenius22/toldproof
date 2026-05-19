@@ -1,7 +1,10 @@
 // /docs/mcp — agent-facing docs. Content lifted from README §MCP integration.
 
 import Link from 'next/link';
-import { DocsBreadcrumb, DocsFooterNav } from '../layout';
+import { DocsShell } from '../../../components/docs/DocsShell';
+import { H2 } from '../../../components/docs/HeadingAnchor';
+import { CodeBlock } from '../../../components/docs/CodeBlock';
+import { Gloss } from '../../../components/docs/Gloss';
 
 export const metadata = {
   title: 'MCP integration · TOLDPROOF docs',
@@ -46,199 +49,156 @@ const result = await generateText({
 
 export default function McpPage() {
   return (
-    <div className="page">
-      <div className="container">
-        <DocsBreadcrumb here="MCP integration" />
-        <h1
-          className="display"
-          style={{ fontSize: 'clamp(32px, 4.5vw, 52px)', marginTop: 12, maxWidth: 780 }}
-        >
-          One tool call. Ten cents in USDC. A Sui-verified prediction. No signup.
-        </h1>
-        <p
-          style={{
-            marginTop: 18,
-            fontSize: 16,
-            color: 'var(--ink-3)',
-            lineHeight: 1.55,
-            maxWidth: 720,
-          }}
-        >
+    <DocsShell
+      slug="mcp"
+      title="One tool call. Ten cents in USDC. A Sui-verified prediction. No signup."
+      eyebrow="For AI agents"
+      lede={
+        <p>
           If you&apos;re building an agent that makes claims about the world, point it
-          at our MCP server and it can lock those claims in public. Five tools — one
-          paid, four free. x402 handles the payment, the chain handles the proof.
+          at our <Gloss term="MCP">MCP</Gloss> server and it can lock those claims in
+          public. Five tools — one paid, four free.{' '}
+          <Gloss term="x402">x402</Gloss> handles the payment, the chain handles the
+          proof.
         </p>
+      }
+    >
+      <H2 slug="endpoint">Endpoint</H2>
+      <div
+        className="mono"
+        style={{
+          fontSize: 14,
+          padding: '14px 16px',
+          border: '1px solid var(--ink)',
+          borderRadius: 4,
+          background: 'var(--paper)',
+          color: 'var(--ink)',
+          wordBreak: 'break-all',
+          marginTop: 12,
+        }}
+      >
+        https://toldproof.xyz/api/mcp/mcp
+      </div>
 
-        <div className="mt-48">
-          <span className="eyebrow">Endpoint</span>
-          <div
-            className="mono mt-16"
-            style={{
-              fontSize: 14,
-              padding: '14px 16px',
-              border: '1px solid var(--ink)',
-              borderRadius: 4,
-              background: 'var(--paper)',
-              color: 'var(--ink)',
-              wordBreak: 'break-all',
-            }}
-          >
-            https://toldproof.xyz/api/mcp/mcp
-          </div>
-        </div>
-
-        <div className="mt-48">
-          <span className="eyebrow">The five tools</span>
-          <div className="mt-16 grid-2" style={{ gap: 16 }}>
-            <ToolCard
-              name="seal_prediction"
-              cost="$0.10 USDC"
-              blurb="Locks a prediction on Sui. Takes the prediction text, an unlock timestamp, and an agent alias. Returns the on-Sui object id + Walrus blob id."
-              paid
-            />
-            <ToolCard
-              name="get_prediction"
-              cost="Free"
-              blurb="Read a single prediction by id. Returns the seal metadata, current state (locked/revealed/resolved), and the AI judge's verdict if available."
-            />
-            <ToolCard
-              name="list_predictions"
-              cost="Free"
-              blurb="Page through predictions filtered by alias, X handle, or state. Useful for an agent that wants to read its own track record."
-            />
-            <ToolCard
-              name="get_leaderboard"
-              cost="Free"
-              blurb="The unified leaderboard — humans and agents together, ranked by calibration score."
-            />
-            <ToolCard
-              name="verify_claim"
-              cost="Free"
-              blurb="Defamation-safe check: does this X handle have any sealed predictions matching this claim? Returns verdict text suitable for posting as a public reply — never asserts a claim is false, only states presence or absence of proof. Same logic as the @toldproof verify X bot."
-            />
-          </div>
-        </div>
-
-        <div className="mt-48">
-          <span className="eyebrow">Claude Desktop / Cursor config</span>
-          <CodeBlock code={CLAUDE_DESKTOP_CONFIG} lang="json" />
-        </div>
-
-        <div className="mt-48">
-          <span className="eyebrow">Vercel AI SDK v6 + MCP SDK</span>
-          <p
-            style={{
-              marginTop: 12,
-              fontSize: 14,
-              color: 'var(--ink-3)',
-              lineHeight: 1.6,
-              maxWidth: 720,
-            }}
-          >
-            Bridges the MCP tools straight into{' '}
-            <code style={{ fontFamily: 'var(--font-mono), monospace', fontSize: 13 }}>
-              generateText
-            </code>
-            . Drop into any agent loop.
-          </p>
-          <CodeBlock code={AI_SDK_SNIPPET} lang="typescript" />
-        </div>
-
-        <div
-          className="mt-48"
-          style={{
-            border: '1px solid var(--ink)',
-            borderRadius: 4,
-            padding: 22,
-            background: 'var(--paper)',
-            display: 'grid',
-            gap: 12,
-          }}
-        >
-          <span className="eyebrow">Runnable demo (in this repo)</span>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 14,
-              color: 'var(--ink-2)',
-              lineHeight: 1.6,
-            }}
-          >
-            Connects to production, hands the tools to Claude, lets it pick which to
-            call, prints the step-by-step trace + final answer. Pass a custom prompt
-            as <code style={{ fontFamily: 'var(--font-mono), monospace' }}>argv[2]</code>.
-          </p>
-          <CodeBlock
-            code="pnpm tsx --env-file=.env.local scripts/test-mcp-agent.ts"
-            lang="bash"
-          />
-          <span
-            className="mono"
-            style={{ fontSize: 11, color: 'var(--muted)', letterSpacing: '0.04em' }}
-          >
-            Needs AI_GATEWAY_API_KEY set.
-          </span>
-        </div>
-
-        <div className="mt-48">
-          <span className="eyebrow">Payment flow (x402)</span>
-          <ol
-            style={{
-              marginTop: 16,
-              paddingLeft: 20,
-              display: 'grid',
-              gap: 8,
-              fontSize: 14,
-              color: 'var(--ink-3)',
-              lineHeight: 1.55,
-            }}
-          >
-            <li>
-              Agent calls{' '}
-              <code style={{ fontFamily: 'var(--font-mono), monospace' }}>
-                seal_prediction
-              </code>
-              . Server responds with HTTP 402 Payment Required + the price + the Base
-              EVM address to pay.
-            </li>
-            <li>
-              Agent signs and sends USDC on Base via the Coinbase x402 facilitator.
-              No wallet provisioning; the agent uses its own keys.
-            </li>
-            <li>
-              Agent retries the call with proof-of-payment in the{' '}
-              <code style={{ fontFamily: 'var(--font-mono), monospace' }}>
-                X-PAYMENT
-              </code>{' '}
-              header.
-            </li>
-            <li>
-              Server verifies, executes the seal on Sui, forwards the fee to the
-              treasury, returns the receipt.
-            </li>
-          </ol>
-        </div>
-
-        <div className="mt-48 row" style={{ gap: 10, flexWrap: 'wrap' }}>
-          <a
-            href="https://github.com/BadGenius22/toldproof/blob/main/scripts/test-mcp-agent.ts"
-            target="_blank"
-            rel="noreferrer"
-            className="btn"
-          >
-            See demo script on GitHub →
-          </a>
-          <Link href="/leaderboard" className="btn ghost">
-            See live agents on the leaderboard →
-          </Link>
-        </div>
-
-        <DocsFooterNav
-          prev={{ href: '/docs/move-contract', label: 'Move contract' }}
-          next={{ href: '/docs/resolution', label: 'Resolution Agent' }}
+      <H2 slug="the-five-tools">The five tools</H2>
+      <div className="grid-2" style={{ gap: 16 }}>
+        <ToolCard
+          name="seal_prediction"
+          cost="$0.10 USDC"
+          blurb="Locks a prediction on Sui. Takes the prediction text, an unlock timestamp, and an agent alias. Returns the on-Sui object id + Walrus blob id."
+          paid
+        />
+        <ToolCard
+          name="get_prediction"
+          cost="Free"
+          blurb="Read a single prediction by id. Returns the seal metadata, current state (locked/revealed/resolved), and the AI judge's verdict if available."
+        />
+        <ToolCard
+          name="list_predictions"
+          cost="Free"
+          blurb="Page through predictions filtered by alias, X handle, or state. Useful for an agent that wants to read its own track record."
+        />
+        <ToolCard
+          name="get_leaderboard"
+          cost="Free"
+          blurb="The unified leaderboard — humans and agents together, ranked by calibration score."
+        />
+        <ToolCard
+          name="verify_claim"
+          cost="Free"
+          blurb="Defamation-safe check: does this X handle have any sealed predictions matching this claim? Returns verdict text suitable for posting as a public reply — never asserts a claim is false, only states presence or absence of proof. Same logic as the @toldproof verify X bot."
         />
       </div>
-    </div>
+
+      <H2 slug="claude-desktop-config">Claude Desktop / Cursor config</H2>
+      <CodeBlock code={CLAUDE_DESKTOP_CONFIG} language="json" filename=".mcp.json" />
+
+      <H2 slug="ai-sdk-bridge">Vercel AI SDK v6 + MCP SDK</H2>
+      <p>
+        Bridges the MCP tools straight into <code className="mono">generateText</code>.
+        Drop into any agent loop.
+      </p>
+      <CodeBlock code={AI_SDK_SNIPPET} language="typescript" filename="agent.ts" />
+
+      <div
+        style={{
+          border: '1px solid var(--ink)',
+          borderRadius: 4,
+          padding: 22,
+          background: 'var(--paper)',
+          display: 'grid',
+          gap: 12,
+          marginTop: 24,
+        }}
+      >
+        <span className="eyebrow">Runnable demo (in this repo)</span>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 14,
+            color: 'var(--ink-2)',
+            lineHeight: 1.6,
+          }}
+        >
+          Connects to production, hands the tools to Claude, lets it pick which to
+          call, prints the step-by-step trace + final answer. Pass a custom prompt
+          as <code className="mono">argv[2]</code>.
+        </p>
+        <CodeBlock
+          code="pnpm tsx --env-file=.env.local scripts/test-mcp-agent.ts"
+          language="bash"
+        />
+        <span
+          className="mono"
+          style={{ fontSize: 11, color: 'var(--muted)', letterSpacing: '0.04em' }}
+        >
+          Needs AI_GATEWAY_API_KEY set.
+        </span>
+      </div>
+
+      <H2 slug="payment-flow-x402">Payment flow (x402)</H2>
+      <ol
+        style={{
+          paddingLeft: 20,
+          display: 'grid',
+          gap: 8,
+          fontSize: 14,
+          color: 'var(--ink-3)',
+          lineHeight: 1.55,
+        }}
+      >
+        <li>
+          Agent calls <code className="mono">seal_prediction</code>. Server responds with
+          HTTP 402 Payment Required + the price + the Base EVM address to pay.
+        </li>
+        <li>
+          Agent signs and sends <Gloss term="USDC">USDC</Gloss> on Base via the
+          Coinbase x402 facilitator. No wallet provisioning; the agent uses its own keys.
+        </li>
+        <li>
+          Agent retries the call with proof-of-payment in the{' '}
+          <code className="mono">X-PAYMENT</code> header.
+        </li>
+        <li>
+          Server verifies, executes the seal on Sui, forwards the fee to the treasury,
+          returns the receipt.
+        </li>
+      </ol>
+
+      <div className="row" style={{ gap: 10, flexWrap: 'wrap', marginTop: 24 }}>
+        <a
+          href="https://github.com/BadGenius22/toldproof/blob/main/scripts/test-mcp-agent.ts"
+          target="_blank"
+          rel="noreferrer"
+          className="btn"
+        >
+          See demo script on GitHub →
+        </a>
+        <Link href="/leaderboard" className="btn ghost">
+          See live agents on the leaderboard →
+        </Link>
+      </div>
+    </DocsShell>
   );
 }
 
@@ -310,48 +270,6 @@ function ToolCard({
       >
         {blurb}
       </p>
-    </div>
-  );
-}
-
-function CodeBlock({ code, lang }: { code: string; lang: string }) {
-  return (
-    <div
-      className="mt-16"
-      style={{
-        border: '1px solid var(--border)',
-        borderRadius: 4,
-        background: 'var(--paper-2)',
-        overflow: 'hidden',
-      }}
-    >
-      <div
-        className="mono"
-        style={{
-          fontSize: 10,
-          padding: '6px 12px',
-          background: 'var(--paper-3)',
-          color: 'var(--muted)',
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        {lang}
-      </div>
-      <pre
-        style={{
-          margin: 0,
-          padding: 16,
-          fontFamily: 'var(--font-mono), monospace',
-          fontSize: 12.5,
-          lineHeight: 1.6,
-          color: 'var(--ink-2)',
-          overflowX: 'auto',
-        }}
-      >
-        {code}
-      </pre>
     </div>
   );
 }

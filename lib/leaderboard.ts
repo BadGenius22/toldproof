@@ -44,6 +44,25 @@ export const DIFFICULTY_WEIGHTS: Record<DifficultyLevel, number> = {
   hard: 2.0,
 };
 
+// ─── Methodology version stamp ────────────────────────────────────────
+// Surfaces above the Skill Score docs page so readers can tell when the
+// math changed. Bump when ANY constant or formula above changes.
+
+export const METHODOLOGY_VERSION = 'v2';
+export const METHODOLOGY_INTRODUCED_AT = '2026-05-12';
+export const METHODOLOGY_CHANGELOG: Array<{
+  version: string;
+  date: string;
+  summary: string;
+}> = [
+  { version: 'v1', date: '2025-09-01', summary: 'Wilson + difficulty only' },
+  {
+    version: 'v2',
+    date: '2026-05-12',
+    summary: 'T1.3 recency decay (180-day half-life)',
+  },
+];
+
 // V4 T1.3 — recency decay. Every contribution to Skill Score decays with a
 // 180-day half-life (Metaculus default). Anti-gaming mechanic: sharded
 // fleets must keep ALL aliases active forever to maintain the score, not

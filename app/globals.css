@@ -2249,3 +2249,208 @@ h2.section {
   background: var(--sealed);
   color: var(--paper);
 }
+
+/* ─── /docs shell ───────────────────────────────────────────────
+   Three-column layout: sidebar 220px · main (flex) · TOC 200px.
+   Mobile collapses sidebar + TOC into a top-of-page disclosure.
+   Built in DocsShell.tsx; the rules below are layout glue only.
+*/
+
+.docs-shell {
+  width: 100%;
+  padding: 32px 24px 64px;
+  background: var(--paper);
+}
+
+.docs-shell-grid {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 200px;
+  gap: 40px;
+  max-width: 1280px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.docs-shell-sidebar {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.docs-shell-main {
+  min-width: 0;
+}
+
+.docs-shell-toc {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+.docs-shell-body {
+  /* Reset paragraph margins so the shell controls spacing per page. */
+  font-size: 15px;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.docs-shell-body p {
+  margin: 12px 0 18px;
+  color: var(--ink-3);
+  line-height: 1.65;
+  max-width: 720px;
+}
+
+.docs-shell-body ul,
+.docs-shell-body ol {
+  max-width: 720px;
+}
+
+.docs-heading {
+  position: relative;
+}
+
+.docs-heading:hover .docs-heading-anchor {
+  opacity: 1;
+}
+
+.docs-h1 {
+  text-wrap: pretty;
+}
+
+@media (max-width: 1100px) {
+  .docs-shell-grid {
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 32px;
+  }
+  .docs-shell-toc {
+    display: none;
+  }
+}
+
+@media (max-width: 880px) {
+  .docs-shell {
+    padding: 20px 16px 48px;
+  }
+  .docs-shell-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .docs-shell-sidebar {
+    position: static;
+    max-height: none;
+    padding-right: 0;
+  }
+  .docs-shell-sidebar > nav {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    background: var(--paper-2);
+  }
+  .docs-search-trigger {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* Sub-page card spacing inside docs body — used by existing per-page grids. */
+.docs-shell-body .grid-2,
+.docs-shell-body .grid-3 {
+  margin-top: 16px;
+}
+
+/* Print: strip chrome, show receipt-style header. (Task 08 §08 acceptance.) */
+@media print {
+  .topbar,
+  .footer,
+  .docs-shell-sidebar,
+  .docs-shell-toc,
+  .docs-search-trigger,
+  .docs-shell-footer .btn,
+  .docs-heading-anchor {
+    display: none !important;
+  }
+  .docs-shell {
+    padding: 0 !important;
+  }
+  .docs-shell-grid {
+    grid-template-columns: 1fr !important;
+    max-width: 100% !important;
+    gap: 0 !important;
+  }
+  .docs-shell-main {
+    max-width: 100% !important;
+  }
+  .docs-meta-strip {
+    border-top: 2px solid var(--ink) !important;
+    border-bottom: 1px solid var(--ink) !important;
+    padding: 10px 0 !important;
+    color: var(--ink) !important;
+  }
+  h2 {
+    page-break-before: auto;
+  }
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: var(--muted);
+  }
+}
+
+/* ─── /docs glossary popover ───────────────────────────────────── */
+
+.docs-gloss {
+  border-bottom: 1px dotted var(--ink-3);
+  cursor: help;
+  position: relative;
+}
+
+.docs-gloss:hover,
+.docs-gloss:focus-visible {
+  border-bottom-style: solid;
+  color: var(--ink);
+  outline: none;
+}
+
+.docs-gloss-popover {
+  position: absolute;
+  z-index: 50;
+  max-width: 280px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink-2);
+  box-shadow: 4px 4px 0 var(--sealed-soft);
+  border-radius: 4px;
+  text-align: left;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.docs-gloss-popover .term {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.docs-gloss-popover .def {
+  color: var(--ink-2);
+}
+
+.docs-gloss-popover .readmore {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--ink-2);
+}
