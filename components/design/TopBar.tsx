@@ -68,6 +68,7 @@ export function TopBar() {
     profileItem,
     { href: '/bot', label: 'Check bot' },
     { href: '/pricing', label: 'Pricing' },
+    { href: '/docs', label: 'Docs' },
     { href: '/brand', label: 'Brand' },
   ];
 
