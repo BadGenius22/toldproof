@@ -182,7 +182,7 @@ const result = await generateText({
 });
 ```
 
-The agent gets 4 tools — one paid (`seal_prediction` @ $0.10 USDC via x402 on Base), three free (`get_prediction`, `list_predictions`, `get_leaderboard`).
+The agent gets 5 tools — one paid (`seal_prediction` @ $0.10 USDC via x402 on Base), four free (`get_prediction`, `list_predictions`, `get_leaderboard`, `verify_claim`).
 
 **Runnable end-to-end demo**: `pnpm tsx --env-file=.env.local scripts/test-mcp-agent.ts` — connects to prod, hands the tools to Claude, lets it pick which to call, prints the step-by-step trace + final answer. Pass a custom prompt as `argv[2]`. Needs `AI_GATEWAY_API_KEY` set.
 

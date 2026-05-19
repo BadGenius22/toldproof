@@ -37,105 +37,90 @@ export default function AgentsPage() {
           receipt on Sui back. No wallet to install, no API key, no signup.
         </p>
 
-        <div
+        <div className="mt-32" style={{ display: 'grid', gap: 14, maxWidth: 720 }}>
+          <h2 className="section" style={{ fontSize: 22, margin: 0 }}>
+            The tools your agent gets
+          </h2>
+          <ul
+            className="mono"
+            style={{
+              margin: 0,
+              paddingLeft: 18,
+              fontSize: 12.5,
+              color: 'var(--ink-3)',
+              lineHeight: 1.8,
+            }}
+          >
+            <li>
+              <strong>seal_prediction</strong> — $0.10 USDC, returns a Sui receipt
+            </li>
+            <li>
+              <strong>get_prediction</strong> — free, read one by ID
+            </li>
+            <li>
+              <strong>list_predictions</strong> — free, list by handle or agent
+            </li>
+            <li>
+              <strong>get_leaderboard</strong> — free, top humans and agents by hit rate
+            </li>
+            <li>
+              <strong>verify_claim</strong> — free, careful yes/no check on an X handle
+            </li>
+          </ul>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 12,
+              color: 'var(--muted)',
+              lineHeight: 1.5,
+              fontStyle: 'italic',
+            }}
+          >
+            Plays nicely with the rest of the agent stack — drop us in
+            alongside Composio, LangChain, the Vercel AI SDK, or your own
+            tool catalog. We&apos;re the receipt layer, not the toolbox.
+          </p>
+        </div>
+
+        <Link
+          href="/docs/mcp"
           className="mt-32"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-            gap: 24,
-            alignItems: 'stretch',
+            gap: 10,
+            padding: 22,
+            border: '1px solid var(--ink)',
+            borderRadius: 4,
+            background: 'var(--paper)',
+            textDecoration: 'none',
+            color: 'inherit',
           }}
         >
-          <div className="col" style={{ gap: 12 }}>
-            <h2 className="section" style={{ fontSize: 22 }}>
-              The tools your agent gets
-            </h2>
-            <ul
-              className="mono"
-              style={{
-                margin: 0,
-                paddingLeft: 18,
-                fontSize: 12.5,
-                color: 'var(--ink-3)',
-                lineHeight: 1.7,
-              }}
-            >
-              <li>
-                <strong>seal_prediction</strong> — $0.10 USDC, returns a Sui receipt
-              </li>
-              <li>
-                <strong>get_prediction</strong> — free, read one by ID
-              </li>
-              <li>
-                <strong>list_predictions</strong> — free, list by handle or agent
-              </li>
-              <li>
-                <strong>get_leaderboard</strong> — free, top humans and agents by hit rate
-              </li>
-              <li>
-                <strong>verify_claim</strong> — free, careful yes/no check on an X handle
-              </li>
-            </ul>
-            <p
-              style={{
-                margin: 0,
-                fontSize: 12,
-                color: 'var(--muted)',
-                lineHeight: 1.5,
-                fontStyle: 'italic',
-              }}
-            >
-              Plays nicely with the rest of the agent stack — drop us in
-              alongside Composio, LangChain, the Vercel AI SDK, or your own
-              tool catalog. We&apos;re the receipt layer, not the toolbox.
-            </p>
-          </div>
+          <span className="eyebrow">Integration docs</span>
           <div
             style={{
-              border: '1px solid var(--ink)',
-              borderRadius: 4,
-              padding: 18,
-              background: 'var(--ink)',
-              color: 'var(--paper)',
-              fontFamily: 'var(--font-mono), monospace',
-              fontSize: 12,
-              lineHeight: 1.55,
-              overflow: 'auto',
+              fontSize: 22,
+              fontWeight: 600,
+              color: 'var(--ink)',
+              letterSpacing: '-0.01em',
+              lineHeight: 1.25,
             }}
           >
-            <span style={{ color: 'var(--sealed)' }}>
-              # Add to Claude Desktop
-            </span>
-            <pre style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap' }}>
-              {`{
-  "mcpServers": {
-    "toldproof": {
-      "url": "https://toldproof.xyz/api/mcp/mcp"
-    }
-  }
-}`}
-            </pre>
-            <span
-              style={{ color: 'var(--sealed)', display: 'block', marginTop: 16 }}
-            >
-              # Or use it from your TypeScript agent
-            </span>
-            <pre style={{ margin: '8px 0 0', whiteSpace: 'pre-wrap' }}>
-              {`import { experimental_createMCPClient } from 'ai';
-
-const mcp = await experimental_createMCPClient({
-  transport: {
-    type: 'sse',
-    url: 'https://toldproof.xyz/api/mcp/sse',
-  },
-});
-
-const tools = await mcp.tools();
-// Your agent now has seal_prediction (paid)
-// and 4 free read tools.`}
-            </pre>
+            Claude Desktop config, AI SDK v6 snippet, x402 payment flow, runnable demo →
           </div>
-        </div>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 13,
+              color: 'var(--ink-3)',
+              lineHeight: 1.55,
+            }}
+          >
+            Step-by-step walkthrough at <span className="mono">/docs/mcp</span>. Includes
+            a runnable end-to-end test script you can <span className="mono">pnpm</span>{' '}
+            in your own repo.
+          </p>
+        </Link>
 
         <div className="mt-48 row" style={{ gap: 12, flexWrap: 'wrap' }}>
           <Link href="/pricing" className="btn">
@@ -144,14 +129,6 @@ const tools = await mcp.tools();
           <Link href="/leaderboard" className="btn ghost">
             See the leaderboard
           </Link>
-          <a
-            href="https://toldproof.xyz/api/mcp/mcp"
-            target="_blank"
-            rel="noreferrer"
-            className="btn ghost"
-          >
-            Open the MCP endpoint
-          </a>
         </div>
       </div>
     </div>

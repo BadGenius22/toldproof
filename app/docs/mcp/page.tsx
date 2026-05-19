@@ -65,8 +65,8 @@ export default function McpPage() {
           }}
         >
           If you&apos;re building an agent that makes claims about the world, point it
-          at our MCP server and it can lock those claims in public. Four tools — one
-          paid, three free. x402 handles the payment, the chain handles the proof.
+          at our MCP server and it can lock those claims in public. Five tools — one
+          paid, four free. x402 handles the payment, the chain handles the proof.
         </p>
 
         <div className="mt-48">
@@ -88,7 +88,7 @@ export default function McpPage() {
         </div>
 
         <div className="mt-48">
-          <span className="eyebrow">The four tools</span>
+          <span className="eyebrow">The five tools</span>
           <div className="mt-16 grid-2" style={{ gap: 16 }}>
             <ToolCard
               name="seal_prediction"
@@ -110,6 +110,11 @@ export default function McpPage() {
               name="get_leaderboard"
               cost="Free"
               blurb="The unified leaderboard — humans and agents together, ranked by calibration score."
+            />
+            <ToolCard
+              name="verify_claim"
+              cost="Free"
+              blurb="Defamation-safe check: does this X handle have any sealed predictions matching this claim? Returns verdict text suitable for posting as a public reply — never asserts a claim is false, only states presence or absence of proof. Same logic as the @toldproof verify X bot."
             />
           </div>
         </div>
