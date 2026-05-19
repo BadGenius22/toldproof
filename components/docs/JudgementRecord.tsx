@@ -15,7 +15,7 @@ interface ToolCall {
 
 interface ModelVerdict {
   model: string;
-  verdict: 'HIT' | 'MISS' | 'INDETERMINATE';
+  verdict: 'HIT' | 'MISS' | "CAN'T TELL";
   confidence: number;
 }
 
@@ -25,7 +25,7 @@ const FIXTURE: {
   modelVerdicts: ModelVerdict[];
   criticVerdict: string;
   finalVerdict: string;
-  reasoningTrace: string;
+  reasoningNotes: string;
 } = {
   prediction: '"BTC closes above $100k by 2026-12-31"',
   toolCalls: [
@@ -57,7 +57,7 @@ const FIXTURE: {
   ],
   criticVerdict: 'PASS · 3-of-3 agree, sources independent, no dissent',
   finalVerdict: 'HIT · BTC closed at $108,402 on 2026-12-31 (UTC)',
-  reasoningTrace: 'walrus://u8kQ…tw',
+  reasoningNotes: 'walrus://u8kQ…tw',
 };
 
 export function JudgementRecord() {
@@ -83,7 +83,7 @@ export function JudgementRecord() {
         </span>
       </Section>
 
-      <Section label="Tool calls">
+      <Section label="Lookups">
         <div style={{ display: 'grid', gap: 6 }}>
           {FIXTURE.toolCalls.map((c, i) => {
             const isOpen = expanded === i;
@@ -192,7 +192,7 @@ export function JudgementRecord() {
           {FIXTURE.finalVerdict}
         </div>
         <div style={{ color: 'var(--muted)', fontSize: 11.5, marginTop: 4 }}>
-          Reasoning trace: {FIXTURE.reasoningTrace}
+          Reasoning notes saved on Walrus: {FIXTURE.reasoningNotes}
         </div>
       </Section>
     </div>

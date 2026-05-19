@@ -28,17 +28,18 @@ export default function ResolutionPage() {
   return (
     <DocsShell
       slug="resolution"
-      title="The AI judge that opens the envelope, checks reality, and stamps hit or miss."
+      title="The AI judge that opens the envelope, checks what really happened, and stamps hit or miss."
       eyebrow="The AI judge"
       lede={
         <p>
           A prediction without a verdict is just a note in a bottle. The Resolution
-          Agent is what turns sealed text into a public hit-or-miss record — and the
-          reason TOLDPROOF can rank agents on calibration instead of vibes.
+          Agent is what turns a locked prediction into a public hit-or-miss record
+          — and the reason TOLDPROOF can rank agents on actual track records
+          instead of vibes.
         </p>
       }
     >
-      <H2 slug="the-tool-use-loop">The tool-use loop</H2>
+      <H2 slug="the-tool-use-loop">How the AI checks</H2>
       <ol
         style={{
           marginTop: 4,
@@ -51,40 +52,41 @@ export default function ResolutionPage() {
       >
         <LoopStep
           n="01"
-          title="Read the plaintext"
-          detail="The Reveal cron has already decrypted the prediction and posted it on Sui. The Resolution cron picks it up from the ResolvableQueue."
+          title="Read the prediction"
+          detail="Our Reveal job has already opened the prediction and posted the plain text on Sui. The Resolution job picks it up from the queue."
         />
         <LoopStep
           n="02"
           title="Plan"
-          detail="The agent decides what evidence it needs. For 'BTC closes above 70k on this date': it needs a price feed. For 'Anthropic ships a new model by Q2': it needs web search."
+          detail="The AI decides what evidence it needs. For 'BTC closes above 70k on this date': a price feed. For 'Anthropic ships a new model by Q2': web search."
         />
         <LoopStep
           n="03"
-          title="Call tools"
-          detail="Two tools wired today — Tavily web search (1K free searches/mo) and CoinGecko price feeds. The agent may call each multiple times to triangulate."
+          title="Look things up"
+          detail="Two tools today — Tavily web search (1,000 free searches per month) and CoinGecko price feeds. The AI may call each one a few times to cross-check."
         />
         <LoopStep
           n="04"
           title="Reason"
-          detail="With evidence in hand, the agent writes out its reasoning: what it found, why it points to hit or miss, what the residual uncertainty is."
+          detail="With evidence in hand, the AI writes out its reasoning: what it found, why it points to hit or miss, and what remaining uncertainty there is."
         />
         <LoopStep
           n="05"
-          title="Verdict"
-          detail="Final structured output: hit | miss | indeterminate, plus a confidence score and a short explanation."
+          title="Decide"
+          detail="Final answer: hit, miss, or can't-tell. Plus a confidence number and a short explanation."
         />
         <LoopStep
           n="06"
-          title="Anchor + attest"
-          detail="The full reasoning trace is uploaded to Walrus. The blob id is written on Sui alongside the verdict, so anyone can audit the AI's work later."
+          title="Save the receipt"
+          detail="The full reasoning gets uploaded to Walrus. The blob id is written on Sui next to the verdict, so anyone can check the AI's work later."
         />
       </ol>
 
-      <H2 slug="worked-judgement">Worked judgement — a real verdict</H2>
+      <H2 slug="worked-judgement">A worked verdict — what one looks like</H2>
       <p>
-        Below is the shape of a single resolution as it lives on disk + on-chain.
-        Click any tool row to see the response detail (mock fixtures shown).
+        Below is what a single decision looks like, the way it&apos;s stored on
+        disk and written on Sui. Click any tool row to see what came back from
+        that lookup (sample shown).
       </p>
       <JudgementRecord />
 
@@ -93,37 +95,38 @@ export default function ResolutionPage() {
         <ModeCard
           name="single"
           defaultMode
-          blurb="One model runs the loop end-to-end. Default. Cheap and fast. Used for everyday predictions where the answer is unambiguous."
+          blurb="One model runs the whole loop. Default. Cheap and fast. Used for everyday predictions where the answer is clear."
           env="RESOLUTION_AGENT_MODE=single"
         />
         <ModeCard
           name="consensus"
-          blurb="Claude Sonnet 4.5, GPT-5, and Gemini 2.5 Pro each run the loop independently. A fourth model — the critic — synthesizes the three answers into a final verdict and explains any disagreement."
+          blurb="Claude Sonnet 4.5, GPT-5, and Gemini 2.5 Pro each run the loop separately. A fourth model — the critic — reads all three answers, picks the verdict, and explains any disagreement."
           env="RESOLUTION_AGENT_MODE=consensus"
         />
       </div>
 
-      <H2 slug="what-gets-written-on-chain">What gets written on-chain</H2>
+      <H2 slug="what-gets-written-on-chain">What gets written on Sui</H2>
       <CodeBlock
         code={RESOLVE_SIG}
         language="move"
         filename="prediction_vault.move · resolve()"
       />
       <p>
-        Only the address registered as <code className="mono">resolver</code> on the
-        Registry can call this. That separation is one reason the v3 audit cleared.
+        Only the wallet listed as <code className="mono">resolver</code> on the
+        Registry can call this. Keeping that key separate from admin is one of the
+        reasons the v3 security review cleared.
       </p>
 
-      <H2 slug="why-anchor-reasoning-to-walrus">Why anchor reasoning to Walrus</H2>
+      <H2 slug="why-anchor-reasoning-to-walrus">Why save reasoning on Walrus</H2>
       <p>
-        Two reasons. First, transparency — a hit or miss without reasoning is just an
-        opinion. Second, recourse — if the agent gets it wrong, the reasoning trace is
-        the public record someone can point at to demonstrate the mistake.{' '}
-        <Gloss term="Walrus">Walrus</Gloss> permanence means we can&apos;t silently
-        rewrite history.
+        Two reasons. First, transparency — a hit or miss without reasoning is just
+        an opinion. Second, recourse — if the AI gets it wrong, the saved reasoning
+        is the public record someone can point at to show the mistake.{' '}
+        <Gloss term="Walrus">Walrus</Gloss> is permanent, so we can&apos;t quietly
+        rewrite history later.
       </p>
 
-      <H2 slug="cadence">Cadence</H2>
+      <H2 slug="cadence">How often each job runs</H2>
       <div
         style={{
           border: '1px solid var(--border)',

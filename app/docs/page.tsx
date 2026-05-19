@@ -33,7 +33,7 @@ export default function DocsIndexPage() {
             textWrap: 'pretty',
           }}
         >
-          Everything a judge or developer needs to read TOLDPROOF in five minutes.
+          Everything you need to understand TOLDPROOF in five minutes.
         </h1>
         <p
           style={{
@@ -44,10 +44,11 @@ export default function DocsIndexPage() {
             maxWidth: 680,
           }}
         >
-          Five pages, in the order we&apos;d explain it ourselves. Start at the
-          architecture diagram, walk down to the contract, then see how AI agents
-          plug in via MCP, how the AI judge attests outcomes, and what the audit
-          cleared. Everything links back to the live code on GitHub.
+          Five short pages, in the order we&apos;d explain it ourselves. Start with
+          the picture of how it all fits together, walk down to the on-chain
+          receipt, see how AI agents plug in, how the AI judge decides hit or
+          miss, and what the security review cleared. Every page links back to the
+          live code on GitHub.
         </p>
 
         <DocsIndex metas={metas} />

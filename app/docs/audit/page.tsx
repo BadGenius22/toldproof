@@ -15,18 +15,18 @@ export default function AuditPage() {
   return (
     <DocsShell
       slug="audit"
-      title="Three audit rounds. Each one cleared before adding the next path."
+      title="Three rounds of security review. Each one cleared before we added the next feature."
       eyebrow="Security"
       lede={
         <p>
-          Every time the contract grew a new attack surface — paid coins, agent
-          identities, reputation events — we ran <code className="mono">/dewaxguard core</code>{' '}
-          on it before moving on. v3 is the current head; the previous two are
-          archived for traceability.
+          Every time the contract grew somewhere new bugs could hide — paid coins,
+          agent names, reputation events — we ran a fresh security review on it
+          before shipping. v3 is the current one; v1 and v2 are kept for the paper
+          trail.
         </p>
       }
     >
-      <H2 slug="current-head-v3">Current head · v3</H2>
+      <H2 slug="current-head-v3">The latest review · v3</H2>
       <div
         style={{
           border: '1px solid var(--ink)',
@@ -47,11 +47,10 @@ export default function AuditPage() {
             lineHeight: 1.6,
           }}
         >
-          <strong style={{ fontWeight: 600 }}>Scope:</strong>{' '}
-          <code className="mono">/dewaxguard core</code> re-audit on the new{' '}
-          <code className="mono">seal_prediction_paid&lt;T&gt;</code> path plus a
-          regression check on every fix from the v2 bundle. Contract cleared for
-          testnet.
+          <strong style={{ fontWeight: 600 }}>What was reviewed:</strong> the new{' '}
+          <code className="mono">seal_prediction_paid&lt;T&gt;</code> paid-fee
+          function, plus a re-check that every bug we fixed in v2 stayed fixed.
+          Contract cleared for testnet.
         </div>
         <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
           <a
@@ -65,7 +64,7 @@ export default function AuditPage() {
         </div>
       </div>
 
-      <H2 slug="audit-history">Audit history · v1 → v2 → v3</H2>
+      <H2 slug="audit-history">All three rounds · v1 → v2 → v3</H2>
       <ProgressionBar />
       <div
         style={{
@@ -79,19 +78,19 @@ export default function AuditPage() {
         <HistoryRow
           version="v1"
           counts="0 / 0 / 1 / 4 / 4"
-          note="Initial Move package. 1 Medium + 4 Low + 4 Info, all addressed before v2."
+          note="The first Move package. One medium-severity finding, four low, four notes — all fixed before v2."
           href="https://github.com/BadGenius22/toldproof/blob/main/AUDIT_REPORT.md"
         />
         <HistoryRow
           version="v2"
           counts="0 / 1 / 4 / 5 / 2"
-          note="After adding generic Coin<T> fees, agent identity locks, role separation, and reputation events. All addressed before v3 publish."
+          note="After we added Coin<T> fees, agent-name locks, separate admin/resolver/treasury keys, and reputation events. All fixed before v3 went out."
           href="https://github.com/BadGenius22/toldproof/blob/main/AUDIT_REPORT_V2.md"
         />
         <HistoryRow
           version="v3"
           counts="0 / 0 / 0 / 0 / 3"
-          note="Current head. Only 3 Informational notes — contract cleared for testnet."
+          note="The current review. Only three small notes — no bugs above informational. Cleared for testnet."
           href="https://github.com/BadGenius22/toldproof/blob/main/AUDIT_REPORT_V3.md"
           highlight
           last
@@ -108,10 +107,10 @@ export default function AuditPage() {
         Format: Critical / High / Medium / Low / Informational.
       </p>
 
-      <H2 slug="findings-list">All v3 findings · individually</H2>
+      <H2 slug="findings-list">Every v3 finding, one by one</H2>
       <p>
-        Every finding in v3 was Informational only. Listed individually here so
-        nothing&apos;s hidden behind a count.
+        All three v3 findings were small notes. Listed here individually so
+        nothing is hidden behind a count.
       </p>
       <div style={{ display: 'grid', gap: 10 }}>
         <FindingRow

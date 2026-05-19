@@ -72,7 +72,7 @@ export function WorkedExample() {
         }}
       >
         <span style={{ color: 'var(--ink)', fontWeight: 600 }}>
-          Worked example · {rows.length} resolved predictions
+          Worked example · {rows.length} decided predictions
         </span>
         <span style={{ color: 'var(--muted)' }}>0xc187…391df</span>
       </header>
@@ -151,20 +151,20 @@ export function WorkedExample() {
             className="eyebrow"
             style={{ marginBottom: 10, color: 'var(--muted)' }}
           >
-            Totals — no-decay vs decayed
+            Totals — no fading vs fading
           </div>
           <table
             style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}
           >
             <caption className="sr-only">
               Side-by-side comparison of the Skill Score components with and
-              without the {HALF_LIFE_DAYS}-day recency decay applied.
+              without the {HALF_LIFE_DAYS}-day recency fading applied.
             </caption>
             <thead>
               <tr style={{ color: 'var(--muted)' }}>
                 <th style={th}>metric</th>
-                <th style={th}>no-decay</th>
-                <th style={th}>decayed</th>
+                <th style={th}>no fade</th>
+                <th style={th}>with fade</th>
               </tr>
             </thead>
             <tbody>
@@ -220,7 +220,7 @@ export function WorkedExample() {
         </span>
         <span style={{ color: 'var(--sealed-text)' }}>
           {delta < 0 ? '−' : '+'}
-          {Math.abs(delta)} from no-decay {naiveScore}
+          {Math.abs(delta)} from the no-fade score of {naiveScore}
         </span>
       </footer>
 
@@ -236,10 +236,10 @@ export function WorkedExample() {
         }}
       >
         <strong style={{ color: 'var(--ink)' }}>Read this as:</strong>{' '}
-        recent misses still weigh heavier than stale wins. Decay pulls the
-        raw hit rate down by the older-miss-share, and Wilson then narrows
-        the result further because the effective sample size is smaller
-        than the naked count suggests.
+        recent misses weigh heavier than old wins. Fading pulls the raw hit
+        rate down by the old-miss share, and Wilson then trims further because
+        once you fade out the old hits there are fewer calls effectively
+        carrying weight than the raw count suggests.
       </aside>
     </div>
   );
@@ -276,5 +276,5 @@ function shortDiff(d: 'trivial' | 'easy' | 'medium' | 'hard'): string {
 }
 
 function formatX(w: number): string {
-  return w >= 0.999 ? '1.0×' : `${w.toFixed(2)}×`;
+  return `${w.toFixed(1)}×`;
 }

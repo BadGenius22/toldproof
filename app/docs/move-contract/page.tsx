@@ -26,79 +26,80 @@ export default function MoveContractPage() {
   return (
     <DocsShell
       slug="move-contract"
-      title="One Move package. Three seal paths. Three roles. Sixty-two passing tests."
+      title="One on-Sui program. Three ways to lock. Three keys with different powers. Sixty-two passing tests."
       eyebrow="On Sui"
       lede={
         <p>
-          The contract lives at{' '}
+          The program lives at{' '}
           <code className="mono">
             move/prediction_vault/sources/prediction_vault.move
           </code>
-          . Every seal — free human, paid human, or AI agent — ends at the same shared{' '}
-          <Gloss term="SealedPrediction">SealedPrediction</Gloss> object. The differences
-          are who pays and which identity lock applies.
+          . Every lock — free human, paid human, or AI agent — ends at the same shared{' '}
+          <Gloss term="SealedPrediction">SealedPrediction</Gloss> receipt. The
+          differences are who pays and which name-lock applies.
         </p>
       }
     >
-      <H2 slug="three-seal-paths">Three seal paths</H2>
+      <H2 slug="three-seal-paths">Three ways to lock</H2>
       <div className="grid-3" style={{ gap: 16 }}>
         <PathCard
           symbol="🟢"
           name="seal_prediction"
           who="Humans, free"
-          when="First 10 predictions per month (enforced off-chain at /api/seal/preflight)"
+          when="First 10 predictions per month per person (we count these in our database, not on Sui)."
           sig="(reg, x_handle, ...)"
         />
         <PathCard
           symbol="💵"
           name="seal_prediction_paid<T>"
-          who="Humans over quota"
-          when="Paid in any registered coin type T — generic over Coin<T>"
+          who="Humans over the free limit"
+          when="Pay 10 cents in a supported coin. The same function handles SUI, USDC, etc. — but only coins admin has explicitly added to the fee table are accepted. Made-up tokens get rejected."
           sig="(reg, x_handle, ..., fee: Coin<T>, ...)"
         />
         <PathCard
           symbol="🤖"
           name="seal_prediction_as_agent<T>"
           who="AI agents"
-          when="Always paid. Same fee table as the human paid path."
+          when="Always 10 cents. Same fee table as the human paid version."
           sig="(reg, alias, ..., fee: Coin<T>, ...)"
         />
       </div>
 
-      <H2 slug="three-roles-on-registry">Three roles on Registry</H2>
+      <H2 slug="three-roles-on-registry">Three keys with different powers</H2>
       <div className="grid-3" style={{ gap: 16 }}>
         <RoleCard
           symbol="👑"
           name="admin"
-          blurb="Controls fee table and key rotations. Set to the deploying wallet at publish time."
+          blurb="Sets fee amounts and swaps the other two keys if needed. Set to the deploying wallet on day one."
         />
         <RoleCard
           symbol="⚖️"
           name="resolver"
-          blurb="The AI Resolution Agent's signing wallet. Only this address can call resolve()."
+          blurb="The AI judge's signing wallet. Only this address can stamp a hit-or-miss verdict."
         />
         <RoleCard
           symbol="🏦"
           name="treasury_addr"
-          blurb="All paid fees auto-forward here on every seal. Separate from admin so the treasury can rotate independently."
+          blurb="All paid fees auto-forward here on every lock. Kept separate from admin so the destination can move without touching admin powers."
         />
       </div>
 
-      <H2 slug="identity-locks">Identity locks</H2>
+      <H2 slug="identity-locks">Name locks</H2>
       <p>
-        First-claim-wins on every alias. A human X handle can&apos;t collide with an
-        agent alias and vice versa. Agent aliases get an extra lock: the first wallet
-        to seal under an alias owns that alias forever — no later wallet can
-        impersonate it.
+        First wallet to claim a name wins it. A human X handle and an agent name
+        can&apos;t collide, ever. Agent names get an extra lock: the first wallet
+        to lock a prediction under an agent name owns that name forever — no
+        later wallet can impersonate it.
       </p>
 
-      <H2 slug="the-seal_approve-function">The seal_approve function</H2>
+      <H2 slug="the-seal_approve-function">The seal_approve gate</H2>
       <p>
-        <Gloss term="Seal">Seal</Gloss> needs an on-chain access policy that returns
-        whether a given identity is allowed to decrypt. Ours is declared{' '}
-        <code className="mono">entry</code>, not <code className="mono">public entry</code>{' '}
-        — this means other Move packages cannot compose it. That&apos;s a deliberate
-        audit recommendation from <code className="mono">/dewaxguard</code>.
+        <Gloss term="Seal">Seal</Gloss> needs a function on Sui that says
+        &ldquo;yes, this person can decrypt now&rdquo; or &ldquo;no, not yet.&rdquo;
+        Ours is marked <code className="mono">entry</code>, not{' '}
+        <code className="mono">public entry</code> — that one keyword stops other
+        Sui programs from calling it as a building block. The security review
+        specifically flagged this as the right choice.
       </p>
       <CodeBlock
         code={SEAL_APPROVE_SRC}
@@ -107,24 +108,24 @@ export default function MoveContractPage() {
         href="https://github.com/BadGenius22/toldproof/blob/main/move/prediction_vault/sources/prediction_vault.move"
       />
 
-      <H2 slug="reveal-hash-gate">Reveal hash gate</H2>
+      <H2 slug="reveal-hash-gate">Open-time fingerprint check</H2>
       <p>
-        When the Reveal cron posts the decrypted plaintext on-chain, the contract
-        asserts <code className="mono">sha256(plaintext) == content_hash</code>. The
-        hash was committed at seal time, so even our own cron can&apos;t substitute a
-        different message.
+        When our Reveal job posts the decrypted text on Sui, the program checks
+        that <code className="mono">sha256(plaintext) == content_hash</code> — the
+        fingerprint must match the one we wrote down at lock time. So even our own
+        job can&apos;t swap in a different message later.
       </p>
 
       <div className="mt-32 grid-2" style={{ gap: 16 }}>
         <FactCard
           metric="62 / 62"
           label="Move tests passing"
-          detail="Including positive + negative cases for every seal_approve branch."
+          detail="Including tests for every way the seal_approve gate should say yes AND every way it should say no."
         />
         <FactCard
           metric="0 / 0 / 0 / 0"
-          label="Critical / High / Medium / Low (v3 audit)"
-          detail="Three rounds of /dewaxguard core. v3 cleared the paid path. 3 Informational notes only."
+          label="Critical / High / Medium / Low (v3 review)"
+          detail="Three rounds of security review. v3 cleared the new paid path. Three small notes only — no bugs above informational."
         />
       </div>
     </DocsShell>

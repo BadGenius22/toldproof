@@ -16,15 +16,16 @@ export default function ArchitecturePage() {
   return (
     <DocsShell
       slug="architecture"
-      title="Three layers: Sui for the receipt, Walrus for the contents, Seal for the time-lock."
+      title="Three pieces: Sui keeps the receipt, Walrus holds the contents, Seal locks the key until the date arrives."
       eyebrow="How it works"
       lede={
         <p>
           A prediction is just text + a date. We need to prove the text existed before
-          the date and that nobody read it until the date arrived. That&apos;s the whole
-          system. Everything below is plumbing — <Gloss term="Sui Move">Sui</Gloss>{' '}
-          for the receipt, <Gloss term="Walrus">Walrus</Gloss> for the ciphertext,{' '}
-          <Gloss term="Seal">Seal</Gloss> for the time-lock.
+          the date and that nobody read it until the date arrived. That&apos;s the
+          whole system. Everything below is plumbing — <Gloss term="Sui Move">Sui</Gloss>{' '}
+          writes down who said what, <Gloss term="Walrus">Walrus</Gloss> stores the
+          scrambled text, and <Gloss term="Seal">Seal</Gloss> makes sure the key only
+          works on the unlock date.
         </p>
       }
     >
@@ -41,45 +42,46 @@ export default function ArchitecturePage() {
       >
         <StepRow
           n="01"
-          title="The user writes a prediction and picks an unlock date."
-          detail="Could be a human at /lock with a Sui wallet + X handle, or an AI agent calling our MCP server with x402 payment. Same form, two front doors."
+          title="Someone writes a prediction and picks an unlock date."
+          detail="Could be a human at /lock with a Sui wallet + X handle, or an AI agent calling our MCP server and paying ten cents. Same form, two front doors."
         />
         <StepRow
           n="02"
-          title="The browser locks the text under a time-lock policy."
-          detail="Seal encrypts the plaintext with an identity-based key tied to (package_id, unlock_timestamp). Nobody can open it before that timestamp — not us, not the user, not the AI judge."
+          title="The browser scrambles the text and locks it to the date."
+          detail="Seal scrambles the prediction with a key that only works on the unlock date. Nobody can open it before then — not us, not the user, not the AI judge."
         />
         <StepRow
           n="03"
           title="The scrambled text goes to Walrus."
-          detail="Walrus is decentralized storage. The ciphertext sits there permanently. We get back a blob id and a content hash."
+          detail="Walrus is permanent storage that anyone can read but no one can change. The scrambled text sits there forever. We get back a blob id and a fingerprint of the contents."
         />
         <StepRow
           n="04"
           title="The receipt goes on Sui."
-          detail="A SealedPrediction object is created on-chain with the blob id, content hash, unlock timestamp, X handle (or agent alias), and owner address. This is the public receipt anyone can verify."
+          detail="A SealedPrediction object is written on Sui with the blob id, the fingerprint, the unlock date, the X handle (or agent name), and the owner's wallet. This is the public receipt anyone can verify."
         />
         <StepRow
           n="05"
           title="Time passes. The unlock date arrives."
-          detail="The Reveal cron (every 5 minutes) pulls Seal decryption keys for all predictions whose unlock time has passed, decrypts them, and posts the plaintext on Sui with a hash check."
+          detail="Our Reveal job (every 5 minutes) asks the key servers for the decryption key, opens the prediction, and posts the plain text on Sui. Sui checks the fingerprint matches — even our own server can't swap in different text."
         />
         <StepRow
           n="06"
-          title="The AI judge resolves it."
-          detail="The Resolution cron reads the plaintext, runs a tool-use loop (web search via Tavily, prices via CoinGecko, optionally multi-model consensus), and writes a hit/miss verdict on Sui. The full reasoning trace is anchored to Walrus."
+          title="The AI judge decides hit or miss."
+          detail="The Resolve job reads the text, searches the web (Tavily), checks price feeds (CoinGecko), optionally compares notes across three models, and stamps a verdict on Sui. The AI's full reasoning is saved on Walrus."
         />
         <StepRow
           n="07"
-          title="Reputation updates."
-          detail="The Reputation cron rebuilds the leaderboard, publishes a versioned profile to Walrus per identity, and emits a ReputationProfileUpdated event on Sui."
+          title="The leaderboard updates."
+          detail="The Reputation job rebuilds everyone's scores, saves a fresh profile snapshot to Walrus per identity, and tells Sui the profile changed."
         />
       </ol>
 
       <H2 slug="the-system-diagram">The system diagram</H2>
       <p>
-        Four lanes — clients, browser/MCP, the on-chain + storage primitives, and the
-        AI judge. Hover any step row above to highlight the matching node.
+        Four lanes — who starts it, the browser or MCP, the Sui + Walrus + Seal
+        plumbing, and the AI judge. Hover any step above and the matching box
+        lights up.
       </p>
       <ArchitectureDiagram />
       <div className="mt-16 row" style={{ gap: 10, flexWrap: 'wrap' }}>
@@ -96,27 +98,27 @@ export default function ArchitecturePage() {
         </Link>
       </div>
 
-      <H2 slug="primitives">Primitives — Sui · Walrus · Seal · crons</H2>
+      <H2 slug="primitives">The four pieces — Sui · Walrus · Seal · crons</H2>
       <div className="grid-2" style={{ gap: 16 }}>
         <PrimitiveCard
           label="Sui"
-          blurb="The chain. Records the receipt: who sealed what, when it unlocks, and what the AI judge decided."
-          tag="L1"
+          blurb="The blockchain. Keeps the public receipt: who locked what, when it opens, and what the AI judge decided."
+          tag="BLOCKCHAIN"
         />
         <PrimitiveCard
           label="Walrus"
-          blurb="The storage. Holds the scrambled prediction text, the AI's reasoning trace, and versioned reputation profiles."
-          tag="DECENTRALIZED STORAGE"
+          blurb="The storage. Holds the scrambled prediction, the AI's reasoning notes, and versioned profile snapshots. Permanent — once written, it stays."
+          tag="PERMANENT STORAGE"
         />
         <PrimitiveCard
           label="Seal"
-          blurb="The time-lock. Identity-based encryption with a 2-of-3 key server committee (Mysten + Ruby Nodes). The unlock date is part of the identity."
-          tag="THRESHOLD IBE"
+          blurb="The time-lock. The decryption key doesn't exist until the unlock date arrives. Three key servers (2 of 3 must agree) run by Mysten and Ruby Nodes."
+          tag="TIME-LOCK ENCRYPTION"
         />
         <PrimitiveCard
-          label="Vercel crons"
-          blurb="Five jobs: reveal every 5 min, resolve every 5 min, reputation every 15 min, demo fleet every 6 hours, verify bot every 5 min (dormant until X Basic tier)."
-          tag="FLUID COMPUTE"
+          label="Background jobs"
+          blurb="Five jobs run on schedule: open predictions every 5 min, decide hit-or-miss every 5 min, rebuild leaderboard every 15 min, four demo agents seal predictions every 6 hours, verify bot every 5 min (off until we upgrade X plans)."
+          tag="SCHEDULED ON VERCEL"
         />
       </div>
     </DocsShell>

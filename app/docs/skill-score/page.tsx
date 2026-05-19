@@ -46,10 +46,10 @@ export default function SkillScoreDocsPage() {
       eyebrow="Reference · methodology"
       lede={
         <p className="skill-score-lede" style={{ textWrap: 'pretty' }}>
-          One number, 0–100. It answers:{' '}
+          One number, 0 to 100. It answers:{' '}
           <em>
-            how often does this wallet call things right, weighted by how hard each
-            call was, with recent calls counting more than old ones?
+            how often does this wallet call things right, with harder calls
+            counting more and recent calls counting more than old ones?
           </em>
         </p>
       }
@@ -58,21 +58,23 @@ export default function SkillScoreDocsPage() {
 
       <H2 slug="the-formula">01 · The formula</H2>
       <p>
-        For every resolved prediction owned by a wallet, we compute a contribution:
+        For every prediction the AI judge has decided, we compute one number — the
+        prediction&apos;s contribution to the score:
       </p>
       <CodeBlock code={FORMULA_CONTRIB} language="formula" />
       <p>
-        Sum these across <strong>every alias the wallet has ever operated</strong>,
-        then run the <Gloss term="Wilson lower bound">Wilson lower bound</Gloss> at
-        95% confidence:
+        Add these up across <strong>every alias the same wallet has ever
+        used</strong>, then run the{' '}
+        <Gloss term="Wilson lower bound">Wilson lower bound</Gloss> at 95%
+        confidence:
       </p>
       <CodeBlock code={FORMULA_SCORE} language="formula" />
 
-      <H2 slug="difficulty-weight">02 · Difficulty weight — how hard was the call?</H2>
+      <H2 slug="difficulty-weight">02 · How hard was the call?</H2>
       <p>
-        The AI judge classifies each prediction&apos;s difficulty when it attests.
-        Trivial calls (already true at lock time) contribute nothing — the anti-spam
-        choice.
+        When the AI judge decides hit or miss, it also rates how hard the call was.
+        Obvious calls (already true on the day they were locked) count for nothing —
+        the anti-spam choice.
       </p>
       <table style={tableStyle}>
         <caption className="sr-only">
@@ -87,17 +89,17 @@ export default function SkillScoreDocsPage() {
           </tr>
         </thead>
         <tbody>
-          <Row label="Trivial" w={DIFFICULTY_WEIGHTS.trivial}>
-            Already true at lock time. Doesn&apos;t move the score.
+          <Row label="Obvious" w={DIFFICULTY_WEIGHTS.trivial}>
+            Already true on the day it was locked. Doesn&apos;t move the score.
           </Row>
           <Row label="Easy" w={DIFFICULTY_WEIGHTS.easy}>
-            Likely outcome — straightforward macro or near-term price call.
+            Likely outcome — a safe macro guess or near-term price call.
           </Row>
           <Row label="Real call" w={DIFFICULTY_WEIGHTS.medium}>
-            Genuine uncertainty — could plausibly go either way.
+            Genuine uncertainty — could go either way.
           </Row>
           <Row label="Bold call" w={DIFFICULTY_WEIGHTS.hard}>
-            Contrarian or surprising. The riskiest, worth the most.
+            Going against the consensus. The riskiest, worth the most.
           </Row>
         </tbody>
       </table>
@@ -113,16 +115,17 @@ export default function SkillScoreDocsPage() {
           lineHeight: 1.6,
         }}
       >
-        A trivial correct prediction still counts as a hit on your hit-rate badge —
-        it just doesn&apos;t contribute to the Skill Score. This is the anti-spam
+        An obvious-but-correct prediction still counts as a hit on your hit-rate
+        badge — it just doesn&apos;t move the Skill Score. This is the anti-spam
         choice: &quot;the sun rose today&quot; shouldn&apos;t help anyone.
       </aside>
 
-      <H2 slug="recency-weight">03 · Recency &amp; decay curve</H2>
+      <H2 slug="recency-weight">03 · Recent calls count more</H2>
       <p>
-        Old hits decay. A prediction&apos;s contribution to the score halves every{' '}
-        {HALF_LIFE_DAYS} days. This is the{' '}
-        <Gloss term="Metaculus">Metaculus</Gloss> default for forecasting tournaments.
+        Old hits fade. A prediction&apos;s contribution to the score halves every{' '}
+        {HALF_LIFE_DAYS} days. This is the value{' '}
+        <Gloss term="Metaculus">Metaculus</Gloss> uses for its own forecasting
+        tournaments.
       </p>
       <CodeBlock code={FORMULA_RECENCY} language="formula" />
       <DecayCurve />
@@ -147,69 +150,69 @@ export default function SkillScoreDocsPage() {
         </tbody>
       </table>
       <p style={{ marginTop: 12 }}>
-        Why decay matters: it makes{' '}
-        <strong>maintaining a sharded fleet expensive</strong>. If a wallet operates
-        10 aliases and abandons 8 of them, the abandoned hits drift toward
-        irrelevance — statistical pressure to either keep all aliases active or drop
-        the score.
+        Why fading matters: it makes{' '}
+        <strong>running many fake accounts expensive</strong>. If a wallet creates
+        10 aliases and abandons 8 of them, the old wins on the abandoned 8 keep
+        fading until they barely matter — pressure to either keep every alias
+        active or watch the score drop.
       </p>
 
       <H2 slug="worked-example">04 · Worked example</H2>
       <p>
-        17 resolved predictions, computed end-to-end against the real{' '}
+        17 decided predictions, computed end-to-end against the real{' '}
         <code className="mono">lib/leaderboard</code> constants. Change{' '}
-        <code className="mono">SKILL_HALF_LIFE_MS</code> and the headline numbers
-        below update automatically — this stays in sync with the math.
+        <code className="mono">SKILL_HALF_LIFE_MS</code> in the code and the
+        numbers below update automatically — this card stays in sync with the math.
       </p>
       <WorkedExample />
 
-      <H2 slug="eligibility-gate">05 · Eligibility gate — bold-call filter</H2>
-      <p>To appear on the ranked board, a wallet needs:</p>
+      <H2 slug="eligibility-gate">05 · Who can rank</H2>
+      <p>To appear on the ranked leaderboard, a wallet needs:</p>
       <ul>
         <li>
-          ≥ {MIN_RANKED_RESOLVED} settled (resolved) predictions across all its
-          aliases
+          At least {MIN_RANKED_RESOLVED} decided predictions across all its aliases
         </li>
         <li>
-          ≥ {MIN_BOLD_CALLS} <em>bold calls</em> (medium or hard difficulty) —
-          prevents single-lucky-call ranks
+          At least {MIN_BOLD_CALLS} <em>bold calls</em> (real-call or bold
+          difficulty) — stops anyone from ranking off a single lucky hit
         </li>
       </ul>
       <p>
-        Wallets below the gate appear in the &quot;Provisional&quot; section
+        Wallets below the bar show up in the &quot;Provisional&quot; section
         instead.
       </p>
 
-      <H2 slug="wallet-aggregation">06 · Wallet aggregation — sharding doesn&apos;t help</H2>
+      <H2 slug="wallet-aggregation">06 · One wallet, one score — aliases don&apos;t help</H2>
       <p>
         We compute the score from the <strong>sum</strong> of weighted hits and
-        attempts across every alias a wallet operates. A wallet with 2 lucky aliases
-        and 8 abandoned losers sees its wallet score dragged down by the 8 misses.
-        Sharding stops being a strategy.
+        attempts across every alias one wallet operates. A wallet with 2 lucky
+        aliases and 8 abandoned losing aliases sees its score dragged down by the
+        8 losers. Creating extra aliases stops being a strategy.
       </p>
       <p style={{ marginTop: 12 }}>
-        Per-alias scores remain visible on each profile as drill-down data — but the
-        ranking number is always wallet-level. The{' '}
-        <Gloss term="publisher">publisher</Gloss> address is the anchor.
+        Each alias still shows its own score on its own profile page — for the
+        curious. But the <em>ranking</em> number is always at the wallet level. The{' '}
+        <Gloss term="publisher">publisher</Gloss> wallet is the anchor.
       </p>
 
       <H2 slug="frequently-asked">07 · Frequently asked</H2>
       <Faq />
 
-      <H2 slug="why-wilson">08 · Why Wilson, not just hit-rate?</H2>
+      <H2 slug="why-wilson">08 · Why Wilson, not raw hit-rate?</H2>
       <p>
         A wallet with 3 hits out of 3 calls has a 100% hit rate — but that&apos;s a
-        tiny sample. <Gloss term="Wilson lower bound">Wilson lower bound</Gloss> at
-        95% gives a statistically defensible lower bound that grows with sample size:
-        a 3/3 profile scores around 30, while a 100/100 scores near 96. Forecasters
-        earn the high score by sustaining performance, not by getting lucky once.
+        tiny sample. The <Gloss term="Wilson lower bound">Wilson lower bound</Gloss>{' '}
+        at 95% gives a statistically careful answer that grows with sample size: a
+        3-for-3 profile scores around 30, while a 100-for-100 scores near 96.
+        Forecasters earn the high score by being right consistently, not by getting
+        lucky once.
       </p>
       <p style={{ marginTop: 12 }}>
-        The formula is Wilson (1927), most famously applied to product ratings by
-        Reddit and Yelp. We extend it to non-integer successes (difficulty weights ×
-        decay factors produce continuous values) — at hackathon scale the
-        discrete-style formula is close enough; a fully rigorous treatment would use
-        a <Gloss term="Beta-binomial">Beta-binomial</Gloss>.
+        The formula is Wilson (1927), most famously used for product ratings on
+        Reddit and Yelp. We extend it to non-integer counts (difficulty weights ×
+        recency factors produce decimal values) — at hackathon scale the basic
+        formula is close enough; a fully rigorous version would use a{' '}
+        <Gloss term="Beta-binomial">Beta-binomial</Gloss>.
       </p>
 
       <RelatedT1 />
@@ -238,12 +241,12 @@ function MethodologyStamp() {
       }}
     >
       <span style={{ color: 'var(--sealed-text)', fontWeight: 600 }}>
-        METHODOLOGY {METHODOLOGY_VERSION.toUpperCase()}
+        METHOD {METHODOLOGY_VERSION.toUpperCase()}
       </span>
-      <span>introduced {METHODOLOGY_INTRODUCED_AT}</span>
+      <span>used since {METHODOLOGY_INTRODUCED_AT}</span>
       {prev ? (
         <span style={{ color: 'var(--muted)' }}>
-          previous: {prev.version} ({prev.summary})
+          before that: {prev.version} ({prev.summary})
         </span>
       ) : null}
     </div>
@@ -263,9 +266,9 @@ function RelatedT1() {
         gap: 14,
       }}
     >
-      <span className="eyebrow">Related — V4 anti-gaming stack</span>
+      <span className="eyebrow">Related — the V4 anti-gaming kit</span>
       <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6 }}>
-        This Skill Score is one of four T1 mechanisms. The others:
+        This Skill Score is one of four V4 anti-gaming pieces. The others:
       </p>
       <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'grid', gap: 6 }}>
         <RelatedLink href="/leaderboard" label="By-wallet leaderboard">
@@ -275,14 +278,14 @@ function RelatedT1() {
           href="/leaderboard"
           label="Wallet provenance footer"
         >
-          every alias under one wallet
+          shows every alias one wallet owns
         </RelatedLink>
         <RelatedLink href="/leaderboard" label="Trust badges">
           Single · Multi · Churner · Spam
         </RelatedLink>
       </ul>
       <div className="mono" style={{ fontSize: 11, color: 'var(--muted)', letterSpacing: '0.04em' }}>
-        Roadmap:{' '}
+        Full plan:{' '}
         <a
           href="https://github.com/BadGenius22/toldproof/blob/main/ROADMAP_V4.md"
           target="_blank"
@@ -366,7 +369,7 @@ function Row({
       <td style={tdStyle}>
         <strong style={{ color: 'var(--ink)' }}>{label}</strong>
       </td>
-      <td style={tdStyle}>{w >= 0.999 ? '1.0×' : `${w.toFixed(3)}×`}</td>
+      <td style={tdStyle}>{w.toFixed(1)}×</td>
       <td style={tdStyle}>{children}</td>
     </tr>
   );
@@ -376,7 +379,7 @@ function RecencyRow({ days, w }: { days: number; w: number }) {
   return (
     <tr>
       <td style={tdStyle}>
-        {days === 0 ? 'fresh (today)' : `${days} days old`}
+        {days === 0 ? 'today' : `${days} days ago`}
       </td>
       <td style={tdStyle}>{w.toFixed(3)}×</td>
     </tr>
