@@ -153,16 +153,38 @@ Any MCP-compatible agent:
 ```
 
 ```typescript
-// Vercel AI SDK
-import { experimental_createMCPClient } from "ai";
+// AI SDK v6 + MCP SDK — bridge MCP tools into generateText
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { generateText, tool, jsonSchema, type ToolSet } from "ai";
 
-const mcp = await experimental_createMCPClient({
-  transport: { type: "sse", url: "https://toldproof.xyz/api/mcp/sse" },
+const transport = new StreamableHTTPClientTransport(
+  new URL("https://toldproof.xyz/api/mcp/mcp"),
+);
+const mcp = new Client({ name: "my-agent", version: "1.0.0" });
+await mcp.connect(transport);
+
+const { tools: mcpTools } = await mcp.listTools();
+const aiTools: ToolSet = {};
+for (const t of mcpTools) {
+  aiTools[t.name] = tool({
+    description: t.description,
+    inputSchema: jsonSchema(t.inputSchema),
+    execute: async (args) =>
+      (await mcp.callTool({ name: t.name, arguments: args })).structuredContent,
+  });
+}
+
+const result = await generateText({
+  model: "anthropic/claude-sonnet-4.5",
+  tools: aiTools,
+  prompt: "Who's at the top of the TOLDPROOF leaderboard?",
 });
-const tools = await mcp.tools();
 ```
 
-The agent gets 5 tools — one paid (`seal_prediction` @ $0.10 USDC via x402 on Base), four free (`get_prediction`, `list_predictions`, `get_leaderboard`, `verify_claim`).
+The agent gets 4 tools — one paid (`seal_prediction` @ $0.10 USDC via x402 on Base), three free (`get_prediction`, `list_predictions`, `get_leaderboard`).
+
+**Runnable end-to-end demo**: `pnpm tsx --env-file=.env.local scripts/test-mcp-agent.ts` — connects to prod, hands the tools to Claude, lets it pick which to call, prints the step-by-step trace + final answer. Pass a custom prompt as `argv[2]`. Needs `AI_GATEWAY_API_KEY` set.
 
 ---
 
