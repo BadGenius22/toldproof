@@ -44,6 +44,26 @@ export const DIFFICULTY_WEIGHTS: Record<DifficultyLevel, number> = {
   hard: 2.0,
 };
 
+// V4 T1.3 — recency decay. Every contribution to Skill Score decays with a
+// 180-day half-life (Metaculus default). Anti-gaming mechanic: sharded
+// fleets must keep ALL aliases active forever to maintain the score, not
+// just the lucky ones. Spec: docs/design/V4_BUILD_SPEC_T1.md §T1.3.
+export const SKILL_HALF_LIFE_MS = 180 * 24 * 60 * 60 * 1000;
+
+/**
+ * Multiplicative decay weight for a single prediction's contribution.
+ * Returns 1 for predictions younger than now, 0.5 at one half-life, 0.25 at
+ * two, etc. Anchored on resolvedAtMs when available; otherwise sealedAtMs.
+ *
+ * @param anchorMs — usually pred.resolvedAtMs ?? pred.sealedAtMs
+ * @param nowMs    — caller's wall-clock anchor (frozen in tests)
+ */
+export function recencyWeight(anchorMs: number, nowMs: number): number {
+  const ageMs = nowMs - anchorMs;
+  if (ageMs <= 0) return 1;
+  return Math.pow(0.5, ageMs / SKILL_HALF_LIFE_MS);
+}
+
 export interface DifficultyMix {
   trivial: number;
   easy: number;
@@ -207,6 +227,7 @@ async function loadVerdictIndex(): Promise<Map<string, VerdictLookup>> {
 export function computeSkillStats(
   resolved: PredictionView[],
   verdictsByPredictionId: Map<string, VerdictLookup>,
+  nowMs: number = Date.now(),
 ): SkillStats {
   const mix: DifficultyMix = { trivial: 0, easy: 0, medium: 0, hard: 0, unknown: 0 };
   let weightedHits = 0;
@@ -219,7 +240,11 @@ export function computeSkillStats(
       mix.unknown += 1;
       continue;
     }
-    const w = DIFFICULTY_WEIGHTS[v.difficulty];
+    // V4 T1.3 — recency decay. Multiply difficulty weight by exp-decay
+    // factor (180d half-life). Sharded fleets must keep every alias
+    // active to maintain the score; old hits drift toward irrelevance.
+    const anchor = p.resolvedAtMs ?? p.sealedAtMs;
+    const w = DIFFICULTY_WEIGHTS[v.difficulty] * recencyWeight(anchor, nowMs);
     mix[v.difficulty] += 1;
     weightedAttempts += w;
     if (p.hit) weightedHits += w;

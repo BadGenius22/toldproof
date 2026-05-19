@@ -410,6 +410,21 @@ export default async function ProfilePage({
                         This alias on its own contributes: {skill.score}
                       </span>
                     )}
+                  {/* V4 T1.3 — methodology link. Visible regardless of
+                      decay state so the reader can always understand the
+                      number. */}
+                  <Link
+                    href="/docs/skill-score"
+                    className="mono"
+                    style={{
+                      fontSize: 10,
+                      color: 'var(--muted)',
+                      textDecoration: 'none',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Difficulty + 180-day decay · how is this calculated? →
+                  </Link>
                 </div>
                 <div className="col" style={{ gap: 10 }}>
                   <span className="eyebrow">Mix of calls so far</span>

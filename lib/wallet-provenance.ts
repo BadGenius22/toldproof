@@ -18,6 +18,7 @@ import {
   DIFFICULTY_WEIGHTS,
   MIN_BOLD_CALLS,
   MIN_RANKED_RESOLVED,
+  recencyWeight,
   wilsonLowerBound95,
   type VerdictLookup,
 } from './leaderboard';
@@ -107,7 +108,10 @@ export function summarisePublisher(
     for (const p of resolved) {
       const v = verdictsByPredictionId.get(p.id);
       if (!v) continue;
-      const w = DIFFICULTY_WEIGHTS[v.difficulty];
+      // V4 T1.3 — same recency decay as computeSkillStats. Keeps the
+      // wallet-aggregate consistent with per-alias scores.
+      const anchor = p.resolvedAtMs ?? p.sealedAtMs;
+      const w = DIFFICULTY_WEIGHTS[v.difficulty] * recencyWeight(anchor, nowMs);
       weightedAttempts += w;
       if (p.hit) weightedHits += w;
       if (v.difficulty === 'medium' || v.difficulty === 'hard') boldCalls += 1;
