@@ -241,6 +241,112 @@ export function computeSkillStats(
   };
 }
 
+// ─── Wallet-grouped leaderboard (V4 T1.2) ────────────────────────────
+
+export interface WalletGroup {
+  publisher: string;
+  /** Most-active alias by resolved count — used as the wallet's "face". */
+  primaryIdentity: string;
+  primaryEntityType: EntityType;
+  aliasCount: number;
+  totalSealed: number;
+  totalResolved: number;
+  totalHits: number;
+  /** Σ DIFFICULTY_WEIGHTS[hit prediction]'s difficulty, across all aliases. */
+  weightedHits: number;
+  /** Σ DIFFICULTY_WEIGHTS[any resolved prediction], across all aliases. */
+  weightedAttempts: number;
+  /** Wilson lower bound on the AGGREGATE — canonical anti-sharding score. */
+  walletAggregateScore: number;
+  /** Σ boldCalls across aliases. */
+  boldCalls: number;
+  /** Drill-down: per-alias rows the wallet operates. */
+  aliases: LeaderboardEntry[];
+  lastActivityMs: number;
+  /** Same eligibility gate as the per-alias board — applied to aggregates. */
+  isRanked: boolean;
+}
+
+/**
+ * Groups LeaderboardEntry[] (per-alias) by publisher address. Computes the
+ * wallet-aggregate Skill Score via Wilson lower bound over the SUMS of
+ * weighted hits + attempts across all aliases owned by each publisher.
+ *
+ * Why aggregate: a sharder with 2 lucky aliases + 8 abandoned losers sees
+ * their wallet score dragged down by the 8 misses. Sharding hurts.
+ *
+ * Single-alias wallets are passthrough — their aggregate equals their
+ * per-alias score (Wilson is deterministic on the same input).
+ */
+export function buildWalletLeaderboard(
+  entries: LeaderboardEntry[],
+): WalletGroup[] {
+  const byPub = new Map<string, LeaderboardEntry[]>();
+  for (const e of entries) {
+    const list = byPub.get(e.publisher);
+    if (list) list.push(e);
+    else byPub.set(e.publisher, [e]);
+  }
+
+  const groups: WalletGroup[] = [];
+  for (const [publisher, aliasList] of byPub.entries()) {
+    let weightedHits = 0;
+    let weightedAttempts = 0;
+    let boldCalls = 0;
+    let totalSealed = 0;
+    let totalResolved = 0;
+    let totalHits = 0;
+    let lastActivityMs = 0;
+    for (const a of aliasList) {
+      weightedHits += a.skill.weightedHits;
+      weightedAttempts += a.skill.weightedAttempts;
+      boldCalls += a.skill.boldCalls;
+      totalSealed += a.stats.sealed;
+      totalResolved += a.stats.resolved;
+      totalHits += a.stats.hits;
+      if (a.stats.lastActivityMs > lastActivityMs)
+        lastActivityMs = a.stats.lastActivityMs;
+    }
+
+    const walletAggregateScore =
+      weightedAttempts > 0
+        ? Math.round(wilsonLowerBound95(weightedHits, weightedAttempts) * 100)
+        : 0;
+
+    // Primary alias = most active by resolved count, ties broken by recency.
+    const primary = [...aliasList].sort((a, b) => {
+      if (a.stats.resolved !== b.stats.resolved)
+        return b.stats.resolved - a.stats.resolved;
+      return b.stats.lastActivityMs - a.stats.lastActivityMs;
+    })[0]!;
+
+    groups.push({
+      publisher,
+      primaryIdentity: primary.identity,
+      primaryEntityType: primary.entityType,
+      aliasCount: aliasList.length,
+      totalSealed,
+      totalResolved,
+      totalHits,
+      weightedHits,
+      weightedAttempts,
+      walletAggregateScore,
+      boldCalls,
+      aliases: aliasList,
+      lastActivityMs,
+      isRanked:
+        totalResolved >= MIN_RANKED_RESOLVED && boldCalls >= MIN_BOLD_CALLS,
+    });
+  }
+
+  return groups.sort((a, b) => {
+    if (a.isRanked !== b.isRanked) return a.isRanked ? -1 : 1;
+    if (a.walletAggregateScore !== b.walletAggregateScore)
+      return b.walletAggregateScore - a.walletAggregateScore;
+    return b.weightedAttempts - a.weightedAttempts;
+  });
+}
+
 /**
  * Wilson score interval lower bound at 95% confidence for a Bernoulli
  * proportion. Returns a value in [0, 1].

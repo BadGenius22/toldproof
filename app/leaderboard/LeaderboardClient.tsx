@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { LeaderboardEntry } from '../../lib/leaderboard';
+import type { LeaderboardEntry, WalletGroup } from '../../lib/leaderboard';
 import { tierFromScore } from '../../lib/leaderboard';
 import { EntityBadge, FilterTabs, TagChip, fmtRel, identityDisplay, shortHash } from '../../components/design';
 import { DifficultyHistogram, deriveProfileTag } from '../../components/DifficultyHistogram';
 
 type Filter = 'all' | 'humans' | 'agents';
 type TimeWindow = '7d' | '30d' | 'all';
+type ViewMode = 'wallet' | 'alias';
 
 const WINDOW_MS: Record<TimeWindow, number | null> = {
   '7d': 7 * 24 * 60 * 60_000,
@@ -16,7 +17,14 @@ const WINDOW_MS: Record<TimeWindow, number | null> = {
   all: null,
 };
 
-export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) {
+export function LeaderboardClient({
+  entries,
+  walletGroups,
+}: {
+  entries: LeaderboardEntry[];
+  walletGroups: WalletGroup[];
+}) {
+  const [view, setView] = useState<ViewMode>('wallet');
   const [filter, setFilter] = useState<Filter>('all');
   const [timeWindow, setTimeWindow] = useState<TimeWindow>('30d');
   const now = Date.now();
@@ -76,9 +84,29 @@ export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) 
     { id: 'all', label: 'All time' },
   ];
 
+  // V4 T1.2 — view-mode tab strip. "By wallet" is the default to defend
+  // against alias sharding: a wallet's reputation aggregates across all
+  // aliases it operates, so sharded misses drag down the aggregate.
+  const viewTabs: Array<{ id: ViewMode; label: string }> = [
+    { id: 'wallet', label: 'By wallet' },
+    { id: 'alias', label: 'By alias' },
+  ];
+
   return (
     <>
       <div className="mt-24">
+        <FilterTabs
+          tabs={viewTabs.map((t) => ({ id: t.id, label: t.label }))}
+          value={view}
+          onChange={setView}
+          rightHint={
+            view === 'wallet'
+              ? 'Wallet-aggregate Skill Score — sharded misses drag the aggregate down'
+              : 'Per-alias Skill Score — useful for drilling into a specific identity'
+          }
+        />
+      </div>
+      <div className="mt-12">
         <FilterTabs
           tabs={windowTabs.map((t) => ({ id: t.id, label: t.label }))}
           value={timeWindow}
@@ -95,7 +123,16 @@ export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) 
         />
       </div>
 
-      {ranked.length > 0 && (
+      {view === 'wallet' && (
+        <WalletBoard
+          walletGroups={walletGroups}
+          timeWindowCap={WINDOW_MS[timeWindow]}
+          entityFilter={filter}
+          now={now}
+        />
+      )}
+
+      {view === 'alias' && ranked.length > 0 && (
         <div className="mt-16">
           <span className="eyebrow">Ranked</span>
           <Podium top3={ranked.slice(0, 3)} />
@@ -118,7 +155,7 @@ export function LeaderboardClient({ entries }: { entries: LeaderboardEntry[] }) 
         </div>
       )}
 
-      {upcoming.length > 0 && (
+      {view === 'alias' && upcoming.length > 0 && (
         <div className="mt-32">
           <span className="eyebrow">Up next · fewer than 3 settled calls</span>
           <p
@@ -464,3 +501,184 @@ function LeaderboardRow({
     </div>
   );
 }
+
+// ─── V4 T1.2 — wallet-grouped leaderboard view ───────────────────────
+
+function WalletBoard({
+  walletGroups,
+  timeWindowCap,
+  entityFilter,
+  now,
+}: {
+  walletGroups: WalletGroup[];
+  timeWindowCap: number | null;
+  entityFilter: Filter;
+  now: number;
+}) {
+  // Apply same time-window + entity filters as the alias view.
+  const filtered = walletGroups.filter((g) => {
+    if (timeWindowCap !== null && now - g.lastActivityMs > timeWindowCap) return false;
+    if (entityFilter === 'humans' && g.primaryEntityType !== 0) return false;
+    if (entityFilter === 'agents' && g.primaryEntityType !== 1) return false;
+    return true;
+  });
+  const ranked = filtered.filter((g) => g.isRanked);
+  const provisional = filtered.filter((g) => !g.isRanked);
+
+  return (
+    <>
+      {ranked.length > 0 && (
+        <div className="mt-16">
+          <span className="eyebrow">Ranked wallets · sorted by wallet-aggregate Skill Score</span>
+          <div
+            className="mt-12"
+            style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+          >
+            {ranked.map((g, i) => (
+              <WalletRow key={g.publisher} group={g} rank={i + 1} now={now} />
+            ))}
+          </div>
+        </div>
+      )}
+      {provisional.length > 0 && (
+        <div className="mt-32">
+          <span className="eyebrow">Provisional · fewer than the bold-call threshold</span>
+          <p
+            style={{
+              marginTop: 6,
+              fontFamily: 'var(--font-mono), monospace',
+              fontSize: 11,
+              color: 'var(--muted)',
+              maxWidth: 540,
+              lineHeight: 1.5,
+            }}
+          >
+            These wallets haven&apos;t crossed the eligibility gate yet
+            (need ≥ 3 settled and ≥ 2 bold calls in aggregate).
+          </p>
+          <div
+            className="mt-12"
+            style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+          >
+            {provisional.map((g) => (
+              <WalletRow key={g.publisher} group={g} rank={null} now={now} />
+            ))}
+          </div>
+        </div>
+      )}
+      {ranked.length === 0 && provisional.length === 0 && (
+        <div
+          className="mt-16 mono"
+          style={{
+            fontSize: 12,
+            color: 'var(--muted)',
+            padding: '20px 18px',
+            border: '1px dashed var(--border)',
+            borderRadius: 4,
+            background: 'var(--paper-2)',
+            textAlign: 'center',
+          }}
+        >
+          No wallets match this filter.
+        </div>
+      )}
+    </>
+  );
+}
+
+function WalletRow({
+  group,
+  rank,
+  now,
+}: {
+  group: WalletGroup;
+  rank: number | null;
+  now: number;
+}) {
+  const tier = tierFromScore(group.walletAggregateScore, group.isRanked);
+  const hitRate = group.totalResolved > 0 ? Math.round((group.totalHits / group.totalResolved) * 100) : null;
+  const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
+  return (
+    <Link
+      href={`/${group.primaryIdentity}`}
+      style={{
+        all: 'unset',
+        cursor: 'pointer',
+        display: 'grid',
+        gridTemplateColumns: '52px 1fr auto auto',
+        gap: 14,
+        alignItems: 'center',
+        padding: '12px 16px',
+        background: 'var(--paper)',
+        border: '1px solid var(--border)',
+        borderRadius: 4,
+      }}
+    >
+      <span
+        className="mono"
+        style={{
+          fontSize: medal ? 22 : 13,
+          fontWeight: 600,
+          color: 'var(--ink-3)',
+          textAlign: 'center',
+        }}
+      >
+        {medal ?? (rank ? `#${rank}` : '—')}
+      </span>
+      <div className="col" style={{ gap: 4, minWidth: 0 }}>
+        <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span
+            className="mono"
+            style={{ fontSize: 11, color: 'var(--muted)' }}
+          >
+            {shortHash(group.publisher, 6, 4)}
+          </span>
+          <span style={{ color: 'var(--ink)', fontWeight: 600, fontSize: 14 }}>
+            ·
+          </span>
+          <span style={{ color: 'var(--ink)', fontWeight: 600 }}>
+            {identityDisplay(group.primaryIdentity, group.primaryEntityType)}
+          </span>
+          <EntityBadge entityType={group.primaryEntityType} variant="sm" />
+          <TagChip>
+            {group.aliasCount === 1
+              ? '1 alias'
+              : `${group.aliasCount} aliases`}
+          </TagChip>
+        </div>
+        <span
+          className="mono"
+          style={{ fontSize: 10.5, color: 'var(--muted)', letterSpacing: '0.04em' }}
+        >
+          {group.totalSealed} locked · {group.totalResolved} settled
+          {hitRate !== null && ` · ${hitRate}% hit rate`}
+          {' · last active '}
+          {fmtRel(group.lastActivityMs, now)}
+        </span>
+      </div>
+      <div className="col" style={{ gap: 2, alignItems: 'flex-end' }}>
+        <span
+          className="mono"
+          style={{
+            fontSize: 22,
+            fontWeight: 600,
+            color:
+              group.walletAggregateScore >= 70
+                ? 'var(--verified)'
+                : group.walletAggregateScore >= 40
+                  ? 'var(--ink)'
+                  : 'var(--warn)',
+            lineHeight: 1,
+          }}
+        >
+          {group.isRanked ? group.walletAggregateScore : '—'}
+        </span>
+        <span className="mono" style={{ fontSize: 10, color: 'var(--muted)' }}>
+          Wallet score
+        </span>
+      </div>
+      <span className="mono" style={{ fontSize: 18, color: 'var(--muted)' }}>→</span>
+    </Link>
+  );
+}
+

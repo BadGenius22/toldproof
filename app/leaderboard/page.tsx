@@ -11,9 +11,11 @@
 
 import {
   buildLeaderboard,
+  buildWalletLeaderboard,
   sortLeaderboard,
   aggregateStats,
   type LeaderboardEntry,
+  type WalletGroup,
 } from '../../lib/leaderboard';
 import { getSuiClientForReads } from '../../lib/registry';
 import { PageEyebrow, Stat, StatStrip } from '../../components/design';
@@ -35,9 +37,14 @@ export const revalidate = 60;
 export default async function LeaderboardPage() {
   const client = getSuiClientForReads();
   let entries: LeaderboardEntry[] = [];
+  let walletGroups: WalletGroup[] = [];
   let error: string | null = null;
   try {
     entries = sortLeaderboard(await buildLeaderboard(client));
+    // V4 T1.2 — wallet-grouped view. Reuses the per-alias entries we
+    // already fetched and folds them by publisher address with Wilson on
+    // the aggregate.
+    walletGroups = buildWalletLeaderboard(entries);
   } catch (e: unknown) {
     error = e instanceof Error ? e.message : String(e);
   }
@@ -125,7 +132,7 @@ export default async function LeaderboardPage() {
         {entries.length < RANKED_THRESHOLD && !error ? (
           <SeedingState entries={entries} expectedAgents={EXPECTED_AGENT_ALIASES} />
         ) : (
-          <LeaderboardClient entries={entries} />
+          <LeaderboardClient entries={entries} walletGroups={walletGroups} />
         )}
       </div>
     </div>

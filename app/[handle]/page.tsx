@@ -318,27 +318,44 @@ export default async function ProfilePage({
                 }}
               >
                 <div className="col" style={{ gap: 4 }}>
-                  <span className="eyebrow">Skill Score · 0–100</span>
+                  {/* V4 T1.2 — headline is the wallet-aggregate Skill Score
+                      (Wilson on summed weighted hits + attempts across all
+                      aliases owned by this publisher). Single-alias wallets
+                      see the same number on the alias-only line below. */}
+                  <span className="eyebrow">
+                    {provenance && provenance.aliases.length > 1
+                      ? 'Skill Score · this wallet · 0–100'
+                      : 'Skill Score · 0–100'}
+                  </span>
                   <div
                     className="row"
                     style={{ alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}
                   >
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-mono), monospace',
-                        fontSize: 44,
-                        fontWeight: 600,
-                        color:
-                          skill.score >= 70
-                            ? 'var(--verified)'
-                            : skill.score >= 40
-                              ? 'var(--ink)'
-                              : 'var(--warn)',
-                        lineHeight: 1,
-                      }}
-                    >
-                      {skill.score}
-                    </span>
+                    {(() => {
+                      // Use wallet-aggregate when we have provenance data
+                      // and it produced a real score. Fall back to alias
+                      // score otherwise (single-alias case + DB unavailable).
+                      const headline =
+                        provenance?.walletAggregateScore ?? skill.score;
+                      return (
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-mono), monospace',
+                            fontSize: 44,
+                            fontWeight: 600,
+                            color:
+                              headline >= 70
+                                ? 'var(--verified)'
+                                : headline >= 40
+                                  ? 'var(--ink)'
+                                  : 'var(--warn)',
+                            lineHeight: 1,
+                          }}
+                        >
+                          {headline}
+                        </span>
+                      );
+                    })()}
                     {profileTag && (
                       <span
                         className="mono"
@@ -370,10 +387,29 @@ export default async function ProfilePage({
                     className="mono"
                     style={{ fontSize: 11, color: 'var(--muted)' }}
                   >
-                    {tierFromScore(skill.score, totalResolved >= 3)?.label ?? 'Unranked'}
+                    {tierFromScore(
+                      provenance?.walletAggregateScore ?? skill.score,
+                      totalResolved >= 3,
+                    )?.label ?? 'Unranked'}
                     {' · '}
                     Trivial calls (already true at lock time) don&apos;t move the score
                   </span>
+                  {/* V4 T1.2 — sub-line: when headline is wallet-aggregate,
+                      surface what this specific alias contributes so the
+                      drill-down is honest. */}
+                  {provenance &&
+                    provenance.aliases.length > 1 && (
+                      <span
+                        className="mono"
+                        style={{
+                          fontSize: 11,
+                          color: 'var(--muted)',
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        This alias on its own contributes: {skill.score}
+                      </span>
+                    )}
                 </div>
                 <div className="col" style={{ gap: 10 }}>
                   <span className="eyebrow">Mix of calls so far</span>
