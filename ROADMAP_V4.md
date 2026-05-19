@@ -22,7 +22,7 @@ Three themes, ranked by user-visible value:
 sharding" — distributing predictions across multiple aliases, abandoning
 underperformers, surfacing only the winners. The Skill Score's Wilson lower
 bound + bold-call filter defend at the per-alias level, but a sophisticated
-operator can still game the *headline* leaderboard by burning aliases.
+operator can still game the _headline_ leaderboard by burning aliases.
 
 **Approach**: Don't change the contract. Add four off-chain mechanisms that
 combine to make sharding visible, expensive, and statistically pointless.
@@ -30,7 +30,7 @@ combine to make sharding visible, expensive, and statistically pointless.
 Build order is deliberate — each ships standalone, so we can stop midway
 without breaking anything.
 
-### T1.1 — Wallet provenance footer on every profile *(ship first, ~50 LoC)*
+### T1.1 — Wallet provenance footer on every profile _(ship first, ~50 LoC)_
 
 On `/[handle]`, below the Skill Score block, add a "Wallet provenance"
 section that lists every alias owned by the same `publisher` address:
@@ -46,13 +46,14 @@ Wallet-aggregate Skill Score: 58
 ```
 
 `publisher` is public on every SealedPrediction. This is pure on-chain read
-+ render. Sharding becomes self-incriminating.
+
+- render. Sharding becomes self-incriminating.
 
 **Files**: `app/[handle]/page.tsx`, new `lib/wallet-provenance.ts` (groups
 predictions by publisher, summarizes per-alias activity), new
 `components/WalletProvenance.tsx` rendering component.
 
-### T1.2 — Wallet-aggregate Skill Score *(the canonical math fix, ~80 LoC)*
+### T1.2 — Wallet-aggregate Skill Score _(the canonical math fix, ~80 LoC)_
 
 Treat the wallet, not the alias, as the unit of reputation.
 
@@ -70,7 +71,7 @@ function), `app/leaderboard/page.tsx` (add a "By wallet" tab alongside the
 existing alias view), `app/[handle]/page.tsx` (display the wallet-aggregate
 on the provenance footer from T1.1).
 
-### T1.3 — Recency decay on alias activity *(makes sharded fleets expensive, ~70 LoC)*
+### T1.3 — Recency decay on alias activity _(makes sharded fleets expensive, ~70 LoC)_
 
 Every prediction's contribution to the Skill Score decays with age. 6-month
 half-life (Metaculus uses this). Implementation:
@@ -84,7 +85,7 @@ const contribution = weight[difficulty] * recencyWeight;
 
 Sharder needs to keep ALL aliases active forever to maintain the score —
 which means ongoing gas + LLM costs across every alias. Sharding becomes
-expensive to *maintain*, not just to set up. Abandoned aliases drift toward
+expensive to _maintain_, not just to set up. Abandoned aliases drift toward
 irrelevance automatically.
 
 Pairs naturally with T1.2 — aggregate over decayed contributions for the
@@ -93,17 +94,17 @@ truest signal.
 **Files**: `lib/leaderboard.ts` (`computeSkillStats()` adds recency weighting
 to each prediction's contribution), tests in `lib/leaderboard.test.ts`.
 
-### T1.4 — Trust badges + dormancy tagging *(compresses signal into a glance, ~50 LoC)*
+### T1.4 — Trust badges + dormancy tagging _(compresses signal into a glance, ~50 LoC)_
 
 Computed from on-chain data, displayed as pills on profile + leaderboard
 rows:
 
-| Badge | Rule | Signal |
-|---|---|---|
-| ⚡ Single-caller | Only one alias ever, ≥10 predictions resolved | High-trust |
-| 🎭 Multi-persona | 2-3 active aliases, all maintained, none abandoned | Legit segmentation |
-| ⚠ Alias-churner | Claimed ≥4 aliases in 90 days, ≥50% became dormant within 30 days | Warning |
-| 🛑 Identity-spam | Claimed ≥10 aliases | Strong warning |
+| Badge            | Rule                                                              | Signal             |
+| ---------------- | ----------------------------------------------------------------- | ------------------ |
+| ⚡ Single-caller | Only one alias ever, ≥10 predictions resolved                     | High-trust         |
+| 🎭 Multi-persona | 2-3 active aliases, all maintained, none abandoned                | Legit segmentation |
+| ⚠ Alias-churner  | Claimed ≥4 aliases in 90 days, ≥50% became dormant within 30 days | Warning            |
+| 🛑 Identity-spam | Claimed ≥10 aliases                                               | Strong warning     |
 
 Plus per-alias "dormant" (30 days inactive) and "abandoned" (90 days)
 labels surfaced on the profile and provenance footer.
@@ -122,7 +123,7 @@ These were considered and explicitly rejected:
   stop wealthy gamers anyway
 - **Hide the publisher address** — defeats the whole point of public
   on-chain receipts and forecloses the provenance footer
-- **Single X verification per wallet** *(proposed but parked)* — collides
+- **Single X verification per wallet** _(proposed but parked)_ — collides
   with humans legitimately running multiple OAuth-bound handles
 
 ---
@@ -133,7 +134,7 @@ V3 advertises a $9/mo Pro tier + a $0.50 per-call Three-judge mode add-on on
 the pricing page, but neither is gated. Anyone gets quick-mode judging today.
 V4 wires actual payment and tier-aware UX.
 
-### T2.1 — Per-prediction judge-mode toggle (Quick vs Panel) *(task #137)*
+### T2.1 — Per-prediction judge-mode toggle (Quick vs Panel) _(task #137)_
 
 User-selectable judge mode at lock time. UI: Free → Quick only, Pro → Quick
 or Panel, anyone → $0.50 one-off Panel upgrade via x402.
@@ -146,6 +147,7 @@ Stripe Pro subscription work below.
 ### T2.2 — Stripe Pro subscription
 
 Pro tier ($9/mo) gates:
+
 - Unlimited monthly seals (vs Free's 10/mo)
 - Default judge mode = Panel (vs Free's Quick)
 - Per-topic accuracy breakdowns (crypto, sports, politics, tech)
@@ -161,6 +163,7 @@ the future.
 ### T2.3 — Reputation API (B2B, $99/mo) — waitlist only
 
 The pricing page advertises this; V4 builds the actual API surface:
+
 - `GET /api/v1/top` — top-100 by Skill Score, paginated
 - `GET /api/v1/profile/[handle]` — full reputation payload
 - `POST /api/v1/webhooks` — register webhook for rank changes
@@ -172,7 +175,7 @@ Same DB, same Sui reads, just exposed externally.
 
 ## Theme 3 — Distribution layer
 
-### T3.1 — Native @x402/sui SDK *(task #108)*
+### T3.1 — Native @x402/sui SDK _(task #108)_
 
 Today's x402 settlement runs on Base Sepolia/Base. The Sui-track
 roadmap-y move: build a Sui-native facilitator that accepts USDC-on-Sui
@@ -180,6 +183,7 @@ roadmap-y move: build a Sui-native facilitator that accepts USDC-on-Sui
 clients expect. Removes the EVM dependency for agents that live on Sui.
 
 Open design questions:
+
 - Use Sui-native USDC (Wormhole-bridged) or accept SUI for payment?
 - Facilitator runs as a Sui Move package with a `settle()` entry, or
   as an off-chain relay signing standard EIP-712-style attestations?
@@ -187,7 +191,7 @@ Open design questions:
 
 Likely a 2-3 week project. Worth it if x402 adoption picks up.
 
-### T3.2 — Retail UX: zkLogin + gas sponsorship + Reputation NFT *(task #109)*
+### T3.2 — Retail UX: zkLogin + gas sponsorship + Reputation NFT _(task #109)_
 
 Three pieces of consumer-friendly polish:
 
@@ -225,6 +229,7 @@ hit-rate trackers. Theme 2 needs Stripe wiring before any of it pays off.
 Theme 3 is wide and exciting but expensive.
 
 **Suggested first quarter post-hackathon**:
+
 - T1.1 + T1.2 + T1.3 (wallet provenance + aggregate score + recency decay)
 - T3.3 (turn on the demo agent fleet — populates the leaderboard with
   real cross-model competition data, which makes T1.x visibly useful)
