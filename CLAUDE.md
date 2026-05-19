@@ -234,6 +234,15 @@ Daily commands inside `move/prediction_vault/`:
 - Mysten dapp-kit: https://sdk.mystenlabs.com/dapp-kit
 - X API docs: https://docs.x.com/x-api
 
+## Working agreements
+
+How we collaborate on this repo. Distinct from non-negotiables (those are bright lines); these are conventions that prevent the most common "AI made unauthorized changes" failure modes.
+
+- **Ask, don't assume.** If intent, naming, integration point, or requirements are unclear, ask before writing code. Silent assumptions cost more to revert than to clarify upfront. Examples that warrant a question: ambiguous wording in a spec, two valid implementations with different tradeoffs, a function name that could plausibly mean two different things, a missing piece of context that affects API shape.
+- **Show 2-3 approaches for significant tasks.** For new features, architecture decisions, or anything touching the Move contract, Walrus storage layer, Seal policy, x402 flow, or the resolution agent: outline 2-3 ways forward with the main tradeoff for each. Wait for direction before writing code. Exempt: small bug fixes, copy edits, dependency bumps, isolated UI tweaks.
+- **End non-trivial coding tasks with a change report.** Three short sections: *Files changed* (one line per file, what changed), *Files intentionally not touched* (only when relevant — e.g. you noticed something off but stayed in scope), *Follow-up needed*. Skippable for one-line edits.
+- **`ERRORS.md` failure log.** When an approach takes more than 2 attempts to work — especially Seal SDK quirks, Walrus upload edge cases, dapp-kit oddities, x402 wiring, MCP server discovery, Vercel cron timing — log it to `ERRORS.md` at the repo root. Format: `## YYYY-MM-DD — [topic]` then `What didn't work / What worked / Note for next time`. Check `ERRORS.md` before re-attempting a similar task.
+
 ## When in doubt
 
 - If you're tempted to add a feature: re-read MVP Scope above. If unclear, ask the user.
