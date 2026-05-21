@@ -58,7 +58,7 @@ export function FinalCTA() {
               className="display"
               style={{ fontSize: 'clamp(26px, 3.4vw, 38px)', maxWidth: 560 }}
             >
-              Lock a prediction in the next 60 seconds — or call out someone who
+              Lock a prediction in the next 60 seconds, or call out someone who
               didn&apos;t.
             </h2>
             <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>

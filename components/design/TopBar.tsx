@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { PixelMark } from './PixelMark';
@@ -44,6 +44,25 @@ export function TopBar() {
   // M-01: drawer state lives here so the hamburger button + the drawer
   // backdrop stay in lockstep.
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Desktop "More" dropdown — collapses the secondary nav items.
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    function onDoc(e: MouseEvent) {
+      if (!moreRef.current?.contains(e.target as Node)) setMoreOpen(false);
+    }
+    function onEsc(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMoreOpen(false);
+    }
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [moreOpen]);
 
   // Profile is dynamic: signed-in users get their own profile, signed-out
   // visitors see the canonical demo profile (disambiguated by the "(demo)"
@@ -61,19 +80,24 @@ export function TopBar() {
         match: (p) => p === `/${DEMO_PROFILE_HANDLE}`,
       };
 
-  const nav: NavItem[] = [
+  // Primary nav stays inline on desktop; the rest collapse under "More".
+  const primaryNav: NavItem[] = [
     { href: '/', label: 'Home', match: (p) => p === '/' },
     { href: '/lock', label: 'Lock' },
     { href: '/leaderboard', label: 'Leaderboard' },
     profileItem,
+  ];
+  const moreNav: NavItem[] = [
     { href: '/bot', label: 'Check bot' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/docs', label: 'Docs' },
     { href: '/brand', label: 'Brand' },
   ];
+  // "More" reads as active when the current route is one of its items.
+  const moreActive = moreNav.some((item) => isActive(path, item));
 
-  // Same items, but shaped for the drawer (active flag pre-computed).
-  const drawerNav = nav.map((item) => ({
+  // The drawer keeps every item flat — a dropdown inside a drawer is awkward.
+  const drawerNav = [...primaryNav, ...moreNav].map((item) => ({
     href: item.href,
     label: item.label,
     active: isActive(path, item),
@@ -90,7 +114,7 @@ export function TopBar() {
             TOLDPROOF
           </Link>
           <nav className="nav-row topbar-nav-desktop">
-            {nav.map((item) => (
+            {primaryNav.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -99,6 +123,35 @@ export function TopBar() {
                 {item.label}
               </Link>
             ))}
+            <div className="topbar-more" ref={moreRef}>
+              <button
+                type="button"
+                className={`topbar-more-btn${moreActive || moreOpen ? ' active' : ''}`}
+                aria-haspopup="menu"
+                aria-expanded={moreOpen}
+                onClick={() => setMoreOpen((v) => !v)}
+              >
+                More
+                <span className="topbar-more-caret" aria-hidden>
+                  ▾
+                </span>
+              </button>
+              {moreOpen && (
+                <div className="topbar-more-panel" role="menu">
+                  {moreNav.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      role="menuitem"
+                      className={isActive(path, item) ? 'active' : ''}
+                      onClick={() => setMoreOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </nav>
         </div>
         <div className="topbar-right">

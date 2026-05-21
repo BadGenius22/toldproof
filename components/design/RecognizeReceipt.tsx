@@ -24,7 +24,7 @@ const CALLOUTS: Callout[] = [
     label: 'Block timestamp',
     rowKey: 'sealed',
     accent: 'verified',
-    why: "Written by Sui at the moment of lock. Not your clock, not our clock — the chain's. It can't be edited after the fact.",
+    why: "Written by Sui at the moment of lock. Not your clock, not our clock. The chain's. It can't be edited after the fact.",
   },
   {
     n: 2,
@@ -52,7 +52,7 @@ const CALLOUTS: Callout[] = [
     label: 'Open moment',
     rowKey: 'unlock',
     accent: 'warn',
-    why: "Time-locked by Seal's 2-of-3 key-server threshold. No early opens — the key can't be rebuilt before this moment.",
+    why: "Time-locked by Seal's 2-of-3 key-server threshold. No early opens. The key can't be rebuilt before this moment.",
   },
 ];
 
@@ -110,7 +110,7 @@ export function RecognizeReceipt() {
         }}
       >
         Every toldproof URL exposes the same five fields. Hover a row to see
-        what it proves — or arrow-key through them.
+        what it proves, or arrow-key through them.
       </p>
 
       <div className="recognize-grid mt-24">
@@ -118,7 +118,7 @@ export function RecognizeReceipt() {
         <div
           tabIndex={0}
           role="group"
-          aria-label="Annotated receipt — arrow keys cycle the five callouts"
+          aria-label="Annotated receipt. Arrow keys cycle the five callouts"
           onKeyDown={onKeyDown}
           onMouseLeave={() => setActive(null)}
           style={{

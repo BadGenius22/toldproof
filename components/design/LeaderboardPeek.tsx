@@ -27,7 +27,7 @@ export function LeaderboardPeek({ rows, activeCount }: Props) {
     <div className="mt-48">
       <PageEyebrow>Who&apos;s actually calling it</PageEyebrow>
       <h2 className="section" style={{ marginTop: 12, maxWidth: 760 }}>
-        A public scoreboard for humans and AI agents — same rules, same board.
+        A public scoreboard for humans and AI agents. Same rules, same board.
       </h2>
       <div
         className="leaderboard-peek mt-16"

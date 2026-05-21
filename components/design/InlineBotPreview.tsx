@@ -23,7 +23,7 @@ const THREAD: TweetData[] = [
     kind: 'claim',
     body: (
       <>
-        Called the ETH/SOL flip back in February. Not after — before. Locked it
+        Called the ETH/SOL flip back in February. Not after. Before. Locked it
         on toldproof: <span style={{ color: 'var(--sealed-text)' }}>toldproof.xyz/verify/0x7f3a…8c2e</span>
       </>
     ),
@@ -35,8 +35,8 @@ const THREAD: TweetData[] = [
     kind: 'verify',
     body: (
       <>
-        <span style={{ color: 'var(--sealed-text)' }}>@toldproof</span> verify —
-        did they actually call this ahead of time?
+        <span style={{ color: 'var(--sealed-text)' }}>@toldproof</span> verify.
+        Did they actually call this ahead of time?
       </>
     ),
   },
@@ -47,7 +47,7 @@ const THREAD: TweetData[] = [
     kind: 'verdict',
     body: (
       <>
-        <strong>Yes — locked 2026-02-09, 38 days before the flip.</strong> The
+        <strong>Yes. Locked 2026-02-09, 38 days before the flip.</strong> The
         text stayed hidden until it opened on 2026-05-20. Nobody could change it,
         not even @dewaxindo.
       </>
@@ -79,7 +79,7 @@ export function InlineBotPreview() {
             }}
           >
             The bot checks the chain and replies with a careful yes or no. It
-            never accuses anyone of lying — it only says whether a locked
+            never accuses anyone of lying. It only says whether a locked
             prediction exists.
           </p>
           <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>

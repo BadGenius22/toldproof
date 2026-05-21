@@ -74,7 +74,7 @@ const FAQ = [
   },
   {
     q: 'Is it free?',
-    a: 'Humans get 10 free predictions a month. After that, each extra one costs $0.10. AI agents pay $0.10 from the very first prediction — they typically lock far more than humans do, and that pays for the AI judge that marks everyone’s calls.',
+    a: 'Humans get 10 free predictions a month. After that, each extra one costs $0.10. AI agents pay $0.10 from the very first prediction. They typically lock far more than humans do, and that pays for the AI judge that marks everyone’s calls.',
   },
   {
     q: 'What does this run on?',
@@ -82,7 +82,7 @@ const FAQ = [
   },
   {
     q: 'Why on Sui and not Ethereum?',
-    a: 'Two of the pieces we need only exist on Sui today. Walrus saves the AI judge’s full reasoning forever and very cheaply — Ethereum storage is too expensive for that. Seal holds the key to your prediction until the open date, so nobody (not even us) can read it early — Ethereum doesn’t have a turnkey version of this yet. We could add Ethereum support later for people who want their score there, but the lock-and-open machinery only works where its building blocks live.',
+    a: 'Two of the pieces we need only exist on Sui today. Walrus saves the AI judge’s full reasoning forever and very cheaply, which Ethereum storage is too expensive to do. Seal holds the key to your prediction until the open date, so nobody (not even us) can read it early, and Ethereum doesn’t have a turnkey version of this yet. We could add Ethereum support later for people who want their score there, but the lock-and-open machinery only works where its building blocks live.',
   },
   {
     q: 'What happens if your company disappears?',
@@ -167,16 +167,14 @@ export default async function HomePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
               <PageEyebrow>Sui Overflow 2026 · Walrus Track · v0.1 testnet</PageEyebrow>
               <h1 className="display">
-                A track record
+                Anyone can say &ldquo;I called it.&rdquo;
                 <br />
-                nobody can fake — for{' '}
-                <span className="accent">AI agents</span> and humans.
+                Now you can <span className="accent">prove it.</span>
               </h1>
               <p className="hero-lede">
-                Lock a prediction today. We hide the text and pick a future
-                date for it to open. An AI judge reads what actually happened,
-                marks it hit or miss, and saves the full reasoning forever.
-                Build a record nobody can fake.
+                Lock a prediction. It stays sealed until your date. An AI judge
+                opens it, checks what really happened, and stamps it hit or
+                miss. One honest scoreboard for humans and AI agents.
               </p>
               {snap && snap.totalLocked > 0 ? (
                 <div className="mono live-pulse">
@@ -316,7 +314,7 @@ export default async function HomePage() {
               <HowStep
                 n="02"
                 title="Wait"
-                body="Until the open date nobody can read it — not even you. A short fingerprint of your text is saved on Sui from day one, so the words can never be quietly changed."
+                body="Until the open date nobody can read it, not even you. A short fingerprint of your text is saved on Sui from day one, so the words can never be quietly changed."
                 demo={<MiniWaitDemo />}
               />
               <HowStep
@@ -328,7 +326,7 @@ export default async function HomePage() {
               <HowStep
                 n="04"
                 title="Score builds"
-                body="Your hit rate, your best topics, your full history — all live on Walrus, public, permanent. Every prediction adds to your score. Anyone can read every call."
+                body="Your hit rate, your best topics, your full history, all live on Walrus, public, permanent. Every prediction adds to your score. Anyone can read every call."
                 demo={<MiniScoreDemo />}
               />
             </div>
@@ -517,7 +515,7 @@ function BeforeCard() {
               <span className="time">· 1h</span>
             </div>
             <div className="tweet-body">
-              <span className="l">@toldproof</span> verify — did they
+              <span className="l">@toldproof</span> verify. Did they
               really call this back then?
             </div>
           </div>
@@ -595,7 +593,7 @@ function AfterCard() {
               <span className="time">· 8d</span>
             </div>
             <div className="tweet-body">
-              <span className="l">@toldproof</span> verify — is this real?
+              <span className="l">@toldproof</span> verify. Is this real?
             </div>
           </div>
         </div>
@@ -608,10 +606,10 @@ function AfterCard() {
               <span className="time">· 8d</span>
             </div>
             <div className="tweet-body">
-              <span className="verdict">Yes — this was locked{' '}
+              <span className="verdict">Yes, this was locked{' '}
               {fmtRel(SAMPLE.sealedAtMs)}.</span> Opens{' '}
               {fmtAbs(SAMPLE.unlockAtMs).slice(0, 10)}. The text stays
-              hidden until then, and nobody can change it — not even
+              hidden until then, and nobody can change it, not even
               @dewaxindo.
             </div>
           </div>
