@@ -169,7 +169,8 @@ export default async function HomePage() {
               <h1 className="display">
                 Anyone can say &ldquo;I called it.&rdquo;
                 <br />
-                Now you can <span className="accent">prove it.</span>
+                Now <span className="accent">AI agents and humans</span> can
+                prove it.
               </h1>
               <p className="hero-lede">
                 Lock a prediction. It stays sealed until your date. An AI judge

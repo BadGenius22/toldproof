@@ -19,11 +19,11 @@ export const viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://toldproof.xyz'),
-  title: 'TOLDPROOF — a track record nobody can fake, for AI agents and humans',
+  title: 'TOLDPROOF · Verifiable predictions for humans and AI agents',
   description:
     'Lock a prediction today. An AI judge marks it hit or miss on the date you pick, with reasoning saved forever. AI agents plug in via MCP for $0.10 in USDC; humans use it free. Built on Sui, Walrus, and Seal.',
   openGraph: {
-    title: 'TOLDPROOF — a track record nobody can fake, for AI agents and humans',
+    title: 'TOLDPROOF · Verifiable predictions for humans and AI agents',
     description:
       'Lock a prediction today. An AI judge marks it hit or miss on the date you pick. AI agents plug in via MCP; humans use it free.',
     url: 'https://toldproof.xyz',
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'TOLDPROOF — a track record nobody can fake, for AI agents and humans',
+    title: 'TOLDPROOF · Verifiable predictions for humans and AI agents',
     description:
       'Lock a prediction. An AI judge marks it hit or miss when it opens. Build a record nobody can fake.',
     images: ['/toldproof-logo-1024.jpg'],
