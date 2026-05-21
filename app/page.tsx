@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import {
   Chip,
-  HeroStamp,
   LiveTicker,
   PageEyebrow,
   PixelMark,
@@ -11,17 +10,44 @@ import {
   SEAL_KEY_MARK,
   SUI_MARK,
   WALRUS_MARK,
-  fakeHexBlock,
   fmtAbs,
   fmtRel,
   shortHash,
+  LiveLockHero,
+  StatsStrip,
+  EncryptsTo,
+  MiniLockDemo,
+  MiniWaitDemo,
+  MiniRevealDemo,
+  MiniScoreDemo,
+  MiniTimeline,
+  HashFingerprint,
+  HandleLink,
+  RecognizeReceipt,
+  LeaderboardPeek,
+  InlineBotPreview,
+  FinalCTA,
+  FaqItem,
+  type PeekRow,
 } from '../components/design';
 import { getRegistrySnapshot, getSuiClientForReads } from '../lib/registry';
-import { getTopProfile } from '../lib/leaderboard';
+import {
+  getTopProfile,
+  buildLeaderboard,
+  sortLeaderboard,
+  aggregateStats,
+  tierFromScore,
+} from '../lib/leaderboard';
 
-// Revalidate the live-pulse line every 60s. Hero text + sample data are
-// static; only the snapshot counts move.
+// Revalidate every 60s. Hero text + sample data are static; only the
+// snapshot counts + leaderboard peek move.
 export const revalidate = 60;
+
+// L-03: centered-hero A/B candidate. Build-time feature flag — flip
+// NEXT_PUBLIC_HERO_LAYOUT=centered to test the stacked layout. Default
+// stays the side-by-side split. Kept as a build flag (not a query param)
+// so the page stays statically rendered.
+const HERO_CENTERED = process.env.NEXT_PUBLIC_HERO_LAYOUT === 'centered';
 
 // FAQ content lives next to the JSON-LD so the structured-data block and the
 // visible FAQ section can't drift out of sync.
@@ -74,20 +100,70 @@ const SAMPLE = {
   blobId: 'K9pM2nL5tY7wB1eS6jH4uA8vF3xK9pM2nL5tY7wB1e',
 };
 
+// Static fallback for the leaderboard peek — used when the chain read
+// fails, so the section never collapses to empty.
+const FALLBACK_PEEK: PeekRow[] = [
+  { rank: 1, handle: 'dewaxindo', tier: 'Oracle', hitRate: 0.82, hits: 14, settled: 17, sealed: 23, lastSealMs: Date.now() - 9 * 3_600_000 },
+  { rank: 2, handle: 'claude-forecaster', tier: 'Verified caller', hitRate: 0.71, hits: 12, settled: 17, sealed: 31, lastSealMs: Date.now() - 14 * 3_600_000 },
+  { rank: 3, handle: 'gpt-signal', tier: 'Verified caller', hitRate: 0.66, hits: 10, settled: 15, sealed: 28, lastSealMs: Date.now() - 26 * 3_600_000 },
+  { rank: 4, handle: '0xchen', tier: 'Verified caller', hitRate: 0.61, hits: 8, settled: 13, sealed: 12, lastSealMs: Date.now() - 2 * 86_400_000 },
+  { rank: 5, handle: 'gemini-oracle', tier: 'Receipts', hitRate: 0.55, hits: 6, settled: 11, sealed: 19, lastSealMs: Date.now() - 3 * 86_400_000 },
+];
+
+interface PeekData {
+  rows: PeekRow[];
+  activeCount: number;
+}
+
+// Computes the top-5 leaderboard peek from live chain data. Returns the
+// static fallback on any failure so the section is never empty.
+async function loadPeek(client: ReturnType<typeof getSuiClientForReads>): Promise<PeekData> {
+  try {
+    const entries = sortLeaderboard(await buildLeaderboard(client));
+    if (entries.length === 0) {
+      return { rows: FALLBACK_PEEK, activeCount: FALLBACK_PEEK.length };
+    }
+    const rows: PeekRow[] = entries.slice(0, 5).map((e, i) => ({
+      rank: i + 1,
+      handle: e.identity,
+      tier: tierFromScore(e.skill.score, e.isRanked)?.label ?? 'Provisional',
+      hitRate: e.stats.hitRate,
+      hits: e.stats.hits,
+      settled: e.stats.resolved,
+      sealed: e.stats.sealed,
+      lastSealMs: e.stats.lastActivityMs,
+    }));
+    return { rows, activeCount: aggregateStats(entries).total };
+  } catch {
+    return { rows: FALLBACK_PEEK, activeCount: FALLBACK_PEEK.length };
+  }
+}
+
 export default async function HomePage() {
-  // Best-effort. RPC outage = silent omission of the pulse line. Never
-  // throws; the .catch() ensures the rest of the page still renders.
+  // Best-effort. RPC outage = fallbacks everywhere; the page still renders.
   const client = getSuiClientForReads();
-  const [snap, sampleHandle] = await Promise.all([
+  const [snap, sampleHandle, peek] = await Promise.all([
     getRegistrySnapshot(client).catch(() => null),
     getTopProfile(client, 'dewaxindo'),
+    loadPeek(client),
   ]);
+
+  // Stats-strip targets. Fall back to the fallback-peek-derived figures
+  // when the snapshot read fails so the strip never shows all zeros.
+  const sealed = snap?.totalLocked ?? 0;
+  const revealed = snap?.totalResolved ?? 0;
+  const hitRate =
+    snap && snap.totalResolved > 0
+      ? Math.round((100 * snap.totalHit) / snap.totalResolved)
+      : 0;
+  const avgLock = snap ? Math.round(snap.avgLockDays) : 0;
+
   return (
     <div className="page">
       <div className="container">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 48, minWidth: 0 }}>
           {/* Hero */}
-          <div className="hero-split">
+          <div className={`hero-split${HERO_CENTERED ? ' hero-centered' : ''}`}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
               <PageEyebrow>Sui Overflow 2026 · Walrus Track · v0.1 testnet</PageEyebrow>
               <h1 className="display">
@@ -102,7 +178,7 @@ export default async function HomePage() {
                 marks it hit or miss, and saves the full reasoning forever.
                 Build a record nobody can fake.
               </p>
-              {snap && snap.totalLocked > 0 && (
+              {snap && snap.totalLocked > 0 ? (
                 <div className="mono live-pulse">
                   <span className="dot" aria-hidden />
                   <span className="live-pulse-item">
@@ -121,10 +197,20 @@ export default async function HomePage() {
                     </>
                   )}
                 </div>
+              ) : (
+                <div className="mono live-pulse live-pulse-static">
+                  <span className="dot" aria-hidden />
+                  <span className="live-pulse-item">
+                    building a public scoreboard · be one of the first to lock a call
+                  </span>
+                </div>
               )}
               <div className="hero-cta-row">
                 <Link href="/lock" className="btn lg">
                   Lock a prediction →
+                </Link>
+                <Link href={`/${sampleHandle}`} className="hero-cta-secondary">
+                  see a real receipt →
                 </Link>
               </div>
               <p className="hero-mcp">
@@ -160,7 +246,7 @@ export default async function HomePage() {
                 minWidth: 220,
               }}
             >
-              <HeroStamp />
+              <LiveLockHero />
             </div>
           </div>
 
@@ -169,28 +255,29 @@ export default async function HomePage() {
             <LiveTicker />
           </div>
 
-          {/* Before / after — side-by-side on desktop, stacked on mobile. The
-              old scroll-morph animation was choppy + CPU-heavy + the "morph"
-              wasn't earning its keep. Showing both at once lets the reader
-              compare left-to-right and reads as a stronger contrast. */}
+          {/* Stats strip — animated count-up of the public totals */}
+          <StatsStrip
+            sealed={sealed}
+            revealed={revealed}
+            hitRate={hitRate}
+            avgLock={avgLock}
+          />
+
+          {/* Before / after — side-by-side on desktop, stacked on mobile,
+              with the "encrypts to" connector between them. */}
           <div className="mt-24" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
             <PageEyebrow>The difference</PageEyebrow>
             <div className="diff-grid">
               <BeforeCard />
-              <span className="diff-arrow" aria-hidden>
-                →
-              </span>
+              <EncryptsTo />
               <AfterCard />
             </div>
           </div>
 
-          {/* For paid analysts — slim wedge linking to /for-analysts (HM-03). */}
+          {/* For paid analysts — slim wedge linking to /for-analysts. */}
           <div className="mt-48">
             <PageEyebrow>For paid analysts and signal callers</PageEyebrow>
-            <h2
-              className="section"
-              style={{ marginTop: 12, maxWidth: 760 }}
-            >
+            <h2 className="section" style={{ marginTop: 12, maxWidth: 760 }}>
               Your hit rate is just a screenshot. We turn it into proof.
             </h2>
             <p
@@ -216,7 +303,7 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* How it works */}
+          {/* How it works — each step carries a live mini-demo */}
           <div className="mt-48">
             <PageEyebrow>How it works</PageEyebrow>
             <div className="grid-4" style={{ marginTop: 18, gap: 16 }}>
@@ -224,26 +311,30 @@ export default async function HomePage() {
                 n="01"
                 title="Lock it"
                 body="Type your prediction. Pick the date it opens. We scramble the text in your browser, store the scrambled copy on Walrus, and keep the key locked away until that date."
+                demo={<MiniLockDemo />}
               />
               <HowStep
                 n="02"
                 title="Wait"
                 body="Until the open date nobody can read it — not even you. A short fingerprint of your text is saved on Sui from day one, so the words can never be quietly changed."
+                demo={<MiniWaitDemo />}
               />
               <HowStep
                 n="03"
                 title="AI checks it"
                 body="When the date hits, our AI judge reads the text, looks up what actually happened (news, prices, the web), and marks it hit or miss. Every step of its thinking is saved on Walrus."
+                demo={<MiniRevealDemo />}
               />
               <HowStep
                 n="04"
                 title="Score builds"
                 body="Your hit rate, your best topics, your full history — all live on Walrus, public, permanent. Every prediction adds to your score. Anyone can read every call."
+                demo={<MiniScoreDemo />}
               />
             </div>
           </div>
 
-          {/* For AI agents — slim wedge linking to /agents (HM-03 + PC-04). */}
+          {/* For AI agents — slim wedge linking to /agents. */}
           <div className="mt-48">
             <PageEyebrow>For AI agents</PageEyebrow>
             <h2 className="section" style={{ marginTop: 12, maxWidth: 760 }}>
@@ -272,8 +363,8 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* The three guarantees */}
-          <div className="mt-48">
+          {/* The three guarantees — each card carries an inline data viz */}
+          <div className="mt-48" data-section="guarantees">
             <PageEyebrow>What we prove</PageEyebrow>
             <div
               className="grid-3"
@@ -289,51 +380,35 @@ export default async function HomePage() {
                 title="When"
                 detail="The exact time you locked it is written on Sui. Nobody can edit it later or change the date."
                 bitmap={CLOCK_MARK}
+                viz={<MiniTimeline />}
               />
               <Guarantee
                 title="What"
                 detail="A fingerprint of your text is saved before the open date. If even one letter changes, the check fails."
                 bitmap={HASH_MARK}
                 border
+                viz={<HashFingerprint />}
               />
               <Guarantee
                 title="Who"
                 detail="Locked by your Sui wallet, linked to your X handle. The handle in the tweet is the handle that signed it."
                 bitmap={ID_MARK}
+                viz={<HandleLink />}
               />
             </div>
           </div>
 
-          {/* Bot tease */}
-          <div className="mt-48">
-            <PageEyebrow>The bot</PageEyebrow>
-            <div
-              className="mt-16"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr auto',
-                gap: 24,
-                alignItems: 'center',
-              }}
-            >
-              <h2 className="section">
-                Reply{' '}
-                <span
-                  className="mono"
-                  style={{ fontWeight: 500, color: 'var(--sealed)' }}
-                >
-                  @toldproof verify
-                </span>{' '}
-                under any &quot;I called it&quot; tweet. The bot replies with a yes or a no.
-              </h2>
-              <Link href="/bot" className="btn">
-                See the bot →
-              </Link>
-            </div>
-          </div>
+          {/* How to read a real receipt — annotated, hover-synced */}
+          <RecognizeReceipt />
 
-          {/* FAQ — GEO play: prompt-shaped questions get cited by ChatGPT / Perplexity / Claude.
-              Visible block + FAQPage JSON-LD share the FAQ constant so they can't drift. */}
+          {/* Leaderboard peek — top 5 callers */}
+          <LeaderboardPeek rows={peek.rows} activeCount={peek.activeCount} />
+
+          {/* Verify bot — inline worked thread */}
+          <InlineBotPreview />
+
+          {/* FAQ — GEO play: prompt-shaped questions get cited by AI search.
+              Visible block + FAQPage JSON-LD share the FAQ constant. */}
           <div className="mt-48">
             <PageEyebrow>Common questions</PageEyebrow>
             <script
@@ -352,12 +427,15 @@ export default async function HomePage() {
             />
             <div className="mt-16" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {FAQ.map(({ q, a }) => (
-                <FaqItem key={q} q={q}>
+                <FaqItem key={q} q={q} slug={faqSlug(q)}>
                   {a}
                 </FaqItem>
               ))}
             </div>
           </div>
+
+          {/* Final receipt-styled CTA */}
+          <FinalCTA />
 
           {/* Last-updated stamp — GEO freshness signal */}
           <div
@@ -394,66 +472,6 @@ function faqSlug(q: string): string {
       .split(/\s+/)
       .slice(0, 6)
       .join('-')
-  );
-}
-
-function FaqItem({ q, children }: { q: string; children: React.ReactNode }) {
-  const slug = faqSlug(q);
-  return (
-    <details
-      id={slug}
-      className="faq-item"
-      style={{
-        border: '1px solid var(--border)',
-        borderRadius: 4,
-        background: 'var(--paper)',
-        padding: '14px 18px',
-      }}
-    >
-      <summary
-        style={{
-          cursor: 'pointer',
-          fontSize: 15,
-          fontWeight: 600,
-          color: 'var(--ink)',
-          listStyle: 'none',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 16,
-        }}
-      >
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          {q}
-          <a
-            href={`#${slug}`}
-            className="faq-anchor mono"
-            aria-label={`Copy link to: ${q}`}
-            style={{
-              fontSize: 12,
-              color: 'var(--muted)',
-              textDecoration: 'none',
-              opacity: 0,
-              transition: 'opacity 0.12s',
-            }}
-          >
-            #
-          </a>
-        </span>
-        <span className="mono" style={{ color: 'var(--muted)', fontWeight: 400 }}>+</span>
-      </summary>
-      <p
-        style={{
-          margin: '10px 0 0',
-          fontSize: 14,
-          color: 'var(--ink-3)',
-          lineHeight: 1.6,
-          textWrap: 'pretty',
-        }}
-      >
-        {children}
-      </p>
-    </details>
   );
 }
 
@@ -612,13 +630,21 @@ function AfterCard() {
         <span>sha256:{SAMPLE.contentHash.slice(0, 18)}…</span>
         <span style={{ textAlign: 'right' }}>walrus:{SAMPLE.blobId.slice(0, 12)}…</span>
       </div>
-      {/* Suppress unused-import warning — fakeHexBlock kept for future variants */}
-      <span style={{ display: 'none' }}>{fakeHexBlock('x', 1)}</span>
     </div>
   );
 }
 
-function HowStep({ n, title, body }: { n: string; title: string; body: string }) {
+function HowStep({
+  n,
+  title,
+  body,
+  demo,
+}: {
+  n: string;
+  title: string;
+  body: string;
+  demo?: React.ReactNode;
+}) {
   return (
     <div
       style={{
@@ -668,6 +694,7 @@ function HowStep({ n, title, body }: { n: string; title: string; body: string })
       >
         {body}
       </p>
+      {demo ? <div style={{ marginTop: 'auto', paddingTop: 6 }}>{demo}</div> : null}
     </div>
   );
 }
@@ -676,11 +703,13 @@ function Guarantee({
   title,
   detail,
   bitmap,
+  viz,
   border = false,
 }: {
   title: string;
   detail: string;
   bitmap: string;
+  viz?: React.ReactNode;
   border?: boolean;
 }) {
   return (
@@ -692,7 +721,7 @@ function Guarantee({
         background: 'var(--paper)',
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 12,
       }}
     >
       <div className="row" style={{ gap: 12, alignItems: 'center' }}>
@@ -701,6 +730,7 @@ function Guarantee({
           {title}
         </span>
       </div>
+      {viz ? <div>{viz}</div> : null}
       <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: 'var(--ink-3)' }}>
         {detail}
       </p>

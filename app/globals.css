@@ -2454,3 +2454,114 @@ h2.section {
   font-size: 11px;
   color: var(--ink-2);
 }
+
+/* ─── Landing UX overhaul (LANDING_UX_OVERHAUL.md) ─────────────────────── */
+
+/* L-01 — hero secondary CTA: a dashed-underline link, not a second button */
+.hero-cta-secondary {
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-decoration-style: dashed;
+  text-underline-offset: 4px;
+  padding: 8px 4px;
+  white-space: nowrap;
+}
+.hero-cta-secondary:hover {
+  color: var(--ink);
+}
+
+/* L-02 — fallback pulse line when the snapshot read fails */
+.live-pulse-static {
+  color: var(--muted);
+}
+
+/* L-03 — optional centered hero layout (build-flag A/B candidate) */
+.hero-split.hero-centered {
+  grid-template-columns: 1fr;
+  text-align: center;
+}
+.hero-split.hero-centered > :first-child {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.hero-split.hero-centered .hero-cta-row,
+.hero-split.hero-centered .hero-stack-chips,
+.hero-split.hero-centered .hero-stack {
+  justify-content: center;
+}
+.hero-split.hero-centered .hero-mark {
+  margin: 0 auto;
+}
+
+/* L-06 — "encrypts to" connector: hidden when cards stack on mobile */
+@media (max-width: 720px) {
+  .encrypts-to {
+    display: none;
+  }
+}
+
+/* L-05 — stats strip: 2x2 grid on mobile */
+@media (max-width: 720px) {
+  .stats-strip {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* L-09 — "how to read a receipt" two-column grid */
+.recognize-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 36px;
+  align-items: start;
+}
+@media (max-width: 880px) {
+  .recognize-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* L-10 — leaderboard peek: drop the sealed + last-seal columns on mobile */
+@media (max-width: 720px) {
+  .lb-peek-row {
+    grid-template-columns: 32px 1fr 120px !important;
+  }
+  .lb-peek-sealed,
+  .lb-peek-last {
+    display: none !important;
+  }
+}
+
+/* L-11 — inline bot preview: two columns, stacks on mobile */
+.bot-preview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+@media (max-width: 880px) {
+  .bot-preview-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* L-13 — final CTA: heading + seal side by side, seal stacks on mobile */
+.final-cta-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 32px;
+  padding: 28px;
+  align-items: center;
+}
+@media (max-width: 720px) {
+  .final-cta-body {
+    grid-template-columns: 1fr;
+    padding: 22px;
+  }
+  .final-cta-seal {
+    order: -1;
+  }
+}

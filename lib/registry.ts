@@ -191,14 +191,18 @@ export async function listAllIdentities(client: SuiClient): Promise<string[]> {
   return out;
 }
 
-// Lightweight snapshot for the landing-page live-pulse line (P0-4).
+// Lightweight snapshot for the landing-page live-pulse line + stats strip.
 // totalLocked = every prediction ever sealed across all identities.
 // totalResolved = predictions the AI judge has already attested.
+// totalHit = resolved predictions the AI judge marked as a hit.
+// avgLockDays = mean (unlockAtMs - sealedAtMs) across all predictions, in days.
 // nextUnlockMs = smallest unlockAtMs strictly greater than now, or null if
 // every prediction is already past its unlock time.
 export interface RegistrySnapshot {
   totalLocked: number;
   totalResolved: number;
+  totalHit: number;
+  avgLockDays: number;
   nextUnlockMs: number | null;
 }
 
@@ -207,6 +211,8 @@ export async function getRegistrySnapshot(client: SuiClient): Promise<RegistrySn
   const now = Date.now();
   let totalLocked = 0;
   let totalResolved = 0;
+  let totalHit = 0;
+  let lockDaysSum = 0;
   let nextUnlockMs: number | null = null;
 
   for (const identity of identities) {
@@ -220,7 +226,14 @@ export async function getRegistrySnapshot(client: SuiClient): Promise<RegistrySn
     }
     totalLocked += preds.length;
     for (const p of preds) {
-      if (p.resolved) totalResolved += 1;
+      if (p.resolved) {
+        totalResolved += 1;
+        if (p.hit) totalHit += 1;
+      }
+      // Lock window: from seal to unlock. Guard against malformed rows
+      // where unlock precedes seal (clamps to 0 rather than skewing the mean).
+      const lockMs = Math.max(0, p.unlockAtMs - p.sealedAtMs);
+      lockDaysSum += lockMs / 86_400_000;
       if (!p.revealed && p.unlockAtMs > now) {
         if (nextUnlockMs === null || p.unlockAtMs < nextUnlockMs) {
           nextUnlockMs = p.unlockAtMs;
@@ -229,7 +242,8 @@ export async function getRegistrySnapshot(client: SuiClient): Promise<RegistrySn
     }
   }
 
-  return { totalLocked, totalResolved, nextUnlockMs };
+  const avgLockDays = totalLocked > 0 ? lockDaysSum / totalLocked : 0;
+  return { totalLocked, totalResolved, totalHit, avgLockDays, nextUnlockMs };
 }
 
 export async function getPredictionView(

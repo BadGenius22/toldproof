@@ -15,5 +15,22 @@ export { FilterTabs } from './FilterTabs';
 export { Callout } from './Callout';
 export { CopyableHash } from './CopyableHash';
 export { ShareButton } from './ShareButton';
+// Landing UX overhaul (LANDING_UX_OVERHAUL.md)
+export { LiveLockHero } from './LiveLockHero';
+export { StatsStrip } from './StatsStrip';
+export { EncryptsTo } from './EncryptsTo';
+export {
+  MiniBox,
+  MiniLockDemo,
+  MiniWaitDemo,
+  MiniRevealDemo,
+  MiniScoreDemo,
+} from './MiniDemos';
+export { MiniTimeline, HashFingerprint, HandleLink } from './GuaranteeViz';
+export { RecognizeReceipt } from './RecognizeReceipt';
+export { LeaderboardPeek, type PeekRow } from './LeaderboardPeek';
+export { InlineBotPreview } from './InlineBotPreview';
+export { FinalCTA } from './FinalCTA';
+export { FaqItem } from './FaqItem';
 export * from './bitmaps';
 export * from './format';

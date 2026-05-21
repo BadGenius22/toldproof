@@ -71,6 +71,14 @@ function defaultUnlockLocal(): string {
   return formatLocalDatetimeInput(d);
 }
 
+// Landing-page LiveLockHero hands off an unlock date as a bare YYYY-MM-DD
+// query param. The form's unlock field is a datetime-local input, so pad
+// the param to a noon timestamp. Reject anything that isn't a clean date.
+function unlockFromParam(raw: string | undefined): string {
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return '';
+  return `${raw}T12:00`;
+}
+
 // NEXT_PUBLIC_* are inlined at build time for client bundles. Reading them
 // here (inside the component, post-build) is safe; doing it at module-top
 // breaks Turbopack's client-component pre-evaluation in dev SSR.
@@ -81,7 +89,17 @@ const NETWORK = (process.env.NEXT_PUBLIC_SUI_NETWORK ?? 'testnet') as
   | 'devnet'
   | 'localnet';
 
-export function PredictionForm() {
+interface PredictionFormProps {
+  /** Prefill the prediction text — passed from /lock?text= (LiveLockHero). */
+  initialText?: string;
+  /** Prefill the unlock date — passed from /lock?unlock= as YYYY-MM-DD. */
+  initialUnlock?: string;
+}
+
+export function PredictionForm({
+  initialText,
+  initialUnlock,
+}: PredictionFormProps = {}) {
   const account = useCurrentAccount();
   const dAppKit = useDAppKit();
   const { session, knownBinding } = useXSession();
@@ -90,7 +108,7 @@ export function PredictionForm() {
     () => new SuiJsonRpcClient({ url: RPC_URL, network: NETWORK }),
   );
 
-  const [text, setText] = useState('');
+  const [text, setText] = useState(() => (initialText ?? '').slice(0, 280));
   // LK-06: structured-prediction mode. Free-text remains the default; users
   // can flip to structured for one-line falsifiable claims like
   // `BTC > 95000 by 2026-06-30`. Switching back leaves the existing text
@@ -107,7 +125,7 @@ export function PredictionForm() {
     if (!t || !sValue || !sByDate) return;
     setText(`${t} ${sOp} ${sValue} by ${sByDate}`);
   }, [mode, sTicker, sOtherTicker, sOp, sValue, sByDate]);
-  const [unlockIso, setUnlockIso] = useState('');
+  const [unlockIso, setUnlockIso] = useState(() => unlockFromParam(initialUnlock));
   useEffect(() => {
     setUnlockIso((prev) => prev || defaultUnlockLocal());
   }, []);
