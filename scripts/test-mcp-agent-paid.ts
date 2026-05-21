@@ -189,10 +189,10 @@ async function callToolWithAutoPayment(
     // Loud, full-text dump so we can see WHY the facilitator/server
     // rejected (most common: agent wallet has 0 USDC balance, so the
     // transferWithAuthorization() on Base Sepolia reverts).
-    const errText = reply.result.content?.[0]?.text ?? '(no content text)';
+    const errText = reply.result.content?.[0]?.text ?? "(no content text)";
     const sc = reply.result.structuredContent
       ? JSON.stringify(reply.result.structuredContent, null, 2)
-      : '(no structuredContent)';
+      : "(no structuredContent)";
     console.error(`\n      ✗ retry rejected. Full server response:`);
     console.error(`         content[0].text:\n${errText}`);
     console.error(`         structuredContent:\n${sc}\n`);
@@ -202,7 +202,7 @@ async function callToolWithAutoPayment(
           ? privateKeyToAccount(
               process.env.AGENT_BASE_PRIVATE_KEY as `0x${string}`,
             ).address
-          : '?'
+          : "?"
       } has no Base Sepolia USDC. Fund at https://faucet.circle.com → Base Sepolia. Full server text: ${errText.slice(0, 300)}`,
     );
   }

@@ -145,7 +145,7 @@ export default function McpPage() {
           prompt? Pass it as <code className="mono">argv[2]</code>.
         </p>
         <CodeBlock
-          code="pnpm tsx --env-file=.env.local scripts/test-mcp-agent.ts"
+          code="pnpm tsx --env-file=.env.local scripts/test-mcp-agent-paid.ts"
           language="bash"
         />
         <span
@@ -189,7 +189,7 @@ export default function McpPage() {
 
       <div className="row" style={{ gap: 10, flexWrap: 'wrap', marginTop: 24 }}>
         <a
-          href="https://github.com/BadGenius22/toldproof/blob/main/scripts/test-mcp-agent.ts"
+          href="https://github.com/BadGenius22/toldproof/blob/main/scripts/test-mcp-agent-paid.ts"
           target="_blank"
           rel="noreferrer"
           className="btn"
