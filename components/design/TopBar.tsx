@@ -197,10 +197,10 @@ export function FooterBar() {
       <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
         <a
           className="onchain-badge"
-          href={`https://${NETWORK}.suivision.xyz/package/${PACKAGE_ID}`}
+          href={`https://suiscan.xyz/${NETWORK}/object/${PACKAGE_ID}`}
           target="_blank"
           rel="noopener noreferrer"
-          title={`View on Suivision · ${PACKAGE_ID}`}
+          title={`View on Suiscan · ${PACKAGE_ID}`}
         >
           <PixelMark bitmap={SUI_MARK} size={14} />
           Package · {shortHash(PACKAGE_ID, 6, 4)}
