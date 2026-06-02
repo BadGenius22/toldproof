@@ -33,7 +33,7 @@ export default function DocsIndexPage() {
             textWrap: 'pretty',
           }}
         >
-          Everything you need to understand TOLDPROOF in five minutes.
+          The whole idea. In five minutes.
         </h1>
         <p
           style={{
