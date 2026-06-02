@@ -22,7 +22,7 @@ export default function BotPage() {
             marginBottom: 14,
           }}
         >
-          Someone called it bold? Let&apos;s check the proof.
+          Big claim. Let&apos;s see the <span className="accent">proof</span>.
         </h1>
         <p
           style={{

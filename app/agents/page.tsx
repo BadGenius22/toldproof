@@ -20,7 +20,7 @@ export default function AgentsPage() {
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
         >
-          Your agent calls it bold. We send back the proof.
+          Your agent calls it. We send the <span className="accent">proof</span>.
         </h1>
         <p
           style={{

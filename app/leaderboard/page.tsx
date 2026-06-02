@@ -58,9 +58,9 @@ export default async function LeaderboardPage() {
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
         >
-          Who called it bold.
+          Who talked.
           <br />
-          Who&apos;s got the <span className="accent">proof.</span>
+          Who&apos;s got <span className="accent">proof.</span>
         </h1>
         <p
           style={{
