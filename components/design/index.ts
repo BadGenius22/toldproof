@@ -32,5 +32,6 @@ export { LeaderboardPeek, type PeekRow } from './LeaderboardPeek';
 export { InlineBotPreview } from './InlineBotPreview';
 export { FinalCTA } from './FinalCTA';
 export { FaqItem } from './FaqItem';
+export { AgentLane } from './agent-lane/AgentLane';
 export * from './bitmaps';
 export * from './format';

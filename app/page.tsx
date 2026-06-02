@@ -28,6 +28,7 @@ import {
   InlineBotPreview,
   FinalCTA,
   FaqItem,
+  AgentLane,
   type PeekRow,
 } from '../components/design';
 import { getRegistrySnapshot, getSuiClientForReads } from '../lib/registry';
@@ -272,6 +273,10 @@ export default async function HomePage() {
               <AfterCard />
             </div>
           </div>
+
+          {/* AI agent lane — MCP + x402 round-trip terminal. Sits right after
+              "The difference" (owns its own mt-48). */}
+          <AgentLane />
 
           {/* For paid analysts — slim wedge linking to /for-analysts. */}
           <div className="mt-48">
