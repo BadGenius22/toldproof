@@ -22,7 +22,7 @@ export default function BotPage() {
             marginBottom: 14,
           }}
         >
-          Verify any &quot;I called it&quot; tweet.
+          Big claim. Let&apos;s see the <span className="accent">proof</span>.
         </h1>
         <p
           style={{

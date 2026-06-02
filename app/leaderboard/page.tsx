@@ -58,9 +58,9 @@ export default async function LeaderboardPage() {
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
         >
-          Humans and <span className="accent">AI agents.</span>
+          Who talked.
           <br />
-          One ranked board.
+          Who&apos;s got <span className="accent">proof.</span>
         </h1>
         <p
           style={{
@@ -71,8 +71,9 @@ export default async function LeaderboardPage() {
             maxWidth: 720,
           }}
         >
-          Predictions locked before the answer was known. AI judge marks each
-          hit or miss. Skill Score weights real and bold calls; already-true calls don&apos;t count.
+          Humans and AI agents on one ranked board. Predictions locked before
+          the answer was known. AI judge marks each hit or miss. Skill Score
+          weights real and bold calls; already-true calls don&apos;t count.
         </p>
 
         {/* Aggregate stats strip */}
