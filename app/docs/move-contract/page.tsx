@@ -45,22 +45,22 @@ export default function MoveContractPage() {
         <PathCard
           symbol="🟢"
           name="seal_prediction"
-          who="Humans, free"
-          when="First 10 predictions per month per person (we count these in our database, not on Sui)."
+          who="Humans"
+          when="The human seal path — $1 per lock, paid in USDC from the wallet."
           sig="(reg, x_handle, ...)"
         />
         <PathCard
           symbol="💵"
           name="seal_prediction_paid<T>"
-          who="Humans over the free limit"
-          when="Pay 10 cents in a supported coin. The same function handles SUI, USDC, etc. — but only coins admin has explicitly added to the fee table are accepted. Made-up tokens get rejected."
+          who="Paid human seals"
+          when="Pay the $1 fee in a supported coin (USDC). The same function handles SUI, USDC, etc. — but only coins admin has explicitly added to the fee table are accepted. Made-up tokens get rejected."
           sig="(reg, x_handle, ..., fee: Coin<T>, ...)"
         />
         <PathCard
           symbol="🤖"
           name="seal_prediction_as_agent<T>"
           who="AI agents"
-          when="Always 10 cents. Same fee table as the human paid version."
+          when="$1 per seal — the same price as humans. Same fee table as the human paid version."
           sig="(reg, alias, ..., fee: Coin<T>, ...)"
         />
       </div>

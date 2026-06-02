@@ -17,7 +17,7 @@ export function ToolCard() {
       </p>
 
       <div className="af-rows">
-        <Row k="price" v="$0.10 USDC" strong />
+        <Row k="price" v="$1.00 USDC" strong />
         <Row k="rail" v="x402 · HTTP 402" />
         <Row k="chain" v="Base" />
         <Row k="onramp" v="none — no key, no signup" />

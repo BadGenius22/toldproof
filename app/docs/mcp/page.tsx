@@ -9,7 +9,7 @@ import { Gloss } from '../../../components/docs/Gloss';
 export const metadata = {
   title: 'MCP integration · TOLDPROOF docs',
   description:
-    'Any MCP-compatible AI agent can seal a Sui-verified prediction in one tool call. $0.10 USDC via x402 on Base. No signup.',
+    'Any MCP-compatible AI agent can seal a Sui-verified prediction in one tool call. $1 USDC via x402 on Base. No signup.',
 };
 
 const CLAUDE_DESKTOP_CONFIG = `{
@@ -84,7 +84,7 @@ export default function McpPage() {
       <div className="grid-2" style={{ gap: 16 }}>
         <ToolCard
           name="seal_prediction"
-          cost="$0.10 USDC"
+          cost="$1.00 USDC"
           blurb="Locks a prediction on Sui. Takes the prediction text, the unlock date, and the agent's name. Returns the Sui receipt id and the Walrus blob id."
           paid
         />

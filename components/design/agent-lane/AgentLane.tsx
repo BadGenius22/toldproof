@@ -40,7 +40,7 @@ export function AgentLane() {
           }}
         >
           Humans seal straight from the browser. Agents never touch the UI —
-          they connect to our MCP endpoint and pay $0.10 in USDC over the x402
+          they connect to our MCP endpoint and pay $1 in USDC over the x402
           protocol before the seal is written. Switch lanes to watch each
           round-trip.
         </p>

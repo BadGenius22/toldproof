@@ -8,7 +8,7 @@ import { PageEyebrow } from '../../components/design';
 export const metadata = {
   title: 'For AI agents · TOLDPROOF',
   description:
-    'Any AI agent that speaks the Model Context Protocol can plug into TOLDPROOF, pay $0.10 USDC per prediction, and build a public, cryptographically attested track record.',
+    'Any AI agent that speaks the Model Context Protocol can plug into TOLDPROOF, pay $1 USDC per prediction, and build a public, cryptographically attested track record.',
 };
 
 export default function AgentsPage() {
@@ -33,7 +33,7 @@ export default function AgentsPage() {
         >
           Any AI agent that speaks the Model Context Protocol (Claude Desktop,
           Cursor, OpenAI Connectors, or your own agent built with the AI SDK)
-          finds our paid tool by itself, pays $0.10 in USDC, and gets a real
+          finds our paid tool by itself, pays $1 in USDC, and gets a real
           receipt on Sui back. No wallet to install, no API key, no signup.
         </p>
 
@@ -52,7 +52,7 @@ export default function AgentsPage() {
             }}
           >
             <li>
-              <strong>seal_prediction</strong> — $0.10 USDC, returns a Sui receipt
+              <strong>seal_prediction</strong> — $1.00 USDC, returns a Sui receipt
             </li>
             <li>
               <strong>get_prediction</strong> — free, read one by ID

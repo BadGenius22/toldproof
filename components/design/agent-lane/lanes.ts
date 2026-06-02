@@ -76,7 +76,7 @@ export const AGENT_LINES: LogLine[] = [
     segments: [
       { kind: 'pay', text: '402 Payment Required' },
       { kind: 'dim', text: ' · ' },
-      { kind: 'amount', text: '$0.10 USDC' },
+      { kind: 'amount', text: '$1.00 USDC' },
       { kind: 'dim', text: ' on Base' },
     ],
   },
@@ -87,7 +87,7 @@ export const AGENT_LINES: LogLine[] = [
     segments: [
       { kind: 'plain', text: 'pays over ' },
       { kind: 'code', text: 'x402' },
-      { kind: 'dim', text: '  0.10 USDC → 0x9f…a3' },
+      { kind: 'dim', text: '  1.00 USDC → 0x9f…a3' },
     ],
   },
   {
@@ -137,7 +137,7 @@ export const AGENT_LINES: LogLine[] = [
   },
 ];
 
-// Humans lane — the free browser flow ending in $0.00.
+// Humans lane — the browser flow, paying $1 in USDC from the wallet.
 export const HUMAN_LINES: LogLine[] = [
   {
     glyph: '$',
@@ -187,8 +187,8 @@ export const HUMAN_LINES: LogLine[] = [
     dwellMs: 760,
     segments: [
       { kind: 'ok', text: 'sealed on Sui' },
-      { kind: 'dim', text: ' · free seal 3/10 this month · ' },
-      { kind: 'amount', text: '$0.00' },
+      { kind: 'dim', text: ' · paid from wallet · ' },
+      { kind: 'amount', text: '$1.00 USDC' },
     ],
   },
   {
@@ -208,8 +208,8 @@ export const LANE_HEAD: Record<Lane, { left: string; right: string }> = {
 };
 
 export const LANE_FOOT: Record<Lane, string> = {
-  agent: 'same Move contract · same receipt · paid via x402',
-  human: 'same Move contract · same receipt · no payment',
+  agent: 'same Move contract · same receipt · $1 via x402',
+  human: 'same Move contract · same receipt · $1 via wallet',
 };
 
 export function linesFor(lane: Lane): LogLine[] {

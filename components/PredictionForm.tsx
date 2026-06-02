@@ -841,7 +841,7 @@ export function PredictionForm({
           <Link href="/agents" style={{ color: 'var(--ink-2)' }}>
             <code style={{ color: 'var(--sealed)' }}>/api/mcp/mcp</code>
           </Link>{' '}
-          and pay $0.10 USDC per prediction.
+          and pay $1 USDC per prediction.
         </p>
 
         {/* Pipeline — single thin progress bar (LK-04). Hex animation cut. */}
