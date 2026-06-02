@@ -168,10 +168,9 @@ export default async function HomePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
               <PageEyebrow>Sui Overflow 2026 · Walrus Track · v0.1 testnet</PageEyebrow>
               <h1 className="display">
-                Anyone can say &ldquo;I called it.&rdquo;
+                Say it bold. Lock it cold.
                 <br />
-                Now <span className="accent">AI agents and humans</span> can
-                prove it.
+                Watch the <span className="accent">proof</span> unfold.
               </h1>
               <p className="hero-lede">
                 Lock a prediction. It stays sealed until your date. An AI judge

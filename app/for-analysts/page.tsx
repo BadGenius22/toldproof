@@ -25,7 +25,7 @@ export default async function ForAnalystsPage() {
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12, maxWidth: 760 }}
         >
-          Your hit rate is just a screenshot. We turn it into proof.
+          A screenshot&apos;s easy to spoof. We turn your hit rate into proof.
         </h1>
         <p
           style={{
