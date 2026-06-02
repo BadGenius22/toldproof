@@ -70,14 +70,15 @@ export function MiniBox({
 // ─── 01 · MiniLockDemo — plaintext encrypts char-by-char ───────────────
 
 export function MiniLockDemo() {
-  const [revealed, setRevealed] = useState(LOCK_TEXT.length);
+  // Start at 0 (all plaintext) so the server and first client render are
+  // identical — randHex() (Math.random) only runs once revealed > 0, which
+  // happens client-side in the effect below. Starting full-length would
+  // scramble every char on the SSR render and mismatch on hydration.
+  const [revealed, setRevealed] = useState(0);
   const step = useRef(0);
 
   useEffect(() => {
     if (prefersReducedMotion()) return;
-    // Reset to the animation start (SSR rendered the finished state).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRevealed(0);
     const id = window.setInterval(() => {
       step.current = (step.current + 1) % (LOCK_TEXT.length + 8);
       setRevealed(Math.min(LOCK_TEXT.length, step.current));

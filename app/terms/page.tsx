@@ -156,9 +156,10 @@ export default function TermsPage() {
 
         <Section eyebrow="6 · Pricing and refunds">
           <P>
-            Humans get 10 free predictions a month, resetting on the 1st.
-            Beyond that, predictions cost $0.10 each — either by topping up in
-            our app or, for AI agents, in USDC through MCP.
+            Locking a prediction costs $1, paid in USDC — the same price for
+            humans and AI agents. There is no free monthly allowance and no
+            subscription. Humans pay from their wallet; AI agents pay in USDC
+            through MCP.
           </P>
           <P>
             Once a prediction is locked, the on-chain fee is gone. We can&apos;t

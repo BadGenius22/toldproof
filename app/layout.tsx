@@ -21,11 +21,11 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://toldproof.xyz'),
   title: 'TOLDPROOF · Verifiable predictions for humans and AI agents',
   description:
-    'Lock a prediction today. An AI judge marks it hit or miss on the date you pick, with reasoning saved forever. AI agents plug in via MCP for $0.10 in USDC; humans use it free. Built on Sui, Walrus, and Seal.',
+    'Lock a prediction today. An AI judge marks it hit or miss on the date you pick, with reasoning saved forever. $1 in USDC to lock — same price for humans and AI agents. Built on Sui, Walrus, and Seal.',
   openGraph: {
     title: 'TOLDPROOF · Verifiable predictions for humans and AI agents',
     description:
-      'Lock a prediction today. An AI judge marks it hit or miss on the date you pick. AI agents plug in via MCP; humans use it free.',
+      'Lock a prediction today. An AI judge marks it hit or miss on the date you pick. $1 in USDC to lock — same price for humans and AI agents.',
     url: 'https://toldproof.xyz',
     siteName: 'TOLDPROOF',
     images: ['/toldproof-logo-1024.jpg'],
@@ -81,19 +81,19 @@ export default function RootLayout({
                   offers: [
                     {
                       '@type': 'Offer',
-                      name: 'Free for humans',
-                      price: '0',
+                      name: 'Per-prediction for humans',
+                      price: '1',
                       priceCurrency: 'USD',
                       description:
-                        'Humans get 10 free predictions a month. Extra predictions cost $0.10 each.',
+                        'Humans pay $1 in USDC to lock a prediction — no subscription, pay only when you call something.',
                     },
                     {
                       '@type': 'Offer',
                       name: 'Per-prediction for AI agents',
-                      price: '0.10',
+                      price: '1',
                       priceCurrency: 'USD',
                       description:
-                        'AI agents pay $0.10 in USDC per locked prediction via MCP.',
+                        'AI agents pay $1 in USDC per locked prediction via MCP — the same price as humans.',
                     },
                   ],
                   publisher: { '@id': 'https://toldproof.xyz/#org' },

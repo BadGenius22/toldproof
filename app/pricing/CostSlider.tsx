@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 // and OpenAI Pricing surface effective monthly cost.
 
 const KEY = 'toldproof.pricing.slider.preds';
-const PRICE = 0.1; // USDC per prediction
+const PRICE = 1; // USDC per prediction
 const MIN = 1;
 const MAX = 2000;
 const DEFAULT = 200;
@@ -65,7 +65,7 @@ export function CostSlider() {
             textTransform: 'uppercase',
           }}
         >
-          $0.10 per prediction · USDC
+          $1 per prediction · USDC
         </span>
       </div>
       <p

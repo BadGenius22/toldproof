@@ -1,11 +1,11 @@
-// Pricing page — three-tier primary row + add-ons.
-// People Free (10/mo) → People Pro ($9/mo, waitlist) → AI Agents ($0.10/seal).
+// Pricing page — two-tier primary row + add-ons.
+// Humans $1/lock + AI Agents $1/lock — same price, two doors (wallet vs MCP/x402).
 // Add-ons row: three-judge mode (per-call) + Reputation API (B2B waitlist).
 //
-// Single on-chain price for both humans and agents ($0.10). The 10/mo free
-// quota for humans is enforced off-chain via DB; overage uses the same paid
-// path agents use (seal_prediction_paid<T> in Move). One price oracle, no
-// arbitrage between roles.
+// Humans pay $1 in USDC from the wallet; agents pay $1 in USDC via x402. NOTE: the
+// $1 price is shown here but not yet enforced on-chain — the /lock flow still
+// calls the free seal_prediction entry. Wiring the charge (split + transfer USDC
+// inside the seal PTB) is a separate, deferred change.
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -14,7 +14,6 @@ import {
   EntityBadge,
   PageEyebrow,
   PixelMark,
-  STARBURST_MARK,
   BIG_SEAL,
   BRAND_MARK,
 } from '../../components/design';
@@ -22,7 +21,7 @@ import { CostSlider } from './CostSlider';
 import { WaitlistForm } from '../../components/WaitlistForm';
 
 interface PrimaryTier {
-  id: 'human' | 'pro' | 'agent';
+  id: 'human' | 'agent';
   audience: string;
   price: string;
   priceSub: string;
@@ -34,7 +33,7 @@ interface PrimaryTier {
   highlight?: boolean;
   // Upgrade-path emphasis (left corner). Per 2025 SaaS UX research,
   // pricing pages without a visually-highlighted "Recommended" tier
-  // convert 22% worse. Applied to the Pro tier as the upsell target from Free.
+  // convert 22% worse. Applied to the Humans tier as the page's primary path.
   recommended?: boolean;
 }
 
@@ -51,45 +50,28 @@ interface AddOn {
 const PRIMARY: PrimaryTier[] = [
   {
     id: 'human',
-    audience: 'Humans · Free',
-    price: '$0',
-    priceSub: '10 predictions / month',
+    audience: 'Humans · Pay as you go',
+    price: '$1',
+    priceSub: 'per locked prediction · USDC',
     pitch:
       'For traders, analysts, and anyone who calls things on X. Build a track record nobody can fake.',
     features: [
-      '10 locked predictions every month',
-      'Resets the 1st of each month',
+      'Pay $1 to lock a prediction — in USDC from your wallet',
+      'No subscription, no monthly fee — pay only when you call something',
       'Our AI judge marks every outcome',
       'Full reasoning saved on Walrus, public',
       'Public profile page and leaderboard rank',
-      'Need more? Pay $0.10 per extra prediction',
+      'Same $1 price as AI agents — one shared leaderboard',
     ],
     cta: { label: 'Lock a prediction →', href: '/lock' },
-    // Recommended flag moved off Pro (P0-10) — Pro's CTA is disabled, so it
-    // can't be the page's primary anchor. Free is the path to take today.
+    // Pay-as-you-go is the default path for a new human, so it carries the
+    // page's primary "Start here" anchor (Pro's CTA is just a waitlist).
     recommended: true,
-  },
-  {
-    id: 'pro',
-    audience: 'Humans · Pro',
-    price: '$9',
-    priceSub: 'per month · waitlist',
-    pitch:
-      'For paid newsletters and creators who want their track record working for them.',
-    features: [
-      '100 predictions / month included',
-      'Embed your hit rate in Substack or Beehiiv as one iframe',
-      'Subscriber-only private picks',
-      'Per-topic accuracy (crypto, sports, politics, tech)',
-      'PDF reports of every call for your subscribers',
-      'Analyst badge on your profile',
-    ],
-    cta: { label: 'Join the Pro waitlist', href: '#' },
   },
   {
     id: 'agent',
     audience: 'AI Agents',
-    price: '$0.10',
+    price: '$1',
     priceSub: 'per locked prediction · USDC',
     pitch:
       'For any AI agent. Pay-as-you-go in USDC. No wallet to install, no API keys, no signup.',
@@ -110,8 +92,8 @@ const ADDONS: AddOn[] = [
   {
     id: 'consensus',
     name: 'Three-judge mode',
-    price: '$0.50',
-    priceSub: 'per prediction · pay only when you use it',
+    price: '$2',
+    priceSub: 'all-in per prediction · pay only when you use it',
     pitch:
       'Upgrade one prediction to three AI judges in parallel when the answer really matters.',
     features: [
@@ -125,15 +107,15 @@ const ADDONS: AddOn[] = [
   {
     id: 'reputation-api',
     name: 'Reputation API',
-    price: '$99',
-    priceSub: 'per month · waitlist',
+    price: 'from $99',
+    priceSub: 'per month · tiered · waitlist',
     pitch:
       'For agent marketplaces, funds, and anyone who needs to know which agents to trust.',
     features: [
-      'Top-100 list of humans + AI agents, ranked, in JSON',
-      'Webhooks when ranks change or new outcomes settle',
-      'Set a minimum score — only top agents reach your tools',
-      'Filter by topic (crypto, sports, politics, tech)',
+      'Free read tier — top-100 leaderboard in JSON, low rate limit',
+      '$99/mo Developer — full top-100, ranked, higher limits',
+      '$499/mo Pro — webhooks, min-score gating, topic filters',
+      'Enterprise — SLA, bulk history, white-label (contact us)',
     ],
     cta: { label: 'Join the Reputation API waitlist', href: '#' },
   },
@@ -148,9 +130,9 @@ export default function PricingPage() {
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
         >
-          10 predictions free.
+          <span className="accent">$1</span> a prediction.
           <br />
-          <span className="accent">$0.10</span> after that.
+          Pay only when you lock one.
         </h1>
         <p
           style={{
@@ -161,8 +143,9 @@ export default function PricingPage() {
             maxWidth: 720,
           }}
         >
-          10 free predictions a month for humans, then $0.10 each. AI agents
-          pay $0.10 from the first prediction. Same price for everyone.
+          $1 to lock a prediction — in USDC, straight from your wallet. Same
+          price whether you&apos;re a human or an AI agent. No subscription, no
+          monthly fee: you pay only when you call something.
         </p>
 
 {/* B2B callout moved to the page footer (PC-06). */}
@@ -305,8 +288,8 @@ export default function PricingPage() {
                 }}
               >
                 Embed widget at{' '}
-                <code className="mono">/badge/[handle]</code> ships with
-                Humans · Pro — drop one iframe into your Substack and your
+                <code className="mono">/badge/[handle]</code> comes with your
+                public profile — drop one iframe into your Substack and your
                 live hit rate updates by itself.
               </p>
             </div>
@@ -327,17 +310,18 @@ export default function PricingPage() {
               maxWidth: 720,
             }}
           >
-            We cover the AI judge cost on your first 10 predictions a month —
-            a busy leaderboard is what makes the product worth using. After
-            that, $0.10 (about 5× our cost) keeps the protocol funded without
-            being expensive for any one user.
+            Most of your $1 goes to the AI judge that settles your call — the
+            web searches, the reasoning, and the permanent record on Walrus.
+            The margin on top is the point: it keeps the protocol running and
+            keeps fake or throwaway entries off the leaderboard, so every score
+            means something.
           </p>
         </div>
 
         <div className="mt-48 row" style={{ gap: 12, flexWrap: 'wrap' }}>
           <Link href="/lock" className="btn">
             <PixelMark bitmap={BRAND_MARK} size={14} color="var(--paper)" />
-            Start free →
+            Lock a prediction →
           </Link>
           <Link href="/bot" className="btn ghost">
             See the verify bot
@@ -476,8 +460,6 @@ function CostReceipt() {
 
 function TierIcon({ id }: { id: PrimaryTier['id'] }) {
   if (id === 'agent') return <EntityBadge entityType={1} variant="sm" />;
-  if (id === 'pro')
-    return <PixelMark bitmap={STARBURST_MARK} size={18} color="var(--sealed)" />;
   return <EntityBadge entityType={0} variant="sm" />;
 }
 
@@ -599,13 +581,7 @@ function PrimaryCard({ tier }: { tier: PrimaryTier }) {
       </ul>
 
       <div style={{ marginTop: 8 }}>
-        {tier.id === 'pro' ? (
-          <WaitlistForm
-            tier="pro"
-            label="Join the Pro waitlist"
-            variant="primary"
-          />
-        ) : tier.cta.disabled ? (
+        {tier.cta.disabled ? (
           <button
             type="button"
             className="btn ghost"

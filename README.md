@@ -24,17 +24,17 @@ TOLDPROOF becomes that benchmark. Three components:
 | ---------------------------------------------------------------- | ---------------------- | ----------------------------------------------------------------- |
 | 🔐 Time-locked prediction sealing                                | ✅ live on Sui testnet | `/lock`                                                           |
 | 🆔 X OAuth handle binding (anti-squat)                           | ✅ live                | topbar "Sign in with X"                                           |
-| 📦 10 free predictions / month per human, paid overage at $0.10  | ✅ live                | enforced at `/api/seal/preflight`                                 |
+| 💵 $1 per lock — same for humans + AI agents (humans free on testnet)  | ✅ live                | enforced at `/api/seal/preflight`                                 |
 | 🐦 Auto-tweet on seal (opt-in)                                   | ✅ live                | "tweet on seal" checkbox                                          |
 | 🤝 Squat-recovery via tweet attestation                          | ✅ live                | `<ReleaseFlow>` modal                                             |
 | 🏷️ "✓ X verified" pill on profile pages                          | ✅ live                | `/[handle]`                                                       |
 | 🔍 Self-serve verify (paste tweet URL → defamation-safe verdict) | ✅ live                | `/bot`                                                            |
 | 🤖 Autonomous `@toldproof verify` mention bot                    | 🟡 wired, dormant      | activates with X API Basic tier upgrade                           |
-| 🤖 MCP + x402 payments for AI agents                             | ✅ live                | `/api/mcp/mcp` · `seal_prediction` $0.10 USDC on Base             |
+| 🤖 MCP + x402 payments for AI agents                             | ✅ live                | `/api/mcp/mcp` · `seal_prediction` $1 USDC on Base             |
 | 👥 Multi-agent consensus resolver                                | ✅ live                | `RESOLUTION_AGENT_MODE=consensus`                                 |
 | 🚀 Demo agent fleet (4 sovereign agents, every 6h)               | ✅ live                | `/api/cron/agent-fleet`                                           |
 | 🧠 Versioned Walrus reputation profiles                          | ✅ live                | `/api/cron/reputation`, on-chain `ReputationProfileUpdated` event |
-| 💵 Unified $0.10 pricing for humans + agents                     | ✅ live                | one `Registry.fees<T>` table, both paths read it                  |
+| 💵 Unified $1 pricing — humans + AI agents, same price           | ✅ live                | one model, two doors — in-wallet USDC (humans) vs x402 (agents)   |
 | 🔭 Wallet provenance footer (lists every alias per wallet)        | ✅ live                | `<WalletProvenance>` on `/[handle]`                               |
 | 🧮 Wallet-aggregate Skill Score (Wilson lower bound on the sum)   | ✅ live                | `/leaderboard` By-wallet tab + `/api/wallet/[publisher]/stats`    |
 | ⏳ 180-day recency half-life on every contribution                | ✅ live                | `recencyWeight()` in `lib/leaderboard.ts`                         |
@@ -132,8 +132,8 @@ graph TB
 
 Three seal paths, all ending at the same shared `SealedPrediction`:
 
-- 🟢 `seal_prediction(reg, x_handle, ...)` — humans, free (first 10/month, enforced off-chain)
-- 💵 `seal_prediction_paid<T>(reg, x_handle, ..., fee: Coin<T>, ...)` — humans over quota, paid in any registered coin type
+- 🟢 `seal_prediction(reg, x_handle, ...)` — humans; free, permissionless entry (testnet — the $1 product price is collected off-chain, not yet wired on-chain)
+- 💵 `seal_prediction_paid<T>(reg, x_handle, ..., fee: Coin<T>, ...)` — paid human seals, fee in any registered coin type
 - 🤖 `seal_prediction_as_agent<T>(reg, alias, ..., fee: Coin<T>, ...)` — agents, paid (same fee table as the human paid path)
 
 Three roles on `Registry`:
@@ -204,7 +204,7 @@ const result = await generateText({
 });
 ```
 
-The agent gets 5 tools — one paid (`seal_prediction` @ $0.10 USDC via x402 on Base), four free (`get_prediction`, `list_predictions`, `get_leaderboard`, `verify_claim`).
+The agent gets 5 tools — one paid (`seal_prediction` @ $1 USDC via x402 on Base), four free (`get_prediction`, `list_predictions`, `get_leaderboard`, `verify_claim`).
 
 **Runnable end-to-end demo**: `pnpm tsx --env-file=.env.local scripts/test-mcp-agent.ts` — connects to prod, hands the tools to Claude, lets it pick which to call, prints the step-by-step trace + final answer. Pass a custom prompt as `argv[2]`. Needs `AI_GATEWAY_API_KEY` set.
 

@@ -8,6 +8,16 @@
 
 export function ThemeScript() {
   const js = `(function(){try{var v=localStorage.getItem('tp_theme');if(v==='dark'){document.documentElement.classList.add('dark');}}catch(e){}})();`;
-  // suppressHydrationWarning because we mutate <html> here on the client.
-  return <script dangerouslySetInnerHTML={{ __html: js }} suppressHydrationWarning />;
+  // type=text/javascript on the server so the browser runs it synchronously
+  // before first paint; text/plain on the client so React doesn't warn that a
+  // <script> in the tree won't execute (and the browser won't re-run it).
+  // suppressHydrationWarning covers the resulting type attribute mismatch.
+  // See: nextjs.org/docs preventing-flash-before-hydration (InlineScript).
+  return (
+    <script
+      type={typeof window === 'undefined' ? 'text/javascript' : 'text/plain'}
+      dangerouslySetInnerHTML={{ __html: js }}
+      suppressHydrationWarning
+    />
+  );
 }

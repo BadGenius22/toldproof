@@ -2566,52 +2566,355 @@ h2.section {
   }
 }
 
-/* ─── Topbar "More" dropdown ────────────────────────────────────────────
-   Collapses the secondary nav items (Check bot, Pricing, Docs, Brand)
-   behind a single "More" trigger. The trigger inherits .nav-row button
-   styling; only the panel + caret need rules here. */
+/* ─── AI agent lane — MCP + x402 terminal (components/design/agent-lane) ─────
+   Animated terminal + side card contrasting the agent (MCP/x402) and human
+   (browser) seal flows. Tokens already invert in dark mode; only a couple of
+   accent foregrounds need a dark lift for AA on the dark log surface. */
 
-.topbar-more {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
+@keyframes af-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.topbar-more-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.topbar-more-caret {
-  font-size: 9px;
-  line-height: 1;
-}
-
-.topbar-more-panel {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
-  z-index: 60;
+.af-head {
   display: flex;
   flex-direction: column;
-  min-width: 168px;
-  padding: 6px;
-  background: var(--paper);
-  border: 1px solid var(--ink);
+  gap: 14px;
+}
+
+/* lane toggle — segmented control, AI-agents lane is the default */
+.af-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  width: 100%;
+  max-width: 460px;
+  margin-top: 4px;
+  padding: 3px;
+  border: 1px solid var(--border);
   border-radius: 4px;
-  box-shadow: 4px 4px 0 var(--ink);
+  background: var(--paper-2);
 }
-
-.topbar-more-panel a {
-  padding: 8px 10px;
+.af-toggle button {
+  background: transparent;
+  border: none;
+  padding: 9px 12px;
   border-radius: 3px;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  transition: background 0.12s, color 0.12s;
+}
+.af-toggle button:hover {
+  color: var(--ink);
+}
+.af-toggle button.active {
+  background: var(--ink);
+  color: var(--paper);
+}
+.dark .af-toggle button {
+  color: var(--ink-2);
+}
+.dark .af-toggle button.active {
+  color: var(--paper);
 }
 
-.topbar-more-panel a:hover {
-  background: var(--paper-2);
+/* two-column grid: terminal (1.5fr) + side card (1fr), stacks at <=860px */
+.af-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .af-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-.topbar-more-panel a.active {
+/* shared card chrome — the receipt "hard shadow" */
+.af-card-chrome {
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  background: var(--paper);
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+/* terminal */
+.af-terminal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.af-term-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 14px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.af-term-head .af-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.af-term-head .af-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--verified);
+}
+.af-term-head.running .af-dot {
+  background: var(--sealed);
+  animation: pulse-led 1.4s ease-in-out infinite;
+}
+.af-term-endpoint {
+  color: var(--muted-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.af-term-body {
   background: var(--paper-2);
+  padding: 14px 16px;
+  min-height: 312px;
+  font-family: var(--font-mono), monospace;
+  font-size: 13.5px;
+  line-height: 1.45;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+@media (max-width: 480px) {
+  .af-term-body {
+    font-size: 12px;
+    min-height: 300px;
+  }
+}
+
+.af-line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  animation: af-line-in 0.26s ease-out both;
+  overflow-wrap: anywhere;
+}
+.af-glyph {
+  width: 1.1em;
+  flex-shrink: 0;
+  text-align: center;
+}
+.af-glyph-in {
+  color: var(--ink-3);
+}
+.af-glyph-ok {
+  color: oklch(0.55 0.13 150);
+}
+.af-glyph-pay {
+  color: oklch(0.5 0.13 70);
+}
+.af-glyph-seal {
+  color: var(--sealed);
+}
+.af-glyph-muted {
+  color: var(--muted);
+}
+.af-line-content {
+  min-width: 0;
+}
+
+/* segment kinds */
+.af-seg-plain {
+  color: var(--ink-2);
+}
+.af-seg-dim {
+  color: var(--muted);
+}
+.af-seg-ok {
+  color: oklch(0.55 0.13 150);
+  font-weight: 500;
+}
+.af-seg-pay {
+  color: oklch(0.5 0.13 70);
+  font-weight: 600;
+}
+.af-seg-amount {
+  color: var(--ink);
+  font-weight: 600;
+}
+.af-seg-seal {
+  color: var(--ink);
+  font-weight: 600;
+}
+.af-seg-code {
+  font-family: var(--font-mono), monospace;
+  background: var(--paper-3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+.af-seg-hash {
+  font-family: var(--font-mono), monospace;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 3px;
+  padding: 2px 6px;
+}
+
+/* dark lift — the light-tuned green/amber lose contrast on the dark log bg */
+.dark .af-seg-ok,
+.dark .af-glyph-ok {
+  color: var(--verified-text);
+}
+.dark .af-seg-pay,
+.dark .af-glyph-pay {
+  color: var(--sealed-text);
+}
+.dark .af-glyph-seal {
+  color: var(--sealed-text);
+}
+
+.af-cursor {
+  display: inline-block;
+  margin-left: 1px;
+  color: var(--ink-3);
+  animation: blink 1s step-end infinite;
+}
+
+.af-term-foot {
+  border-top: 1px dashed var(--border);
+  padding: 8px 14px;
+  background: var(--paper);
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+/* side cards (ToolCard / HumanNote) */
+.af-side {
+  padding: 18px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.af-side-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.af-chip {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--sealed);
+  background: var(--sealed-soft);
+  color: var(--sealed-text);
+  white-space: nowrap;
+}
+.af-chip-neutral {
+  border-color: var(--border);
+  background: var(--paper-2);
+  color: var(--ink-3);
+}
+.af-pill {
+  align-self: flex-start;
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  background: var(--paper-3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 4px 10px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.af-side-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-3);
+}
+.af-rows {
+  display: grid;
+  border-top: 1px dashed var(--border);
+}
+.af-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--border);
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+}
+.af-row-k {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.af-row-v {
+  color: var(--ink-2);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.af-row-v.strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.af-callout {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--ink-3);
+  background: var(--paper-2);
+  border: 1px dashed var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+.af-callout strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .af-line {
+    animation: none;
+  }
+  .af-cursor {
+    animation: none;
+    display: none;
+  }
 }

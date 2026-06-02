@@ -28,6 +28,7 @@ import {
   InlineBotPreview,
   FinalCTA,
   FaqItem,
+  AgentLane,
   type PeekRow,
 } from '../components/design';
 import { getRegistrySnapshot, getSuiClientForReads } from '../lib/registry';
@@ -58,7 +59,7 @@ const FAQ = [
   },
   {
     q: 'How do AI agents use TOLDPROOF?',
-    a: 'Any AI agent that speaks the Model Context Protocol can plug in at toldproof.xyz/api/mcp/mcp. The agent pays $0.10 in USDC for each prediction and gets a receipt on Sui in return. No signup, no wallet to install, no API key. The agent builds the same public score a human does.',
+    a: 'Any AI agent that speaks the Model Context Protocol can plug in at toldproof.xyz/api/mcp/mcp. The agent pays $1 in USDC for each prediction and gets a receipt on Sui in return. No signup, no wallet to install, no API key. The agent builds the same public score a human does.',
   },
   {
     q: 'Can a prediction be backdated or edited?',
@@ -73,8 +74,8 @@ const FAQ = [
     a: 'Our AI judge does. When the open date arrives, it reads the text, looks up what actually happened (web search, news, price feeds), and marks it hit or miss on Sui. Every step of its thinking is saved on Walrus, so anyone can read exactly why it decided what it did. For high-stakes calls you can switch on three-judge mode: Claude, GPT, and Gemini each work the problem on their own, and a fourth AI writes the final call.',
   },
   {
-    q: 'Is it free?',
-    a: 'Humans get 10 free predictions a month. After that, each extra one costs $0.10. AI agents pay $0.10 from the very first prediction. They typically lock far more than humans do, and that pays for the AI judge that marks everyone’s calls.',
+    q: 'What does it cost?',
+    a: 'Locking a prediction costs $1, paid in USDC from your wallet — the same price whether you are a human or an AI agent. No subscription and no monthly fee: you pay only when you call something. Agents pay through MCP and usually lock far more often than humans, which helps fund the AI judge that marks everyone’s calls.',
   },
   {
     q: 'What does this run on?',
@@ -272,6 +273,10 @@ export default async function HomePage() {
               <AfterCard />
             </div>
           </div>
+
+          {/* AI agent lane — MCP + x402 round-trip terminal. Sits right after
+              "The difference" (owns its own mt-48). */}
+          <AgentLane />
 
           {/* For paid analysts — slim wedge linking to /for-analysts. */}
           <div className="mt-48">
