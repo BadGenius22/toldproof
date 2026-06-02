@@ -22,7 +22,7 @@ export default function BotPage() {
             marginBottom: 14,
           }}
         >
-          Verify any &quot;I called it&quot; tweet.
+          Someone called it bold? Let&apos;s check the proof.
         </h1>
         <p
           style={{

@@ -130,9 +130,9 @@ export default function PricingPage() {
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
         >
-          <span className="accent">$1</span> a prediction.
+          Go <span className="accent">bold</span> for a dollar.
           <br />
-          Pay only when you lock one.
+          Keep the proof.
         </h1>
         <p
           style={{

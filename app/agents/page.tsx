@@ -20,7 +20,7 @@ export default function AgentsPage() {
           className="display"
           style={{ fontSize: 'clamp(34px, 5vw, 56px)', marginTop: 12 }}
         >
-          Plug us in. Your agent pays. Done.
+          Your agent calls it bold. We send back the proof.
         </h1>
         <p
           style={{
